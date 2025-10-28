@@ -677,155 +677,175 @@ RC SysFuncExpr::get_func_round_value(const Tuple &tuple, Value &value) const
   }
   return RC::SUCCESS;
 }
+///////////
 
 RC SysFuncExpr::get_func_data_format_value(const Tuple &tuple, Value &value) const
 {
-  auto &date_expr = params_[0];
-  auto &format_expr = params_[1];
-  Value date_expr_cell;
-  Value format_expr_cell;
-  date_expr->get_value(tuple, date_expr_cell);
-  format_expr->get_value(tuple, format_expr_cell);
-  if (date_expr_cell.attr_type() != DATES) {
-    return RC::INTERNAL;
-  }
-  if (format_expr_cell.attr_type() != CHARS) {
-    return RC::INTERNAL;
-  }
-  int cell_date = date_expr_cell.get_int();
-  const char *cell_format_chars = format_expr_cell.data();
-
-  std::string result_date_str;
-  int year = cell_date / 10000;
-  int month = (cell_date / 100) % 100;
-  int day = cell_date % 100;
-  for (size_t i = 0; i < strlen(cell_format_chars); i++) {
-    // A ~ z
-    if (65 <= cell_format_chars[i] && cell_format_chars[i] <= 122) {
-      switch (cell_format_chars[i]) {
-        case 'Y': {
-          char tmp[8];
-          sprintf(tmp, "%d", year);
-          result_date_str += tmp;
-          break;
-        }
-        case 'y': {
-          char tmp[6];
-          sprintf(tmp, "%d", year % 100);
-          if (0 <= (year % 100) && (year % 100) <= 9) {
-            result_date_str += "0";
-          }
-          result_date_str += tmp;
-          break;
-        }
-        case 'M': {
-          if (month <= 0 || month > 12) {
-            return RC::INTERNAL;
-          }
-          result_date_str += month_name[month];
-          break;
-        }
-        case 'm': {
-          char tmp[4];
-          sprintf(tmp, "%d", month);
-          if (0 <= month && month <= 9) {
-            result_date_str += "0";
-          }
-          result_date_str += tmp;
-          break;
-        }
-        case 'D': {
-          char tmp[4];
-          sprintf(tmp, "%d", day);
-          result_date_str += tmp;
-          if (11 <= day && day <= 13) {
-            result_date_str += "th";
-          } else {
-            switch (day % 10) {
-              case 1: {
-                result_date_str += "st";
-                break;
-              }
-              case 2: {
-                result_date_str += "nd";
-                break;
-              }
-              case 3: {
-                result_date_str += "rd";
-                break;
-              }
-              default: {
-                result_date_str += "th";
-                break;
-              }
-            }
-          }
-          break;
-        }
-        case 'd': {
-          char tmp[4];
-          sprintf(tmp, "%d", day);
-          if (0 <= day && day <= 9) {
-            result_date_str += "0";
-          }
-          result_date_str += tmp;
-          break;
-        }
-        default: {
-          result_date_str += cell_format_chars[i];
-          break;
-        }
-      }
-    } else if (cell_format_chars[i] != '%') {
-      result_date_str += cell_format_chars[i];
+    // 校验参数数量（理论上check_param_type_and_number已校验，此处二次确认）
+    if (params_.size() != 2) {
+        return RC::INVALID_ARGUMENT;
     }
-  }
-  value.set_string(result_date_str.c_str());
-  return RC::SUCCESS;
+
+    auto &date_expr = params_[0];
+    auto &format_expr = params_[1];
+    Value date_expr_cell;
+    Value format_expr_cell;
+
+    // 获取日期值和格式字符串
+    RC rc = date_expr->get_value(tuple, date_expr_cell);
+    if (rc != RC::SUCCESS) return rc;
+    rc = format_expr->get_value(tuple, format_expr_cell);
+    if (rc != RC::SUCCESS) return rc;
+
+    // 校验参数类型
+    if (date_expr_cell.attr_type() != DATES) {
+        return RC::INVALID_ARGUMENT; // 非日期类型
+    }
+    if (format_expr_cell.attr_type() != CHARS) {
+        return RC::INVALID_ARGUMENT; // 非字符串格式
+    }
+
+    // 日期值假设为YYYYMMDD格式的整数（如20231005）
+    int cell_date = date_expr_cell.get_int();
+    const char *cell_format = format_expr_cell.data();
+    if (cell_format == nullptr) {
+        return RC::INVALID_ARGUMENT; // 空格式字符串
+    }
+
+    // 解析年月日
+    int year = cell_date / 10000;
+    int month = (cell_date / 100) % 100;
+    int day = cell_date % 100;
+
+    // 校验日期合法性
+    if (year < 1 || year > 9999) { // 年份范围限制（示例）
+        return RC::INVALID_ARGUMENT;
+    }
+    if (month < 1 || month > 12) {
+        return RC::INVALID_ARGUMENT;
+    }
+    // 校验天数（简化版，可补充闰年逻辑）
+    int max_day = 31;
+    if (month == 4 || month == 6 || month == 9 || month == 11) {
+        max_day = 30;
+    } else if (month == 2) {
+        max_day = 28; // 如需支持闰年，可在此处补充判断
+    }
+    if (day < 1 || day > max_day) {
+        return RC::INVALID_ARGUMENT;
+    }
+
+    // 处理格式字符串（支持%Y、%m等标准格式符）
+    std::string result;
+    size_t format_len = strlen(cell_format);
+    for (size_t i = 0; i < format_len; ++i) {
+        if (cell_format[i] == '%' && (i + 1) < format_len) { // 格式符前缀%
+            char fmt = cell_format[++i]; // 取%后的字符作为格式符
+            switch (fmt) {
+                case 'Y': { // 四位数年份（如2023）
+                    char tmp[5]; // 4位数字 + \0
+                    snprintf(tmp, sizeof(tmp), "%04d", year);
+                    result += tmp;
+                    break;
+                }
+                case 'y': { // 两位数年份（如23）
+                    char tmp[3]; // 2位数字 + \0
+                    snprintf(tmp, sizeof(tmp), "%02d", year % 100);
+                    result += tmp;
+                    break;
+                }
+                case 'M': { // 月份全称（如January）
+                    result += month_name[month];
+                    break;
+                }
+                case 'm': { // 两位数月份（如03）
+                    char tmp[3];
+                    snprintf(tmp, sizeof(tmp), "%02d", month);
+                    result += tmp;
+                    break;
+                }
+                case 'D': { // 带后缀的日（如1st, 2nd）
+                    char tmp[4];
+                    snprintf(tmp, sizeof(tmp), "%d", day);
+                    result += tmp;
+                    // 处理后缀
+                    if (11 <= day && day <= 13) {
+                        result += "th";
+                    } else {
+                        switch (day % 10) {
+                            case 1: result += "st"; break;
+                            case 2: result += "nd"; break;
+                            case 3: result += "rd"; break;
+                            default: result += "th"; break;
+                        }
+                    }
+                    break;
+                }
+                case 'd': { // 两位数日（如05）
+                    char tmp[3];
+                    snprintf(tmp, sizeof(tmp), "%02d", day);
+                    result += tmp;
+                    break;
+                }
+                default: { // 不识别的格式符，直接输出原字符（如%x输出x）
+                    result += fmt;
+                    break;
+                }
+            }
+        } else { // 非格式符，直接拼接（包括单独的%）
+            result += cell_format[i];
+        }
+    }
+
+    // 设置结果（假设set_string会拷贝字符串，避免临时变量问题）
+    value.set_string(result.c_str());
+    return RC::SUCCESS;
 }
 
 RC SysFuncExpr::check_param_type_and_number() const
 {
-  RC rc = RC::SUCCESS;
-  switch (func_type_)
-  {
-    case SYS_FUNC_LENGTH:
+    RC rc = RC::SUCCESS;
+    switch (func_type_)
     {
-      if(params_.size() != 1 || params_[0]->value_type() != CHARS)
-        rc = RC::INVALID_ARGUMENT;
-    }
-    break;
-    case SYS_FUNC_ROUND:
-    {
-      //参数可以为一个或两个,第一个参数的结果类型 必须为 floats 或 double
-      if((params_.size() != 1 && params_.size() != 2) ||
-      (params_[0]->value_type() != FLOATS && params_[0]->value_type() != DOUBLES)) 
-        rc = RC::INVALID_ARGUMENT;
-      //如果有第二个参数，则类型必须为 INT
-      if(params_.size() == 2)
-      {
-        if(params_[1]->value_type() != INTS)
+        case SYS_FUNC_LENGTH:
         {
-          rc = RC::INVALID_ARGUMENT;
+            if (params_.size() != 1 || params_[0]->value_type() != CHARS) {
+                rc = RC::INVALID_ARGUMENT;
+            }
+            break;
         }
-      }
+        case SYS_FUNC_ROUND:
+        {
+            // 第一个参数必须是浮点数，参数数量1或2
+            if ((params_.size() != 1 && params_.size() != 2) ||
+                (params_[0]->value_type() != FLOATS && params_[0]->value_type() != DOUBLES)) {
+                rc = RC::INVALID_ARGUMENT;
+            }
+            // 第二个参数（若存在）必须是整数
+            if (params_.size() == 2 && params_[1]->value_type() != INTS) {
+                rc = RC::INVALID_ARGUMENT;
+            }
+            break;
+        }
+        case SYS_FUNC_DATE_FORMAT:
+        {
+            // 必须两个参数：日期类型 + 字符串类型
+            if (params_.size() != 2 || 
+                params_[0]->value_type() != DATES || 
+                params_[1]->value_type() != CHARS) {
+                rc = RC::INVALID_ARGUMENT;
+            }
+            break;
+        }
+        default:
+        {
+            rc = RC::INVALID_ARGUMENT;
+            break;
+        }
     }
-    break;
-    case SYS_FUNC_DATE_FORMAT:
-    {
-      if(params_.size() != 2 || params_[0]->value_type() != DATES || params_[1]->value_type() != CHARS)
-      rc = RC::INVALID_ARGUMENT;
-    }
-    break;
-    default:
-    {
-      rc = RC::INVALID_ARGUMENT;
-    }
-    break;
-  }
-  return rc;
+    return rc;
 }
-
+///////////
 SubQueryExpr::SubQueryExpr(const SelectSqlNode& sql_node) 
 {
   sql_node_ = std::make_unique<SelectSqlNode>(sql_node);
