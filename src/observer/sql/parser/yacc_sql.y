@@ -100,7 +100,7 @@ AggrFuncType get_aggr_func_type(char *func_name)
         INT_T
         STRING_T
         FLOAT_T
-        DATE_T
+        DATE_T //
         TEXT_T
         HELP
         EXIT
