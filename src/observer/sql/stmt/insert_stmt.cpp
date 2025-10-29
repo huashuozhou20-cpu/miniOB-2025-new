@@ -16,7 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
-
+#include "sql/expr/date_util.h"
 InsertStmt::InsertStmt(Table *table, std::vector<std::vector<Value>> &values, int value_amount)
     : table_(table), values_(values), value_amount_(value_amount)
 {}
@@ -76,9 +76,35 @@ RC InsertStmt::check_full_rows(Table *table, const InsertSqlNode &inserts, std::
       const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
       const AttrType field_type = field_meta->type();
       const AttrType value_type = values[i].attr_type();
+
       if (value_type == NULLS && field_meta->nullable()) {
         continue;
       }
+
+      // === 严格处理 DATE：固定 10 位 YYYY-MM-DD；非法 -> INVALID_ARGUMENT ===
+      if (field_type == DATES) {
+        if (value_type == CHARS) {
+          int32_t days = 0;
+          std::string s(static_cast<const char *>(values[i].data()), values[i].length());
+          if (!s.empty() && s.back() == '\0') s.pop_back();   // 兼容尾部 '\0'
+          if (!date_from_string(s, days)) {
+            LOG_WARN("invalid DATE literal for field=%s : %s", field_meta->name(), s.c_str());
+            return RC::INVALID_ARGUMENT; // 前端显示 FAILURE
+          }
+          // 将该值改写为内部 DATE（相对 1970-01-01 的天数 int32）
+          char *date_data = (char *)malloc(sizeof(int32_t));
+          memcpy(date_data, &days, sizeof(int32_t));
+          const_cast<Value &>(values[i]) = Value(DATES, date_data, sizeof(int32_t));
+          free(date_data);
+        } else if (value_type != DATES) {
+          LOG_WARN("DATE field only accepts DATE or CHAR literal. field=%s", field_meta->name());
+          return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+        // 本列已处理完成（避免再走通用 typecast 分支）
+        continue;
+      }
+
+      // 其余类型按原逻辑
       if (field_type != value_type) {
         if (TEXTS == field_type && CHARS == value_type) {
           if (MAX_TEXT_LENGTH < values[i].length()) {
@@ -87,14 +113,15 @@ RC InsertStmt::check_full_rows(Table *table, const InsertSqlNode &inserts, std::
           }
         } else if (const_cast<Value&>(values[i]).typecast(field_type) != RC::SUCCESS) {
           LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
-            table->name(), field_meta->name(), field_type, value_type);
+                   table->name(), field_meta->name(), field_type, value_type);
           return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         }
       }
-      if(field_type == CHARS && values[i].length() > field_meta->len()){
-          return RC::INVALID_ARGUMENT;
+
+      if (field_type == CHARS && values[i].length() > field_meta->len()) {
+        return RC::INVALID_ARGUMENT;
       }
-      if(field_type == CHARS) {
+      if (field_type == CHARS) {
         if (values[i].length() > field_meta->len()) {
           return RC::INVALID_ARGUMENT;
         }
@@ -138,7 +165,7 @@ RC InsertStmt::check_incomplete_rows(Table *table, const InsertSqlNode &inserts,
 
   // 检查每一行数据
   for (const std::vector<Value> &values : inserts.values) {
-     const int value_num = static_cast<int>(values.size());
+    const int value_num = static_cast<int>(values.size());
     if (value_num != inserts.attrs_name.size()) {
       LOG_WARN("value mismatch with attr_names. value num=%d, attr_names num=%d", value_num, inserts.attrs_name.size());
       return RC::INVALID_ARGUMENT;
@@ -151,7 +178,7 @@ RC InsertStmt::check_incomplete_rows(Table *table, const InsertSqlNode &inserts,
       if (-1 == col_idx[i]) {
         // 该列未指定
         if (!field_meta->nullable()) {
-          LOG_WARN("field not allow NULL:%s", field_meta->name());;
+          LOG_WARN("field not allow NULL:%s", field_meta->name());
           return RC::INVALID_ARGUMENT;
         }
       } else {
@@ -163,6 +190,32 @@ RC InsertStmt::check_incomplete_rows(Table *table, const InsertSqlNode &inserts,
         if (value_type == NULLS && field_meta->nullable()) {
           continue;
         }
+
+        // === 严格处理 DATE：固定 10 位 YYYY-MM-DD；非法 -> INVALID_ARGUMENT ===
+        if (field_type == DATES) {
+          if (value_type == CHARS) {
+            int32_t days = 0;
+            std::string s(static_cast<const char *>(values[name_idx].data()), values[name_idx].length());
+            if (!s.empty() && s.back() == '\0') s.pop_back();
+            if (!date_from_string(s, days)) {
+              LOG_WARN("invalid DATE literal for field=%s : %s", field_meta->name(), s.c_str());
+              return RC::INVALID_ARGUMENT; // 前端显示 FAILURE
+            }
+            char *date_data = (char *)malloc(sizeof(int32_t));
+            memcpy(date_data, &days, sizeof(int32_t));
+            row[i] = Value(DATES, date_data, sizeof(int32_t));
+            free(date_data);
+          } else if (value_type == DATES) {
+            row[i] = values[name_idx];                    // 已是 DATE，直接放
+          } else {
+            LOG_WARN("DATE field only accepts DATE or CHAR literal. field=%s", field_meta->name());
+            return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+          }
+          // 本列已处理完成（避免后面再覆盖）
+          continue;
+        }
+
+        // 其余类型按原逻辑
         if (field_type != value_type) {  // TODO try to convert the value type to field type
           if (TEXTS == field_type && CHARS == value_type) {
             if (MAX_TEXT_LENGTH < values[name_idx].length()) {
@@ -171,14 +224,14 @@ RC InsertStmt::check_incomplete_rows(Table *table, const InsertSqlNode &inserts,
             }
           } else if (const_cast<Value&>(values[name_idx]).typecast(field_type) != RC::SUCCESS) {
             LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
-              table->name(), field_meta->name(), field_type, value_type);
+                     table->name(), field_meta->name(), field_type, value_type);
             return RC::SCHEMA_FIELD_TYPE_MISMATCH;
           }
         }
-        if(field_type == CHARS && values[name_idx].length() > field_meta->len()){
-            return RC::INVALID_ARGUMENT;
+        if (field_type == CHARS && values[name_idx].length() > field_meta->len()) {
+          return RC::INVALID_ARGUMENT;
         }
-        if(field_type == CHARS) {
+        if (field_type == CHARS) {
           if (values[name_idx].length() > field_meta->len()) {
             return RC::INVALID_ARGUMENT;
           }
@@ -196,3 +249,4 @@ RC InsertStmt::check_incomplete_rows(Table *table, const InsertSqlNode &inserts,
   }
   return rc;
 }
+
