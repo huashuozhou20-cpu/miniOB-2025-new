@@ -52,5 +52,5 @@ private:
   Table *table_ = nullptr;
   std::vector<const FieldMeta*> field_meta_;
   std::string index_name_;
-  bool unique_;
+  bool unique_ = false;
 };

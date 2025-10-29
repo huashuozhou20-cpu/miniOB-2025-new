@@ -105,6 +105,24 @@ RC TableMeta::add_index(const IndexMeta &index)
   indexes_.push_back(index);
   return RC::SUCCESS;
 }
+RC TableMeta::remove_index(const char *index_name)
+{
+  if (common::is_blank(index_name)) {
+    return RC::INVALID_ARGUMENT;
+  }
+  int hit = -1;
+  for (int i = 0; i < static_cast<int>(indexes_.size()); i++) {
+    if (0 == strcmp(indexes_[i].name(), index_name)) {
+      hit = i;
+      break;
+    }
+  }
+  if (hit < 0) {
+    return RC::SCHEMA_FIELD_NOT_EXIST;  // 复用这个不存在错误码
+  }
+  indexes_.erase(indexes_.begin() + hit);
+  return RC::SUCCESS;
+}
 
 const char *TableMeta::name() const
 {

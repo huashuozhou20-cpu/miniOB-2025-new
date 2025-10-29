@@ -191,13 +191,13 @@ RC Table::open(const char *meta_file, const char *base_dir)
     const IndexMeta *index_meta = table_meta_.index(i);
     std::vector<const FieldMeta *> field_metas;
     const std::vector<std::string> &field_names = index_meta->field();
-    for (size_t j = 0; j < field_names.size(); i++) {
+    for (size_t j = 0; j < field_names.size(); j++) {
       const FieldMeta *field_meta = table_meta_.field(field_names[j].c_str());
       if (field_meta == nullptr) {
         LOG_ERROR("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
             name(),
             index_meta->name(),
-            index_meta->field().data());
+            field_names[j].c_str());
         // skip cleanup
         //  do all cleanup action in destructive Table function
         return RC::INTERNAL;
@@ -630,6 +630,81 @@ RC Table::create_index(Trx *trx, bool unique, const std::vector<const FieldMeta*
 
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
   return rc;
+}
+RC Table::drop_index(Trx *trx, const char *index_name)
+{
+  if (common::is_blank(index_name)) {
+    LOG_WARN("invalid index name");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // 1) 在内存里找到该索引对象及其位置
+  size_t pos = indexes_.size();
+  Index *idx = nullptr;
+  for (size_t i = 0; i < indexes_.size(); i++) {
+    if (0 == strcmp(indexes_[i]->index_meta().name(), index_name)) {
+      pos = i;
+      idx = indexes_[i];
+      break;
+    }
+  }
+  if (idx == nullptr) {
+    LOG_WARN("index not exist. table=%s, index=%s", name(), index_name);
+    return RC::SCHEMA_FIELD_NOT_EXIST; // 若没有该枚举，可改成 RC::SCHEMA_FIELD_NOT_EXIST 或 RC::INVALID_ARGUMENT
+  }
+
+  // 2) 先关闭索引（释放句柄），再删除索引文件
+  ((BplusTreeIndex *)idx)->close();
+  std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
+  if (0 != ::unlink(index_file.c_str())) {
+    LOG_WARN("failed to unlink index file. table=%s index=%s file=%s errno=%d %s",
+             name(), index_name, index_file.c_str(), errno, strerror(errno));
+    // 这里选择“失败即退出”，也可以按需继续
+    return RC::DELETE_FILE_ERROR;
+  }
+
+  // 3) 从内存索引列表移除并释放对象
+  indexes_.erase(indexes_.begin() + pos);
+  delete idx;
+  idx = nullptr;
+
+  // 4) 更新元数据：从 TableMeta 中移除该索引，并落盘（.table 元信息）
+  TableMeta new_table_meta(table_meta_);
+  // 这里假设 TableMeta 提供 remove_index；若你的类名/签名不同，请改成实际方法
+  RC rc = new_table_meta.remove_index(index_name);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("remove_index from table_meta failed. table=%s index=%s rc=%s",
+              name(), index_name, strrc(rc));
+    return rc;
+  }
+
+  // 4.1 写入临时文件
+  std::string  tmp_file = table_meta_file(base_dir_.c_str(), name()) + std::string(".tmp");
+  std::fstream fs;
+  fs.open(tmp_file, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+  if (!fs.is_open()) {
+    LOG_ERROR("open tmp meta file failed. file=%s errno=%d %s", tmp_file.c_str(), errno, strerror(errno));
+    return RC::IOERR_OPEN;
+  }
+  if (new_table_meta.serialize(fs) < 0) {
+    LOG_ERROR("serialize new meta failed. file=%s errno=%d %s", tmp_file.c_str(), errno, strerror(errno));
+    return RC::IOERR_WRITE;
+  }
+  fs.close();
+
+  // 4.2 覆盖原 meta 文件
+  std::string meta_file = table_meta_file(base_dir_.c_str(), name());
+  if (0 != ::rename(tmp_file.c_str(), meta_file.c_str())) {
+    LOG_ERROR("rename tmp meta to meta failed. tmp=%s meta=%s errno=%d %s",
+              tmp_file.c_str(), meta_file.c_str(), errno, strerror(errno));
+    return RC::IOERR_WRITE;
+  }
+
+  // 5) 用新元数据替换内存中的 table_meta_
+  table_meta_.swap(new_table_meta);
+
+  LOG_INFO("drop index success. table=%s index=%s", name(), index_name);
+  return RC::SUCCESS;
 }
 
 RC Table::delete_record(const Record &record)

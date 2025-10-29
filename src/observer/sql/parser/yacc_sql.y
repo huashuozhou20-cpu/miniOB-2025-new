@@ -393,6 +393,8 @@ drop_index_stmt:      /*drop index 语句的语法解析树*/
       free($3);
       free($5);
     }
+  | DROP TABLE IF EXISTS ID             /* 新增 */
+    { /* 解析到同一个 DropTableSqlNode；找不到表时返回 SUCCESS */ }
     ;
 
 show_index_stmt:      /*show index 语句的语法解析树*/

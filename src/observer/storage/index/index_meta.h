@@ -50,7 +50,7 @@ public:
   static RC from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index);
 
 protected:
-  bool unique_;        // unique index or not
+  bool unique_ = false;        // unique index or not
   std::string name_;   // index's name
   std::vector<std::string> field_;  // field's name
 };

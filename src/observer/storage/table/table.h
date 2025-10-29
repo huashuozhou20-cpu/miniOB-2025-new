@@ -90,6 +90,8 @@ public:
 
   // TODO refactor
   RC create_index(Trx *trx, bool unique, const std::vector<const FieldMeta*> &field_metas, const char *index_name);
+  // ★ 新增：DROP INDEX
+  RC drop_index(Trx *trx, const char *index_name);
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly);
 
