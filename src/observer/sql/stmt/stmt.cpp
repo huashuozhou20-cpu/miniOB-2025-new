@@ -32,7 +32,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/load_data_stmt.h"
 #include "sql/stmt/calc_stmt.h"
 #include "sql/stmt/update_stmt.h"
-
+#include "sql/stmt/drop_index_stmt.h"
 RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
 {
   stmt = nullptr;
@@ -55,7 +55,9 @@ RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
     case SCF_CREATE_INDEX: {
       return CreateIndexStmt::create(db, sql_node.create_index, stmt);
     }
-
+    case SCF_DROP_INDEX: {                                    // ← 新增
+      return DropIndexStmt::create(db, sql_node.drop_index, stmt);
+    }
     case SCF_CREATE_TABLE: {
       return CreateTableStmt::create(db, sql_node.create_table, stmt, sql_node.selection);
     }

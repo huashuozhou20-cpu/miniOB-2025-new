@@ -229,14 +229,17 @@ RC Table::insert_record(Record &record)
 {
   RC rc = RC::SUCCESS;
   rc    = record_handler_->insert_record(record.data(), table_meta_.record_size(), &record.rid());
+  LOG_WARN("insert_record -> record_handler rc=%s table=%s", strrc(rc), name());//gpt
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Insert record failed. table name=%s, rc=%s", table_meta_.name(), strrc(rc));
     return rc;
   }
 
   rc = insert_entry_of_indexes(record.data(), record.rid());
+  LOG_WARN("insert_record -> insert_entry_of_indexes rc=%s table=%s", strrc(rc), name());//gpt
   if (rc != RC::SUCCESS) {  // 可能出现了键值重复，插索引操作是原子性的，因此不需要在这里删索引
     RC rc2 = record_handler_->delete_record(&record.rid());
+    LOG_WARN("rollback data after index failure rc2=%s", strrc(rc2));//gpt
     if (rc2 != RC::SUCCESS) {
       LOG_PANIC("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
           name(),
@@ -725,6 +728,12 @@ RC Table::delete_record(const Record &record)
 
 RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
+  /////
+  LOG_WARN("INSERT index count=%zu on table=%s", indexes_.size(), name());
+  for (auto *idx : indexes_) {
+    LOG_WARN(" -> index=%s unique=%d", idx->index_meta().name(), idx->index_meta().unique());
+  }
+  ////gpt做排查
   RC rc = RC::SUCCESS;
   for (size_t i = 0; i < indexes_.size(); i++) {
     Index *index = indexes_[i];
