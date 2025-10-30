@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include <stdlib.h>
 #include <string.h>
 #include <string>
-
+#include <cstdint>  // 引入 uint64_t、int64_t 等类型的定义
 #include "rc.h"
 
 class PersistHandler
