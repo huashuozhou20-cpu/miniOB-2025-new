@@ -233,6 +233,15 @@ bool UnionPhysicalOperator::tuple_equal(const Tuple &t1, const Tuple &t2) const
       return false;
     }
 
+    // Handle NULL values explicitly
+    if (value1.attr_type() == AttrType::NULLS || value2.attr_type() == AttrType::NULLS) {
+      if (value1.attr_type() != value2.attr_type()) {
+        return false;
+      }
+      // Both are NULL, consider them equal
+      continue;
+    }
+
     if (value1.compare(value2) != 0) {
       return false;
     }
@@ -283,4 +292,3 @@ std::string UnionPhysicalOperator::tuple_to_string(const Tuple &tuple) const
 
   return oss.str();
 }
-
