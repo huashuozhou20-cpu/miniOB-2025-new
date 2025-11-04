@@ -378,6 +378,7 @@ public:
   ShowIndexSqlNode    show_index;
   DropIndexSqlNode    drop_index;
   DescTableSqlNode    desc_table;
+  AlterTableSqlNode   alter_table;
   LoadDataSqlNode     load_data;
   ExplainSqlNode      explain;
   SetVariableSqlNode  set_variable;

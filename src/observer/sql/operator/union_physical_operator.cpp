@@ -258,7 +258,7 @@ std::string UnionPhysicalOperator::tuple_to_string(const Tuple &tuple) const
       continue;
     }
 
-    if (value.is_null()) {
+    if (value.attr_type() == AttrType::NULLS) {
       oss << "NULL";
     } else {
       switch (value.attr_type()) {

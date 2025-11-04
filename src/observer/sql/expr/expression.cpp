@@ -222,7 +222,7 @@ RC CastExpr::try_get_value(Value &result) const
 ////////////////////////////////////////////////////////////////////////////////
 
 ComparisonExpr::ComparisonExpr(CompOp comp, unique_ptr<Expression> left, unique_ptr<Expression> right)
-    : comp_(comp), left_(std::move(left)), right_(std::move(right))
+    : comp_(comp), left_(std::move(left)), right_(std::move(right)), pattern("")
 {
   if((comp_ == CompOp::LIKE_OP || comp_ == CompOp::NOT_LIKE)
      && right_->type() == ExprType::VALUE){

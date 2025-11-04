@@ -41,7 +41,6 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       
       // 计算新的字段偏移量
       int field_offset = table_meta_.record_size();
-      int null_len = (field_num + 1 + 7) / 8;  // 更新 null bitmap 长度
       
       // 创建新字段
       FieldMeta new_field;
@@ -104,7 +103,7 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
           if (index_field == old_name) {
             LOG_ERROR("Cannot drop column with index. table=%s, column=%s, index=%s",
                       name(), old_name.c_str(), index->name());
-            return RC::SCHEMA_INDEX_EXIST;
+            return RC::INVALID_ARGUMENT;
           }
         }
       }

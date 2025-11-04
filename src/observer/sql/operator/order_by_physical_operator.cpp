@@ -543,25 +543,23 @@ RC OrderByPhysicalOperator::read_chunk_from_file(const string &filename,
                 // Try to parse as int
                 try {
                     int int_val = stoi(cell_str);
-                    cell.set_int(int_val);
+                    cell = Value(int_val);
                 } catch (...) {
                     // Try float
                     try {
                         float float_val = stof(cell_str);
-                        cell.set_float(float_val);
+                        cell = Value(float_val);
                     } catch (...) {
                         // Default to string
-                        cell.set_string(cell_str.c_str(), cell_str.length());
+                        cell = Value(cell_str.c_str(), cell_str.length());
                     }
                 }
             }
             
             cells.push_back(cell);
             // Create a simple spec
-            TupleCellSpec spec;
             string spec_name = "col_" + to_string(j);
-            spec.set_name(spec_name.c_str());
-            specs.push_back(spec);
+            specs.push_back(TupleCellSpec(spec_name.c_str()));
         }
         
         tuple.set_cells(cells);
@@ -598,13 +596,13 @@ RC OrderByPhysicalOperator::read_chunk_from_file(const string &filename,
             } else {
                 try {
                     int int_val = stoi(val_str);
-                    val.set_int(int_val);
+                    val = Value(int_val);
                 } catch (...) {
                     try {
                         float float_val = stof(val_str);
-                        val.set_float(float_val);
+                        val = Value(float_val);
                     } catch (...) {
-                        val.set_string(val_str.c_str(), val_str.length());
+                        val = Value(val_str.c_str(), val_str.length());
                     }
                 }
             }
@@ -774,22 +772,20 @@ RC OrderByPhysicalOperator::read_next_tuple_from_file(ifstream &fs, ValueListTup
         } else {
             try {
                 int int_val = stoi(cell_str);
-                cell.set_int(int_val);
+                cell = Value(int_val);
             } catch (...) {
                 try {
                     float float_val = stof(cell_str);
-                    cell.set_float(float_val);
+                    cell = Value(float_val);
                 } catch (...) {
-                    cell.set_string(cell_str.c_str(), cell_str.length());
+                    cell = Value(cell_str.c_str(), cell_str.length());
                 }
             }
         }
         cells.push_back(cell);
         
-        TupleCellSpec spec;
         string spec_name = "col_" + to_string(i);
-        spec.set_name(spec_name.c_str());
-        specs.push_back(spec);
+        specs.push_back(TupleCellSpec(spec_name.c_str()));
     }
     
     // Read order values
@@ -819,13 +815,13 @@ RC OrderByPhysicalOperator::read_next_tuple_from_file(ifstream &fs, ValueListTup
         } else {
             try {
                 int int_val = stoi(val_str);
-                val.set_int(int_val);
+                val = Value(int_val);
             } catch (...) {
                 try {
                     float float_val = stof(val_str);
-                    val.set_float(float_val);
+                    val = Value(float_val);
                 } catch (...) {
-                    val.set_string(val_str.c_str(), val_str.length());
+                    val = Value(val_str.c_str(), val_str.length());
                 }
             }
         }

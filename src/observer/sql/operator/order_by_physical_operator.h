@@ -17,6 +17,11 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/physical_operator.h"
 #include "sql/parser/parse.h"
 #include <vector>
+#include <fstream>
+using std::ifstream;
+using std::ofstream;
+using std::string;
+using std::vector;
 
 /**
  * @brief 更新物理算子
@@ -52,6 +57,8 @@ private:
   RC read_chunk_from_file(const string &filename, vector<ValueListTuple> &chunk, 
                           vector<vector<Value>> &chunk_values, vector<size_t> &chunk_ids);
   RC merge_sorted_chunks(const vector<string> &chunk_files, const string &output_file);
+  RC read_next_tuple_from_file(ifstream &fs, ValueListTuple &tuple, vector<Value> &values);
+  RC write_tuple_to_file(ofstream &fs, const ValueListTuple &tuple, const vector<Value> &values);
   void cleanup_temp_files(const vector<string> &files);
 
 private:
