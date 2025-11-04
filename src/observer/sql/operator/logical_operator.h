@@ -47,6 +47,7 @@ enum class LogicalOperatorType
   CREATE_TABLE, ///< create-table-select
   LIMIT,
   GROUP_BY,    ///< 分组
+  UNION,       ///< UNION 操作
 };
 
 /**

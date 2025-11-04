@@ -117,6 +117,8 @@ struct SelectSqlNode
   HavingNode                               having_list;
   std::vector<OrderByNode>                 order_by;  ///< order by clause
   int                                      limit = -1;
+  std::unique_ptr<ParsedSqlNode>          union_select;  ///< UNION 的另一个 SELECT 语句
+  bool                                     union_all;    ///< 是否是 UNION ALL（不去重）
 };
 
 /**
@@ -219,6 +221,7 @@ struct VectorIndexNode
 struct CreateIndexSqlNode
 {
   bool                unique;         ///< Unique Index
+  bool                fulltext;       ///< Fulltext Index
   std::string         index_name;     ///< Index name
   std::string         relation_name;  ///< Relation name
   std::vector<string> attr_names;     ///< Attribute name
@@ -247,6 +250,26 @@ struct ShowIndexSqlNode
 struct DescTableSqlNode
 {
   std::string relation_name;
+};
+
+/**
+ * @brief 描述一个alter table语句
+ * @ingroup SQLParser
+ * @details 支持添加列、删除列、修改列名、重命名表
+ */
+struct AlterTableSqlNode
+{
+  std::string relation_name;  ///< 表名
+  enum class AlterType {
+    ADD_COLUMN,      ///< 添加列
+    DROP_COLUMN,     ///< 删除列
+    RENAME_COLUMN,   ///< 修改列名
+    RENAME_TABLE,    ///< 重命名表
+  };
+  AlterType alter_type;
+  AttrInfoSqlNode attr_info;  ///< 用于 ADD_COLUMN 和 RENAME_COLUMN
+  std::string old_name;       ///< 用于 DROP_COLUMN 和 RENAME_COLUMN
+  std::string new_name;       ///< 用于 RENAME_COLUMN 和 RENAME_TABLE
 };
 
 /**
@@ -323,6 +346,7 @@ enum SqlCommandFlag
   SCF_SHOW_INDEX,
   SCF_SHOW_TABLES,
   SCF_DESC_TABLE,
+  SCF_ALTER_TABLE,
   SCF_BEGIN,  ///< 事务开始语句，可以在这里扩展只读事务
   SCF_COMMIT,
   SCF_CLOG_SYNC,

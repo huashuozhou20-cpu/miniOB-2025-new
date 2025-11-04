@@ -61,6 +61,7 @@ enum class PhysicalOperatorType
   ORDER_BY,
   AGGREGATE_VEC,
   EXPR_VEC,
+  UNION,  ///< UNION 操作
 };
 
 /**

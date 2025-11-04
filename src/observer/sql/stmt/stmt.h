@@ -52,6 +52,7 @@ using tables_t = std::unordered_map<std::string, std::pair<BaseTable *, size_t>>
   DEFINE_ENUM_ITEM(SHOW_TABLES)  \
   DEFINE_ENUM_ITEM(SHOW_INDEX)   \
   DEFINE_ENUM_ITEM(DESC_TABLE)   \
+  DEFINE_ENUM_ITEM(ALTER_TABLE)  \
   DEFINE_ENUM_ITEM(BEGIN)        \
   DEFINE_ENUM_ITEM(COMMIT)       \
   DEFINE_ENUM_ITEM(ROLLBACK)     \

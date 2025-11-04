@@ -67,6 +67,8 @@ private:
       std::unique_ptr<Expression> &operation_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_aggregate_expression(
       std::unique_ptr<Expression> &aggregate_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_sysfunc_expression(
+      std::unique_ptr<Expression> &sysfunc_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
 
 private:
   BinderContext &context_;

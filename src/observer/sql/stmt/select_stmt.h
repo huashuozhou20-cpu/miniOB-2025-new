@@ -53,6 +53,8 @@ public:
   std::vector<bool>                        &is_asc() { return is_asc_; }
   bool                                      and_or() { return and_or_; }
   int                                       limit() { return limit_; }
+  SelectStmt                               *union_stmt() const { return union_stmt_; }
+  bool                                      union_all() const { return union_all_; }
 
 private:
   std::vector<std::unique_ptr<Expression>> query_expressions_;
@@ -64,4 +66,6 @@ private:
   bool                                     and_or_ = false;
   std::vector<bool>                        is_asc_; // 升序为true
   int                                      limit_ = -1;
+  SelectStmt                               *union_stmt_ = nullptr;  ///< UNION 的另一个 SELECT 语句
+  bool                                     union_all_ = false;      ///< 是否是 UNION ALL（不去重）
 };

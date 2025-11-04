@@ -166,6 +166,26 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
   select_stmt->having_list_.swap(having_list_expressions);
   select_stmt->and_or_ = select_sql.having_list.and_or;
   select_stmt->limit_ = select_sql.limit;
+  select_stmt->union_all_ = select_sql.union_all;
+  
+  // 处理 UNION
+  if (select_sql.union_select != nullptr) {
+    Stmt *union_stmt = nullptr;
+    RC rc = Stmt::create_stmt(db, *select_sql.union_select, union_stmt, depends, select_exprs, table_map, fa);
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to create union select statement. rc=%s", strrc(rc));
+      delete select_stmt;
+      return rc;
+    }
+    if (union_stmt->type() != StmtType::SELECT) {
+      LOG_WARN("union select statement must be SELECT type");
+      delete select_stmt;
+      delete union_stmt;
+      return RC::INVALID_ARGUMENT;
+    }
+    select_stmt->union_stmt_ = static_cast<SelectStmt *>(union_stmt);
+  }
+  
   stmt                      = select_stmt;
   return RC::SUCCESS;
 }

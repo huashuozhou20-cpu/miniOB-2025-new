@@ -35,6 +35,8 @@ RC CreateIndexExecutor::execute(SQLStageEvent *sql_event)
   if(create_index_stmt->vector_index().type != VectorIndexType::UNDEFINED)
     return table->create_vector_index(trx, create_index_stmt->unique(), create_index_stmt->field_meta(), create_index_stmt->index_name().c_str(),
         create_index_stmt->vector_index());
+  if(create_index_stmt->fulltext())
+    return table->create_fulltext_index(trx, create_index_stmt->field_meta(), create_index_stmt->index_name().c_str());
   return table->create_index(
       trx, create_index_stmt->unique(), create_index_stmt->field_meta(), create_index_stmt->index_name().c_str());
 }

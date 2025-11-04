@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "sql/optimizer/logical_plan_generator.h"
+#include "sql/operator/union_logical_operator.h"
 
 #include <common/log/log.h>
 
@@ -43,8 +44,10 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/stmt.h"
 
 #include "sql/expr/expression_iterator.h"
+#include "sql/expr/expression.h"
 #include "storage/index/index.h"
 #include "storage/index/ivfflat_index.h"
+#include <cstring>
 
 using namespace std;
 using namespace common;
@@ -227,7 +230,28 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
     project_oper->add_child(std::move(*last_oper));
   }
 
-  logical_operator = std::move(project_oper);
+  // 处理 UNION
+  if (select_stmt->union_stmt() != nullptr) {
+    unique_ptr<LogicalOperator> union_left_oper = std::move(project_oper);
+    
+    // 为 UNION 的右子树创建逻辑计划
+    unique_ptr<LogicalOperator> union_right_oper;
+    rc = create_plan(select_stmt->union_stmt(), union_right_oper);
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to create union right logical plan. rc=%s", strrc(rc));
+      return rc;
+    }
+
+    // 创建 UNION 逻辑算子
+    unique_ptr<UnionLogicalOperator> union_oper(new UnionLogicalOperator(select_stmt->union_all()));
+    union_oper->add_child(std::move(union_left_oper));
+    union_oper->add_child(std::move(union_right_oper));
+    
+    logical_operator = std::move(union_oper);
+  } else {
+    logical_operator = std::move(project_oper);
+  }
+  
   return RC::SUCCESS;
 }
 
@@ -526,47 +550,124 @@ RC LogicalPlanGenerator::create_vector_plan(SelectStmt *select_stmt, unique_ptr<
   auto &tables = select_stmt->tables();
   auto& order_by = select_stmt->order_by();
 
-  if(tables.size() != 1 || order_by.size() != 1 || order_by[0]->type() != ExprType::VECTOROPERATION
-    || !select_stmt->is_asc()[0])
+  if(tables.size() != 1 || order_by.size() != 1 || !select_stmt->is_asc()[0])
     return RC::INVALID_ARGUMENT;
-  
-  VectorOperationExpr* vector_expr = static_cast<VectorOperationExpr*>(order_by[0].get());
+
   Table *table = static_cast<Table*>(tables[0].first);
-
-  unique_ptr<Expression> &left_expr  = vector_expr->left();
-  unique_ptr<Expression> &right_expr = vector_expr->right();
-
-  // 左右比较的一边最少是一个值
-  if (left_expr->type() != ExprType::VALUE && right_expr->type() != ExprType::VALUE) 
-    return RC::INVALID_ARGUMENT;
-
+  Expression *order_expr = order_by[0].get();
+  
+  VectorOperationExpr::Type operation_type;
   FieldExpr *field_expr = nullptr;
   ValueExpr *value_expr = nullptr;
-  if (left_expr->type() == ExprType::FIELD) {
-    ASSERT(right_expr->type() == ExprType::VALUE, "right expr should be a value expr while left is field expr");
-    field_expr = static_cast<FieldExpr *>(left_expr.get());
-    value_expr = static_cast<ValueExpr *>(right_expr.get());
-  } else if (right_expr->type() == ExprType::FIELD) {
-    ASSERT(left_expr->type() == ExprType::VALUE, "left expr should be a value expr while right is a field expr");
-    field_expr = static_cast<FieldExpr *>(right_expr.get());
-    value_expr = static_cast<ValueExpr *>(left_expr.get());
-  }
+  Value search_value;  // The vector value to search for
+  
+  // Check if it's a VectorOperationExpr
+  if (order_expr->type() == ExprType::VECTOROPERATION) {
+    VectorOperationExpr* vector_expr = static_cast<VectorOperationExpr*>(order_expr);
+    
+    unique_ptr<Expression> &left_expr  = vector_expr->left();
+    unique_ptr<Expression> &right_expr = vector_expr->right();
 
-  if (field_expr == nullptr)return RC::INVALID_ARGUMENT;
+    // 左右比较的一边最少是一个值
+    if (left_expr->type() != ExprType::VALUE && right_expr->type() != ExprType::VALUE) 
+      return RC::INVALID_ARGUMENT;
 
-  Value value;
-  ASSERT(value_expr != nullptr, "got an index but value expr is null ?");
-  if (value_expr->try_get_value(value) != RC::SUCCESS || value.attr_type() != AttrType::VECTORS)
+    if (left_expr->type() == ExprType::FIELD) {
+      ASSERT(right_expr->type() == ExprType::VALUE, "right expr should be a value expr while left is field expr");
+      field_expr = static_cast<FieldExpr *>(left_expr.get());
+      value_expr = static_cast<ValueExpr *>(right_expr.get());
+    } else if (right_expr->type() == ExprType::FIELD) {
+      ASSERT(left_expr->type() == ExprType::VALUE, "left expr should be a value expr while right is a field expr");
+      field_expr = static_cast<FieldExpr *>(right_expr.get());
+      value_expr = static_cast<ValueExpr *>(left_expr.get());
+    }
+
+    if (field_expr == nullptr)return RC::INVALID_ARGUMENT;
+
+    ASSERT(value_expr != nullptr, "got an index but value expr is null ?");
+    if (value_expr->try_get_value(search_value) != RC::SUCCESS || search_value.attr_type() != AttrType::VECTORS)
+      return RC::INVALID_ARGUMENT;
+
+    operation_type = vector_expr->operation_type();
+  } 
+  // Check if it's a DISTANCE function (SysFuncExpr)
+  else if (order_expr->type() == ExprType::SYSFUNC) {
+    SysFuncExpr* sysfunc_expr = static_cast<SysFuncExpr*>(order_expr);
+    
+    if (sysfunc_expr->sysfunc_type() != SysFuncExpr::Type::DISTANCE) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    // DISTANCE has 3 arguments: V1 (field), V2 (value), metric (string)
+    unique_ptr<Expression> &first_expr = sysfunc_expr->child();
+    unique_ptr<Expression> &second_expr = sysfunc_expr->second_child();
+    unique_ptr<Expression> &third_expr = sysfunc_expr->third_child();
+    
+    // Check argument types
+    if (first_expr->type() != ExprType::FIELD && first_expr->type() != ExprType::VALUE) {
+      return RC::INVALID_ARGUMENT;
+    }
+    if (second_expr->type() != ExprType::FIELD && second_expr->type() != ExprType::VALUE) {
+      return RC::INVALID_ARGUMENT;
+    }
+    if (third_expr->type() != ExprType::VALUE) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    // Determine which is field and which is value
+    if (first_expr->type() == ExprType::FIELD) {
+      field_expr = static_cast<FieldExpr *>(first_expr.get());
+      value_expr = static_cast<ValueExpr *>(second_expr.get());
+    } else if (second_expr->type() == ExprType::FIELD) {
+      field_expr = static_cast<FieldExpr *>(second_expr.get());
+      value_expr = static_cast<ValueExpr *>(first_expr.get());
+    } else {
+      return RC::INVALID_ARGUMENT;  // At least one must be a field
+    }
+    
+    if (field_expr == nullptr || value_expr == nullptr) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    // Get the value
+    if (value_expr->try_get_value(search_value) != RC::SUCCESS || search_value.attr_type() != AttrType::VECTORS) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    // Get the metric type from third argument
+    Value metric_value;
+    ValueExpr *metric_expr = static_cast<ValueExpr *>(third_expr.get());
+    if (metric_expr->try_get_value(metric_value) != RC::SUCCESS || metric_value.attr_type() != AttrType::CHARS) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    const char *metric_str = metric_value.data();
+    if (metric_str == nullptr) {
+      return RC::INVALID_ARGUMENT;
+    }
+    
+    // Map metric string to VectorOperationExpr::Type
+    if (0 == strcasecmp(metric_str, "COSINE")) {
+      operation_type = VectorOperationExpr::Type::COSINE_DISTANCE;
+    } else if (0 == strcasecmp(metric_str, "EUCLIDEAN")) {
+      operation_type = VectorOperationExpr::Type::L2_DISTANCE;
+    } else if (0 == strcasecmp(metric_str, "DOT")) {
+      operation_type = VectorOperationExpr::Type::INNER_PRODUCT;
+    } else {
+      return RC::INVALID_ARGUMENT;
+    }
+  } else {
     return RC::INVALID_ARGUMENT;
+  }
 
   Index* index = table->find_index_by_field(field_expr->field().field_name());
   if(index == nullptr || !index->is_vector_index())return RC::INVALID_ARGUMENT;
 
-  if(static_cast<IvfflatIndex*>(index)->type() != vector_expr->operation_type())
+  if(static_cast<IvfflatIndex*>(index)->type() != operation_type)
     return RC::INVALID_ARGUMENT;
   
   unique_ptr<LogicalOperator> *last_oper = nullptr;
-  unique_ptr<LogicalOperator> table_oper(new VectorIndexGetLogicalOperator(index, move(value), table, select_stmt->limit()));
+  unique_ptr<LogicalOperator> table_oper(new VectorIndexGetLogicalOperator(index, move(search_value), table, select_stmt->limit()));
   last_oper = &table_oper;
 
   auto project_oper = make_unique<ProjectLogicalOperator>(std::move(select_stmt->query_expressions()), tables.size() > 1);

@@ -32,6 +32,7 @@ class OrderByLogicalOperator;
 class CreateTableLogicalOperator;
 class VectorIndexGetLogicalOperator;
 class LimitLogicalOperator;
+class UnionLogicalOperator;
 
 /**
  * @brief 物理计划生成器
@@ -63,6 +64,7 @@ private:
   RC create_plan(LimitLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_plan(CreateTableLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_plan(VectorIndexGetLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
+  RC create_plan(UnionLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_vec_plan(ProjectLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_vec_plan(TableGetLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);
   RC create_vec_plan(GroupByLogicalOperator &logical_oper, std::unique_ptr<PhysicalOperator> &oper);

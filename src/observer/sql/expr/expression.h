@@ -48,6 +48,7 @@ enum class ExprType
   STAR,                 ///< 星号，表示所有字段
   UNBOUND_FIELD,        ///< 未绑定的字段，需要在resolver阶段解析为FieldExpr
   UNBOUND_AGGREGATION,  ///< 未绑定的聚合函数，需要在resolver阶段解析为AggregateExpr
+  UNBOUND_SYSFUNC,      ///< 未绑定的系统函数，需要在resolver阶段解析为SysFuncExpr
 
   FIELD,        ///< 字段。在实际执行时，根据行数据内容提取对应字段的值
   VALUE,        ///< 常量值
@@ -58,7 +59,8 @@ enum class ExprType
   AGGREGATION,  ///< 聚合运算
   VECTOROPERATION,  ///<向量运算操作
   SELECT,        ///< 子查询
-  VALUE_LIST     
+  VALUE_LIST,
+  SYSFUNC        ///< 系统函数
 };
 
 /**
@@ -322,7 +324,7 @@ public:
 
   unique_ptr<Expression> deep_copy() override
   {
-    return unique_ptr<Expression>(new CastExpr(move(child_->deep_copy()), cast_type_));
+    return unique_ptr<Expression>(new CastExpr(child_->deep_copy(), cast_type_));
   }
 
 private:
@@ -383,7 +385,7 @@ public:
 
   unique_ptr<Expression> deep_copy() override
   {
-    return unique_ptr<Expression>(new ComparisonExpr(comp_, move(left_->deep_copy()), move(right_->deep_copy())));
+    return unique_ptr<Expression>(new ComparisonExpr(comp_, left_->deep_copy(), right_->deep_copy()));
   }
 
 private:
@@ -471,7 +473,7 @@ public:
 
   unique_ptr<Expression> deep_copy() override
   {
-    return unique_ptr<Expression>(new ArithmeticExpr(arithmetic_type_, move(left_->deep_copy()), move(right_->deep_copy())));
+    return unique_ptr<Expression>(new ArithmeticExpr(arithmetic_type_, left_->deep_copy(), right_->deep_copy()));
   }
 
 private:
@@ -592,7 +594,7 @@ public:
 
   unique_ptr<Expression> deep_copy() override
   {
-    return unique_ptr<Expression>(new AggregateExpr(aggregate_type_, move(child_->deep_copy())));
+    return unique_ptr<Expression>(new AggregateExpr(aggregate_type_, child_->deep_copy()));
   }
 
 public:
@@ -676,4 +678,104 @@ public:
 
 private:
    std::vector<std::unique_ptr<Expression>> exprs_;
+};
+
+/**
+ * @brief 未绑定的系统函数表达式
+ * @ingroup Expression
+ */
+class UnboundSysFuncExpr : public Expression
+{
+public:
+  UnboundSysFuncExpr(const char *func_name, Expression *child);
+  UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child);
+  UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child, Expression *third_child);
+  virtual ~UnboundSysFuncExpr() = default;
+
+  ExprType type() const override { return ExprType::UNBOUND_SYSFUNC; }
+
+  const char *func_name() const { return func_name_.c_str(); }
+
+  std::unique_ptr<Expression> &child() { return child_; }
+  std::unique_ptr<Expression> &second_child() { return second_child_; }
+  std::unique_ptr<Expression> &third_child() { return third_child_; }
+
+  RC       get_value(const Tuple &tuple, Value &value) const override { return RC::INTERNAL; }
+  AttrType value_type() const override { return child_ ? child_->value_type() : AttrType::UNDEFINED; }
+
+  unique_ptr<Expression> deep_copy() override;
+
+private:
+  std::string                 func_name_;
+  std::unique_ptr<Expression> child_;
+  std::unique_ptr<Expression> second_child_;  // for DATE_FORMAT format string
+  std::unique_ptr<Expression> third_child_;   // for DISTANCE metric string
+};
+
+/**
+ * @brief 系统函数表达式
+ * @ingroup Expression
+ */
+class SysFuncExpr : public Expression
+{
+public:
+  enum class Type
+  {
+    LENGTH,
+    ROUND,
+    DATE_FORMAT,
+    DISTANCE,
+    VECTOR_TO_STRING,
+    STRING_TO_VECTOR,
+    TOKENIZE,
+    MATCH_AGAINST,
+  };
+
+public:
+  SysFuncExpr(Type type, Expression *child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child);
+  SysFuncExpr(Type type, Expression *child, Expression *second_child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child);
+  SysFuncExpr(Type type, Expression *child, Expression *second_child, Expression *third_child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child, std::unique_ptr<Expression> third_child);
+  virtual ~SysFuncExpr() = default;
+
+  bool equal(const Expression &other) const override;
+
+  ExprType type() const override { return ExprType::SYSFUNC; }
+
+  AttrType value_type() const override;
+  int      value_length() const override;
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+
+  Type sysfunc_type() const { return sysfunc_type_; }
+
+  std::unique_ptr<Expression> &child() { return child_; }
+  std::unique_ptr<Expression> &second_child() { return second_child_; }
+  std::unique_ptr<Expression> &third_child() { return third_child_; }
+
+  unique_ptr<Expression> deep_copy() override;
+
+public:
+  static RC type_from_string(const char *type_str, Type &type);
+
+private:
+  RC eval_length(const Value &arg_value, Value &result) const;
+  RC eval_round(const Value &arg_value, Value &result) const;
+  RC eval_date_format(const Value &date_value, const Value &format_value, Value &result) const;
+  RC eval_distance(const Value &v1_value, const Value &v2_value, const Value &metric_value, Value &result) const;
+  RC eval_vector_to_string(const Value &arg_value, Value &result) const;
+  RC eval_string_to_vector(const Value &arg_value, Value &result) const;
+  RC eval_tokenize(const Value &text_value, const Value &parser_value, Value &result) const;
+  RC eval_match_against(const Value &field_value, const Value &query_value, Value &result) const;
+  
+  // Helper for jieba tokenization
+  std::vector<std::string> tokenize_jieba(const std::string &text) const;
+
+private:
+  Type                        sysfunc_type_;
+  std::unique_ptr<Expression> child_;
+  std::unique_ptr<Expression> second_child_;  // for DATE_FORMAT format string
+  std::unique_ptr<Expression> third_child_;   // for DISTANCE metric string
 };

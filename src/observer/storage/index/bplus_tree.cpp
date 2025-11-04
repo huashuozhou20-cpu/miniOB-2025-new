@@ -839,6 +839,8 @@ RC BplusTreeHandler::create(LogHandler &log_handler, BufferPoolManager &bpm, boo
   file_header->internal_max_size = internal_max_size;
   file_header->leaf_max_size     = leaf_max_size;
   file_header->root_page         = BP_INVALID_PAGE_NUM;
+  file_header->unique            = unique;
+  file_header->attr_num          = 1;
 
   header_frame->mark_dirty();
 
@@ -855,7 +857,7 @@ RC BplusTreeHandler::create(LogHandler &log_handler, BufferPoolManager &bpm, boo
     return RC::NOMEM;
   }
 
-  key_comparator_.init(false, 1, 0, file_header->attr_type, file_header->attr_length);
+  key_comparator_.init(unique, 1, 0, file_header->attr_type, file_header->attr_length);
   key_printer_.init(1, file_header->attr_type, file_header->attr_length);
 
   this->sync();

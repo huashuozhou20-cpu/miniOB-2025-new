@@ -70,6 +70,10 @@ RC ExpressionBinder::bind_expression(unique_ptr<Expression> &expr, vector<unique
       return bind_aggregate_expression(expr, bound_expressions);
     } break;
 
+    case ExprType::UNBOUND_SYSFUNC: {
+      return bind_sysfunc_expression(expr, bound_expressions);
+    } break;
+
     case ExprType::FIELD: {
       return bind_field_expression(expr, bound_expressions);
     } break;
@@ -520,5 +524,93 @@ RC ExpressionBinder::bind_aggregate_expression(
   }
 
   bound_expressions.emplace_back(std::move(aggregate_expr));
+  return RC::SUCCESS;
+}
+
+RC ExpressionBinder::bind_sysfunc_expression(
+    unique_ptr<Expression> &expr, vector<unique_ptr<Expression>> &bound_expressions)
+{
+  if (nullptr == expr) {
+    return RC::SUCCESS;
+  }
+
+  auto unbound_sysfunc_expr = static_cast<UnboundSysFuncExpr *>(expr.get());
+  const char *func_name = unbound_sysfunc_expr->func_name();
+  SysFuncExpr::Type func_type;
+  RC rc = SysFuncExpr::type_from_string(func_name, func_type);
+  if (OB_FAIL(rc)) {
+    LOG_WARN("invalid system function name: %s", func_name);
+    return rc;
+  }
+
+  unique_ptr<Expression>        &child_expr = unbound_sysfunc_expr->child();
+  unique_ptr<Expression>        &second_child_expr = unbound_sysfunc_expr->second_child();
+  unique_ptr<Expression>        &third_child_expr = unbound_sysfunc_expr->third_child();
+  vector<unique_ptr<Expression>> child_bound_expressions;
+
+  // Bind first child
+  if (child_expr) {
+    rc = bind_expression(child_expr, child_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (child_bound_expressions.size() != 1) {
+      LOG_WARN("invalid children number of system function expression: %d", child_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    if (child_bound_expressions[0].get() != child_expr.get()) {
+      child_expr.reset(child_bound_expressions[0].release());
+    }
+  }
+
+  // Bind second child for DATE_FORMAT and DISTANCE
+  unique_ptr<Expression> bound_second_child = nullptr;
+  if (second_child_expr) {
+    vector<unique_ptr<Expression>> second_bound_expressions;
+    rc = bind_expression(second_child_expr, second_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (second_bound_expressions.size() != 1) {
+      LOG_WARN("invalid second child number of system function expression: %d", second_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    bound_second_child = std::move(second_bound_expressions[0]);
+  }
+
+  // Bind third child for DISTANCE
+  unique_ptr<Expression> bound_third_child = nullptr;
+  if (third_child_expr) {
+    vector<unique_ptr<Expression>> third_bound_expressions;
+    rc = bind_expression(third_child_expr, third_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (third_bound_expressions.size() != 1) {
+      LOG_WARN("invalid third child number of system function expression: %d", third_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    bound_third_child = std::move(third_bound_expressions[0]);
+  }
+
+  // Create bound system function expression
+  unique_ptr<SysFuncExpr> sysfunc_expr;
+  if (bound_third_child) {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr), std::move(bound_second_child), std::move(bound_third_child));
+  } else if (bound_second_child) {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr), std::move(bound_second_child));
+  } else {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr));
+  }
+  sysfunc_expr->set_name(unbound_sysfunc_expr->name());
+  sysfunc_expr->set_alias(unbound_sysfunc_expr->alias());
+
+  bound_expressions.emplace_back(std::move(sysfunc_expr));
   return RC::SUCCESS;
 }

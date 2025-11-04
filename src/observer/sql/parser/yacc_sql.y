@@ -63,6 +63,25 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   return expr;
 }
 
+UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
+                                           Expression *child,
+                                           Expression *second_child,
+                                           Expression *third_child,
+                                           const char *sql_string,
+                                           YYLTYPE *llocp)
+{
+  UnboundSysFuncExpr *expr = nullptr;
+  if (third_child) {
+    expr = new UnboundSysFuncExpr(func_name, child, second_child, third_child);
+  } else if (second_child) {
+    expr = new UnboundSysFuncExpr(func_name, child, second_child);
+  } else {
+    expr = new UnboundSysFuncExpr(func_name, child);
+  }
+  expr->set_name(token_name(sql_string, llocp));
+  return expr;
+}
+
 %}
 
 %define api.pure full
@@ -145,6 +164,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         GE
         NE
         UNIQUE
+        UNION
+        ALTER
         L2_DISTANCE
         COSINE_DISTANCE
         INNER_PRODUCT
@@ -153,6 +174,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         TYPE            
         PROBES                
         IVFFLAT      
+        MATCH
+        AGAINST
 
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
@@ -234,7 +257,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <order_by_list>       order_by_list
 %type <order_by_unit>       order_by_unit
 %type <sql_node>            calc_stmt
-%type <sql_node>            select_stmt
+%type <sql_node>            select_stmt select_unit
 %type <sql_node>            insert_stmt
 %type <sql_node>            update_stmt
 %type <sql_node>            delete_stmt
@@ -370,6 +393,26 @@ create_index_stmt:    /*create index 语句的语法解析树*/
       $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
       CreateIndexSqlNode &create_index = $$->create_index;
       create_index.unique = $2;
+      create_index.fulltext = false;
+      create_index.index_name = $4;
+      create_index.relation_name = $6;
+      std::vector<std::string> *idx_cols = $9;
+      if (nullptr != idx_cols) {
+        create_index.attr_names.swap(*idx_cols);
+        delete $9;
+      }
+      create_index.attr_names.emplace_back($8);
+      std::reverse(create_index.attr_names.begin(), create_index.attr_names.end());
+      free($4);
+      free($6);
+      free($8);
+    }
+    | CREATE FULLTEXT INDEX ID ON ID LBRACE ID idx_col_list RBRACE
+    {
+      $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
+      CreateIndexSqlNode &create_index = $$->create_index;
+      create_index.unique = false;
+      create_index.fulltext = true;
       create_index.index_name = $4;
       create_index.relation_name = $6;
       std::vector<std::string> *idx_cols = $9;
@@ -389,6 +432,7 @@ create_index_stmt:    /*create index 语句的语法解析树*/
     {
       $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
       CreateIndexSqlNode &create_index = $$->create_index;
+      create_index.fulltext = false;
       create_index.index_name = $4;
       create_index.relation_name = $6;
       std::vector<std::string> *idx_cols = $9;
@@ -800,6 +844,35 @@ assign_value:
     ;
 
 select_stmt:        /*  select 语句的语法解析树*/
+    select_unit
+    {
+      $$ = $1;
+    }
+    | select_unit UNION select_stmt
+    {
+      // 左结合：将当前 SELECT 和右边的 UNION SELECT 合并
+      if ($1 != nullptr && $3 != nullptr) {
+        $1->selection.union_select = std::unique_ptr<ParsedSqlNode>($3);
+        $1->selection.union_all = false;
+        $$ = $1;
+      } else {
+        $$ = nullptr;
+      }
+    }
+    | select_unit UNION ALL select_stmt
+    {
+      // 左结合：将当前 SELECT 和右边的 UNION ALL SELECT 合并
+      if ($1 != nullptr && $4 != nullptr) {
+        $1->selection.union_select = std::unique_ptr<ParsedSqlNode>($4);
+        $1->selection.union_all = true;
+        $$ = $1;
+      } else {
+        $$ = nullptr;
+      }
+    }
+    ;
+
+select_unit:        /*  单个 SELECT 语句（不包含 UNION）*/
     SELECT expression_list FROM rel_list where group_by having_node order_by limit
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
@@ -927,25 +1000,87 @@ expression:
       $$ = new StarExpr();
     }
     | ID LBRACE expression_list RBRACE {
-      if($3->size() != 1)$$ = create_aggregate_expression("", nullptr, sql_string, &@$);
-      else $$ = create_aggregate_expression($1, $3->at(0).release(), sql_string, &@$);
+      // Check if it's an aggregate function
+      bool is_aggregate = (0 == strcasecmp($1, "count") || 
+                           0 == strcasecmp($1, "sum") ||
+                           0 == strcasecmp($1, "max") ||
+                           0 == strcasecmp($1, "min") ||
+                           0 == strcasecmp($1, "avg"));
+      
+      if (is_aggregate) {
+        if($3->size() != 1)$$ = create_aggregate_expression("", nullptr, sql_string, &@$);
+        else $$ = create_aggregate_expression($1, $3->at(0).release(), sql_string, &@$);
+      } else {
+        // System function
+        if (0 == strcasecmp($1, "date_format")) {
+          // DATE_FORMAT requires 2 arguments
+          if($3->size() != 2) {
+            yyerror(&@$, sql_string, sql_result, scanner, "DATE_FORMAT requires 2 arguments");
+            free($1);
+            delete $3;
+            YYERROR;
+          }
+          $$ = create_sysfunc_expression($1, $3->at(0).release(), $3->at(1).release(), nullptr, sql_string, &@$);
+        } else if (0 == strcasecmp($1, "distance")) {
+          // DISTANCE requires 3 arguments
+          if($3->size() != 3) {
+            yyerror(&@$, sql_string, sql_result, scanner, "DISTANCE requires 3 arguments");
+            free($1);
+            delete $3;
+            YYERROR;
+          }
+          $$ = create_sysfunc_expression($1, $3->at(0).release(), $3->at(1).release(), $3->at(2).release(), sql_string, &@$);
+        } else if (0 == strcasecmp($1, "tokenize")) {
+          // TOKENIZE requires 2 arguments
+          if($3->size() != 2) {
+            yyerror(&@$, sql_string, sql_result, scanner, "TOKENIZE requires 2 arguments");
+            free($1);
+            delete $3;
+            YYERROR;
+          }
+          $$ = create_sysfunc_expression($1, $3->at(0).release(), $3->at(1).release(), nullptr, sql_string, &@$);
+        } else {
+          // LENGTH, ROUND, VECTOR_TO_STRING, STRING_TO_VECTOR require 1 argument
+          if($3->size() != 1) {
+            yyerror(&@$, sql_string, sql_result, scanner, "Function requires 1 argument");
+            free($1);
+            delete $3;
+            YYERROR;
+          }
+          $$ = create_sysfunc_expression($1, $3->at(0).release(), nullptr, nullptr, sql_string, &@$);
+        }
+      }
       free($1);
       delete $3;
     }
     | ID LBRACE RBRACE {
-      $$ = create_aggregate_expression("", nullptr, sql_string, &@$);
+      // Check if it's an aggregate function (COUNT can have no args)
+      bool is_aggregate = (0 == strcasecmp($1, "count"));
+      if (is_aggregate) {
+        $$ = create_aggregate_expression("", nullptr, sql_string, &@$);
+      } else {
+        yyerror(&@$, sql_string, sql_result, scanner, "Function requires arguments");
+        free($1);
+        YYERROR;
+      }
       free($1);
     }
     | LBRACE select_stmt RBRACE {
       $$ = new SelectExpr($2);
     }
-    | value {
-        $$ = new ValueExpr(*$1);
-        $$->set_name(token_name(sql_string, &@$));
-        delete $1;
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    {
+      // MATCH(field) AGAINST('query') as expression (for ORDER BY and SELECT)
+      Expression *field_expr = new UnboundFieldExpr($3->relation_name, $3->attribute_name);
+      Expression *query_expr = new ValueExpr(Value($7));
+      $$ = create_sysfunc_expression("match_against", field_expr, query_expr, nullptr, sql_string, &@$);
+      free($3->relation_name);
+      free($3->attribute_name);
+      delete $3;
+      free($7);
     }
-    // your code here
     ;
+
 
 ID:
     ID_KEY { $$ = $1; }
@@ -1127,6 +1262,21 @@ condition:
       $$->left_expr = unique_ptr<Expression>($1);
       $$->right_expr = unique_ptr<Expression>($3);
       $$->comp = $2;
+    }
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    {
+      // MATCH(field) AGAINST('query') -> match_against(field, 'query')
+      $$ = new ConditionSqlNode;
+      Expression *field_expr = new UnboundFieldExpr($3->relation_name, $3->attribute_name);
+      Expression *query_expr = new ValueExpr(Value($7));
+      Expression *match_expr = create_sysfunc_expression("match_against", field_expr, query_expr, nullptr, sql_string, &@$);
+      $$->left_expr = unique_ptr<Expression>(match_expr);
+      $$->right_expr = unique_ptr<Expression>(new ValueExpr(Value(0)));
+      $$->comp = GREAT_THAN;
+      free($3->relation_name);
+      free($3->attribute_name);
+      delete $3;
+      free($7);
     }
     | unary_op expression
     {

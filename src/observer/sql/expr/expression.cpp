@@ -19,6 +19,11 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/logical_plan_generator.h"
 #include "sql/executor/sql_result.h"
 #include "sql/stmt/select_stmt.h"
+#include <cmath>
+#include <cstring>
+#include <cstdio>
+#include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -79,6 +84,24 @@ RC Expression::recursion(std::unique_ptr<Expression>& expr,
       rc = recursion(right_expr, func);
       if (rc != RC::SUCCESS) {
         return rc;
+      }
+      return RC::SUCCESS;
+    }break;
+    case ExprType::SYSFUNC:{
+      auto sysfunc_expr = static_cast<SysFuncExpr*>(expr.get());
+       unique_ptr<Expression>        &child_expr  = sysfunc_expr->child();
+       unique_ptr<Expression>        &second_child_expr = sysfunc_expr->second_child();
+
+      RC rc = recursion(child_expr, func);
+      if (OB_FAIL(rc)) {
+        return rc;
+      }
+
+      if (second_child_expr) {
+        rc = recursion(second_child_expr, func);
+        if (OB_FAIL(rc)) {
+          return rc;
+        }
       }
       return RC::SUCCESS;
     }break;
@@ -1187,4 +1210,622 @@ RC ValueListExpr::get_value_set(const Tuple &tuple, vector<Value> &value_list) c
     value_list.emplace_back(move(value));
   }
   return RC::SUCCESS;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+UnboundSysFuncExpr::UnboundSysFuncExpr(const char *func_name, Expression *child)
+    : func_name_(func_name), child_(child), second_child_(nullptr)
+{}
+
+UnboundSysFuncExpr::UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child)
+    : func_name_(func_name), child_(child), second_child_(second_child), third_child_(nullptr)
+{}
+
+UnboundSysFuncExpr::UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child, Expression *third_child)
+    : func_name_(func_name), child_(child), second_child_(second_child), third_child_(third_child)
+{}
+
+unique_ptr<Expression> UnboundSysFuncExpr::deep_copy()
+{
+  unique_ptr<Expression> child_copy = child_ ? child_->deep_copy() : nullptr;
+  unique_ptr<Expression> second_copy = second_child_ ? second_child_->deep_copy() : nullptr;
+  unique_ptr<Expression> third_copy = third_child_ ? third_child_->deep_copy() : nullptr;
+  if (third_copy) {
+    return unique_ptr<Expression>(new UnboundSysFuncExpr(func_name_.c_str(), child_copy.release(), second_copy.release(), third_copy.release()));
+  } else if (second_copy) {
+    return unique_ptr<Expression>(new UnboundSysFuncExpr(func_name_.c_str(), child_copy.release(), second_copy.release()));
+  } else {
+    return unique_ptr<Expression>(new UnboundSysFuncExpr(func_name_.c_str(), child_copy.release()));
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+SysFuncExpr::SysFuncExpr(Type type, Expression *child) 
+    : sysfunc_type_(type), child_(child), second_child_(nullptr), third_child_(nullptr)
+{}
+
+SysFuncExpr::SysFuncExpr(Type type, std::unique_ptr<Expression> child) 
+    : sysfunc_type_(type), child_(std::move(child)), second_child_(nullptr), third_child_(nullptr)
+{}
+
+SysFuncExpr::SysFuncExpr(Type type, Expression *child, Expression *second_child) 
+    : sysfunc_type_(type), child_(child), second_child_(second_child), third_child_(nullptr)
+{}
+
+SysFuncExpr::SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child) 
+    : sysfunc_type_(type), child_(std::move(child)), second_child_(std::move(second_child)), third_child_(nullptr)
+{}
+
+SysFuncExpr::SysFuncExpr(Type type, Expression *child, Expression *second_child, Expression *third_child) 
+    : sysfunc_type_(type), child_(child), second_child_(second_child), third_child_(third_child)
+{}
+
+SysFuncExpr::SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child, std::unique_ptr<Expression> third_child) 
+    : sysfunc_type_(type), child_(std::move(child)), second_child_(std::move(second_child)), third_child_(std::move(third_child))
+{}
+
+bool SysFuncExpr::equal(const Expression &other) const
+{
+  if (this == &other) {
+    return true;
+  }
+  if (other.type() != type()) {
+    return false;
+  }
+  const SysFuncExpr &other_func_expr = static_cast<const SysFuncExpr &>(other);
+  bool equal = sysfunc_type_ == other_func_expr.sysfunc_type() && child_->equal(*other_func_expr.child());
+  if (sysfunc_type_ == Type::DATE_FORMAT) {
+    equal = equal && second_child_ && other_func_expr.second_child() && 
+            second_child_->equal(*other_func_expr.second_child());
+  } else if (sysfunc_type_ == Type::DISTANCE) {
+    equal = equal && second_child_ && other_func_expr.second_child() && 
+            second_child_->equal(*other_func_expr.second_child()) &&
+            third_child_ && other_func_expr.third_child() &&
+            third_child_->equal(*other_func_expr.third_child());
+  }
+  return equal;
+}
+
+AttrType SysFuncExpr::value_type() const
+{
+  switch (sysfunc_type_) {
+    case Type::LENGTH:
+      return AttrType::INTS;
+    case Type::ROUND:
+      return AttrType::FLOATS;
+    case Type::DATE_FORMAT:
+      return AttrType::CHARS;
+    case Type::DISTANCE:
+      return AttrType::FLOATS;
+    case Type::VECTOR_TO_STRING:
+      return AttrType::CHARS;
+    case Type::STRING_TO_VECTOR:
+      return AttrType::VECTORS;
+    default:
+      return AttrType::UNDEFINED;
+  }
+}
+
+int SysFuncExpr::value_length() const
+{
+  switch (sysfunc_type_) {
+    case Type::LENGTH:
+      return 4;
+    case Type::ROUND:
+      return 4;
+    case Type::DATE_FORMAT:
+      return -1;  // variable length
+    case Type::DISTANCE:
+      return 4;
+    case Type::VECTOR_TO_STRING:
+      return -1;  // variable length
+    case Type::STRING_TO_VECTOR:
+      return -1;  // variable length (depends on vector dimension)
+    default:
+      return -1;
+  }
+}
+
+RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
+{
+  RC rc = RC::SUCCESS;
+  Value arg_value;
+  Value format_value;
+
+  // Get the first argument
+  rc = child_->get_value(tuple, arg_value);
+  if (OB_FAIL(rc)) {
+    return rc;
+  }
+
+  // Check for NULL
+  if (arg_value.attr_type() == AttrType::NULLS) {
+    value.set_null();
+    return RC::SUCCESS;
+  }
+
+  // Get the second argument for functions that need it
+  if (sysfunc_type_ == Type::DATE_FORMAT || sysfunc_type_ == Type::DISTANCE) {
+    if (!second_child_) {
+      LOG_WARN("Function requires second argument");
+      return RC::INVALID_ARGUMENT;
+    }
+    rc = second_child_->get_value(tuple, format_value);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+    if (format_value.attr_type() == AttrType::NULLS) {
+      value.set_null();
+      return RC::SUCCESS;
+    }
+  }
+
+  // For DISTANCE, we need a third argument (metric type)
+  Value metric_value;
+  if (sysfunc_type_ == Type::DISTANCE) {
+    if (!third_child_) {
+      LOG_WARN("DISTANCE function requires third argument (metric type)");
+      return RC::INVALID_ARGUMENT;
+    }
+    rc = third_child_->get_value(tuple, metric_value);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+    if (metric_value.attr_type() == AttrType::NULLS) {
+      value.set_null();
+      return RC::SUCCESS;
+    }
+  }
+
+  // Evaluate the function
+  switch (sysfunc_type_) {
+    case Type::LENGTH:
+      return eval_length(arg_value, value);
+    case Type::ROUND:
+      return eval_round(arg_value, value);
+    case Type::DATE_FORMAT:
+      return eval_date_format(arg_value, format_value, value);
+    case Type::DISTANCE:
+      return eval_distance(arg_value, format_value, metric_value, value);
+    case Type::VECTOR_TO_STRING:
+      return eval_vector_to_string(arg_value, value);
+    case Type::STRING_TO_VECTOR:
+      return eval_string_to_vector(arg_value, value);
+    case Type::TOKENIZE:
+      return eval_tokenize(arg_value, format_value, value);
+    case Type::MATCH_AGAINST:
+      return eval_match_against(arg_value, format_value, value);
+    default:
+      return RC::UNIMPLEMENTED;
+  }
+}
+
+RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
+{
+  if (arg_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("LENGTH function only supports CHAR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *str = arg_value.data();
+  if (str == nullptr) {
+    result.set_int(0);
+    return RC::SUCCESS;
+  }
+
+  // Find actual string length (excluding padding)
+  int len = arg_value.length();
+  if (len > 0) {
+    // Remove trailing spaces
+    while (len > 0 && str[len - 1] == ' ') {
+      len--;
+    }
+  }
+
+  result.set_int(len);
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
+{
+  if (arg_value.attr_type() != AttrType::FLOATS) {
+    LOG_WARN("ROUND function only supports FLOAT type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  float val = arg_value.get_float();
+  result.set_float(::round(val));
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::eval_distance(const Value &v1_value, const Value &v2_value, const Value &metric_value, Value &result) const
+{
+  if (v1_value.attr_type() != AttrType::VECTORS || v2_value.attr_type() != AttrType::VECTORS) {
+    LOG_WARN("DISTANCE function requires VECTOR types");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (metric_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("DISTANCE metric must be a string");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *metric_str = metric_value.data();
+  if (metric_str == nullptr) {
+    LOG_WARN("Invalid metric string");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // Parse metric type: 'COSINE', 'EUCLIDEAN', 'DOT'
+  if (0 == strcasecmp(metric_str, "COSINE")) {
+    return Value::cosine_distance(v1_value, v2_value, result);
+  } else if (0 == strcasecmp(metric_str, "EUCLIDEAN")) {
+    return Value::l2_distance(v1_value, v2_value, result);
+  } else if (0 == strcasecmp(metric_str, "DOT")) {
+    return Value::inner_product(v1_value, v2_value, result);
+  } else {
+    LOG_WARN("Invalid distance metric: %s. Must be COSINE, EUCLIDEAN, or DOT", metric_str);
+    return RC::INVALID_ARGUMENT;
+  }
+}
+
+RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) const
+{
+  if (arg_value.attr_type() != AttrType::VECTORS) {
+    LOG_WARN("VECTOR_TO_STRING function only supports VECTOR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  vector<float> *vec = arg_value.get_vector();
+  if (vec == nullptr || vec->empty()) {
+    result.set_string("[]", 2);
+    return RC::SUCCESS;
+  }
+
+  // Format vector as [v1, v2, v3, ...]
+  // Use scientific notation if needed, with up to 5 decimal places
+  string result_str = "[";
+  for (size_t i = 0; i < vec->size(); i++) {
+    if (i > 0) {
+      result_str += ",";
+    }
+    
+    // Format float with up to 5 decimal places, using scientific notation if needed
+    float val = vec->at(i);
+    char buffer[64];
+    if (fabs(val) >= 1e5 || (fabs(val) < 1e-4 && val != 0.0)) {
+      // Use scientific notation
+      snprintf(buffer, sizeof(buffer), "%.5e", static_cast<double>(val));
+    } else {
+      // Use normal notation with up to 5 decimal places
+      snprintf(buffer, sizeof(buffer), "%.5f", static_cast<double>(val));
+      // Remove trailing zeros
+      char *p = buffer + strlen(buffer) - 1;
+      while (p > buffer && *p == '0' && *(p-1) != '.') {
+        *p = '\0';
+        p--;
+      }
+    }
+    result_str += buffer;
+  }
+  result_str += "]";
+
+  result.set_string(result_str.c_str(), result_str.length());
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::eval_string_to_vector(const Value &arg_value, Value &result) const
+{
+  if (arg_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("STRING_TO_VECTOR function only supports CHAR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *str = arg_value.data();
+  if (str == nullptr) {
+    LOG_WARN("Invalid string for STRING_TO_VECTOR");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // Parse string like "[1, 2, 3]" or "[1.5, 2.5, 3.5]"
+  int len = arg_value.length();
+  if (len < 2 || str[0] != '[' || str[len - 1] != ']') {
+    LOG_WARN("STRING_TO_VECTOR: string must be in format [v1, v2, v3, ...]");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // Extract the content between brackets
+  string content(str + 1, len - 2);  // Skip '[' and ']'
+  
+  // Parse comma-separated values
+  vector<float> vec;
+  stringstream ss(content);
+  string item;
+  
+  while (getline(ss, item, ',')) {
+    // Trim whitespace
+    item.erase(0, item.find_first_not_of(" \t"));
+    item.erase(item.find_last_not_of(" \t") + 1);
+    
+    if (!item.empty()) {
+      try {
+        float val = std::stof(item);
+        vec.push_back(val);
+      } catch (const std::exception &e) {
+        LOG_WARN("STRING_TO_VECTOR: failed to parse value: %s", item.c_str());
+        return RC::INVALID_ARGUMENT;
+      }
+    }
+  }
+
+  if (vec.empty()) {
+    LOG_WARN("STRING_TO_VECTOR: empty vector");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  result.set_vector(std::move(vec));
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::eval_tokenize(const Value &text_value, const Value &parser_value, Value &result) const
+{
+  if (text_value.attr_type() != AttrType::CHARS && text_value.attr_type() != AttrType::TEXTS) {
+    LOG_WARN("TOKENIZE function only supports CHAR or TEXT type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (parser_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("TOKENIZE parser must be CHAR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *text = text_value.data();
+  const char *parser_str = parser_value.data();
+  
+  if (text == nullptr || parser_str == nullptr) {
+    result.set_string("", 0);
+    return RC::SUCCESS;
+  }
+
+  string text_str(text);
+  string parser(parser_str);
+  
+  // Convert parser to lowercase for comparison
+  transform(parser.begin(), parser.end(), parser.begin(), ::tolower);
+  
+  vector<string> tokens;
+  
+  if (parser == "jieba") {
+    // Use jieba tokenization (simplified implementation)
+    // In production, this should call cppjieba library
+    tokens = tokenize_jieba(text_str);
+  } else {
+    // Default: space-based tokenization
+    istringstream iss(text_str);
+    string word;
+    while (iss >> word) {
+      // Remove punctuation
+      string cleaned;
+      for (char c : word) {
+        if (isalnum(c) || c == '_') {
+          cleaned += c;
+        }
+      }
+      if (!cleaned.empty()) {
+        tokens.push_back(cleaned);
+      }
+    }
+  }
+  
+  // Join tokens with space
+  string result_str;
+  for (size_t i = 0; i < tokens.size(); i++) {
+    if (i > 0) result_str += " ";
+    result_str += tokens[i];
+  }
+  
+  result.set_string(result_str.c_str(), result_str.length());
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_value, Value &result) const
+{
+  if (field_value.attr_type() != AttrType::CHARS && field_value.attr_type() != AttrType::TEXTS) {
+    LOG_WARN("MATCH AGAINST function only supports CHAR or TEXT type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (query_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("MATCH AGAINST query must be CHAR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *field_text = field_value.data();
+  const char *query_text = query_value.data();
+  
+  if (field_text == nullptr || query_text == nullptr) {
+    result.set_float(0.0f);
+    return RC::SUCCESS;
+  }
+
+  // TODO: Get fulltext index from context and calculate BM25 score
+  // For now, return a simple score based on word frequency
+  string field_str(field_text);
+  string query_str(query_text);
+  
+  // Simple scoring: count how many query words appear in field
+  istringstream query_iss(query_str);
+  string query_word;
+  int match_count = 0;
+  
+  while (query_iss >> query_word) {
+    // Convert to lowercase for comparison
+    transform(query_word.begin(), query_word.end(), query_word.begin(), ::tolower);
+    transform(field_str.begin(), field_str.end(), field_str.begin(), ::tolower);
+    
+    if (field_str.find(query_word) != string::npos) {
+      match_count++;
+    }
+  }
+  
+  // Return simple score (will be replaced with BM25 in FullTextIndex)
+  result.set_float(static_cast<float>(match_count));
+  return RC::SUCCESS;
+}
+
+// Helper function for jieba tokenization (simplified)
+vector<string> SysFuncExpr::tokenize_jieba(const string &text) const
+{
+  vector<string> tokens;
+  
+  // Simplified implementation: split by common Chinese punctuation and spaces
+  // In production, this should use cppjieba library
+  string current_token;
+  for (char c : text) {
+    if (isspace(c) || c == '，' || c == '。' || c == '！' || c == '？' || 
+        c == '；' || c == '：' || c == '、') {
+      if (!current_token.empty()) {
+        tokens.push_back(current_token);
+        current_token.clear();
+      }
+    } else if (isalnum(c) || (c & 0x80)) {  // ASCII or UTF-8 start byte
+      current_token += c;
+    }
+  }
+  if (!current_token.empty()) {
+    tokens.push_back(current_token);
+  }
+  
+  return tokens;
+}
+
+RC SysFuncExpr::eval_date_format(const Value &date_value, const Value &format_value, Value &result) const
+{
+  if (date_value.attr_type() != AttrType::DATES) {
+    LOG_WARN("DATE_FORMAT function only supports DATE type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  if (format_value.attr_type() != AttrType::CHARS) {
+    LOG_WARN("DATE_FORMAT format string must be CHAR type");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  const char *date_str = date_value.data();
+  const char *format_str = format_value.data();
+
+  if (date_str == nullptr || format_str == nullptr) {
+    LOG_WARN("Invalid date or format string");
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // Parse date string (format: YYYY-MM-DD, length is 10)
+  if (strlen(date_str) != 10) {
+    LOG_WARN("Invalid date format length: %s", date_str);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  int year, month, day;
+  if (sscanf(date_str, "%4d-%2d-%2d", &year, &month, &day) != 3) {
+    LOG_WARN("Invalid date format: %s", date_str);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // Month names
+  static const char *month_names[] = {
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  };
+
+  // Day suffixes
+  static const char *day_suffix[] = {
+    "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th",
+    "th", "th", "th", "th", "th", "th", "th", "th", "th", "th",
+    "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th", "th"
+  };
+
+  // Build formatted string
+  string result_str;
+  const char *p = format_str;
+  while (*p != '\0') {
+    if (*p == '%' && *(p + 1) != '\0') {
+      p++;
+      switch (*p) {
+        case 'Y':  // 4-digit year
+          result_str += std::to_string(year);
+          break;
+        case 'y':  // 2-digit year
+          result_str += (year % 100 < 10 ? "0" : "") + std::to_string(year % 100);
+          break;
+        case 'm':  // Month (01-12)
+          result_str += (month < 10 ? "0" : "") + std::to_string(month);
+          break;
+        case 'd':  // Day of month (01-31)
+          result_str += (day < 10 ? "0" : "") + std::to_string(day);
+          break;
+        case 'D':  // Day of month with suffix
+          result_str += std::to_string(day) + day_suffix[day % 31];
+          break;
+        case 'M':  // Month name
+          if (month >= 1 && month <= 12) {
+            result_str += month_names[month];
+          }
+          break;
+        default:
+          // Invalid format specifier, output as-is
+          result_str += '%';
+          result_str += *p;
+          break;
+      }
+      p++;
+    } else {
+      result_str += *p;
+      p++;
+    }
+  }
+
+  result.set_string(result_str.c_str(), result_str.length());
+  return RC::SUCCESS;
+}
+
+RC SysFuncExpr::type_from_string(const char *type_str, SysFuncExpr::Type &func_type)
+{
+  RC rc = RC::SUCCESS;
+  if (0 == strcasecmp(type_str, "length")) {
+    func_type = Type::LENGTH;
+  } else if (0 == strcasecmp(type_str, "round")) {
+    func_type = Type::ROUND;
+  } else if (0 == strcasecmp(type_str, "date_format")) {
+    func_type = Type::DATE_FORMAT;
+  } else if (0 == strcasecmp(type_str, "distance")) {
+    func_type = Type::DISTANCE;
+  } else if (0 == strcasecmp(type_str, "vector_to_string")) {
+    func_type = Type::VECTOR_TO_STRING;
+  } else if (0 == strcasecmp(type_str, "string_to_vector")) {
+    func_type = Type::STRING_TO_VECTOR;
+  } else if (0 == strcasecmp(type_str, "tokenize")) {
+    func_type = Type::TOKENIZE;
+  } else if (0 == strcasecmp(type_str, "match_against")) {
+    func_type = Type::MATCH_AGAINST;
+  } else {
+    rc = RC::INVALID_ARGUMENT;
+  }
+  return rc;
+}
+
+unique_ptr<Expression> SysFuncExpr::deep_copy()
+{
+  unique_ptr<Expression> child_copy = child_->deep_copy();
+  if (third_child_) {
+    unique_ptr<Expression> second_copy = second_child_->deep_copy();
+    unique_ptr<Expression> third_copy = third_child_->deep_copy();
+    return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy), std::move(second_copy), std::move(third_copy)));
+  } else if (second_child_) {
+    unique_ptr<Expression> second_copy = second_child_->deep_copy();
+    return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy), std::move(second_copy)));
+  } else {
+    return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy)));
+  }
 }

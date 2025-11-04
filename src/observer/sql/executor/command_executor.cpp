@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/create_table_executor.h"
 #include "sql/executor/drop_table_executor.h"
 #include "sql/executor/desc_table_executor.h"
+#include "sql/executor/alter_table_executor.h"
 #include "sql/executor/help_executor.h"
 #include "sql/executor/load_data_executor.h"
 #include "sql/executor/show_index_executor.h"

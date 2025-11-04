@@ -30,8 +30,8 @@ class CreateIndexStmt : public Stmt
 {
 public:
   CreateIndexStmt(Table *table, std::vector<const FieldMeta *> &field_meta, const std::string &index_name, bool unique, 
-      VectorIndexNode &vector_index)
-      : table_(table), field_meta_(field_meta), index_name_(index_name), unique_(unique)
+      bool fulltext, VectorIndexNode &vector_index)
+      : table_(table), field_meta_(field_meta), index_name_(index_name), unique_(unique), fulltext_(fulltext)
   { std::swap(vector_index, vector_index_); }
 
   virtual ~CreateIndexStmt() = default;
@@ -42,6 +42,7 @@ public:
   std::vector<const FieldMeta *>       &field_meta() { return field_meta_; }
   const std::string                    &index_name() const { return index_name_; }
   bool                                  unique() { return unique_; }
+  bool                                  fulltext() { return fulltext_; }
   VectorIndexNode                      &vector_index() { return vector_index_; }
 
 public:
@@ -52,5 +53,6 @@ private:
   std::vector<const FieldMeta *> field_meta_;
   std::string                    index_name_;
   bool                           unique_;
+  bool                           fulltext_;
   VectorIndexNode                vector_index_;
 };

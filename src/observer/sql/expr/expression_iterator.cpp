@@ -71,11 +71,36 @@ RC ExpressionIterator::iterate_child_expr(Expression &expr, function<RC(unique_p
       rc = callback(aggregate_expr.child());
     } break;
 
+    case ExprType::SYSFUNC: {
+      auto &sysfunc_expr = static_cast<SysFuncExpr &>(expr);
+      rc = callback(sysfunc_expr.child());
+      if (OB_SUCC(rc) && sysfunc_expr.second_child()) {
+        rc = callback(sysfunc_expr.second_child());
+      }
+      if (OB_SUCC(rc) && sysfunc_expr.third_child()) {
+        rc = callback(sysfunc_expr.third_child());
+      }
+    } break;
+
+    case ExprType::UNBOUND_SYSFUNC: {
+      auto &unbound_sysfunc_expr = static_cast<UnboundSysFuncExpr &>(expr);
+      if (unbound_sysfunc_expr.child()) {
+        rc = callback(unbound_sysfunc_expr.child());
+      }
+      if (OB_SUCC(rc) && unbound_sysfunc_expr.second_child()) {
+        rc = callback(unbound_sysfunc_expr.second_child());
+      }
+      if (OB_SUCC(rc) && unbound_sysfunc_expr.third_child()) {
+        rc = callback(unbound_sysfunc_expr.third_child());
+      }
+    } break;
+
     case ExprType::NONE:
     case ExprType::STAR:
     case ExprType::UNBOUND_FIELD:
     case ExprType::FIELD:
-    case ExprType::VALUE: {
+    case ExprType::VALUE:
+    case ExprType::UNBOUND_AGGREGATION: {
       // Do nothing
     } break;
 

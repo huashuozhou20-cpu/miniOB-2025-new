@@ -47,6 +47,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/hash_group_by_physical_operator.h"
 #include "sql/operator/scalar_group_by_physical_operator.h"
 #include "sql/operator/table_scan_vec_physical_operator.h"
+#include "sql/operator/union_logical_operator.h"
+#include "sql/operator/union_physical_operator.h"
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/operator/update_physical_operator.h"
@@ -118,6 +120,10 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
 
     case LogicalOperatorType::LIMIT: {
       return create_plan(static_cast<LimitLogicalOperator &>(logical_operator), oper);
+    } break;
+
+    case LogicalOperatorType::UNION: {
+      return create_plan(static_cast<UnionLogicalOperator &>(logical_operator), oper);
     } break;
 
     default: {
@@ -634,4 +640,40 @@ RC PhysicalPlanGenerator::create_plan(LimitLogicalOperator &logical_oper, std::u
 
   LOG_TRACE("create a limit physical operator");
   return rc;
+}
+
+RC PhysicalPlanGenerator::create_plan(UnionLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper)
+{
+  RC rc = RC::SUCCESS;
+  
+  // 创建 UNION 物理算子
+  auto physical_oper = new UnionPhysicalOperator(logical_oper.union_all());
+  
+  // 为左子树创建物理计划
+  if (logical_oper.children().size() >= 1) {
+    unique_ptr<PhysicalOperator> left_oper;
+    rc = create(*logical_oper.children()[0], left_oper);
+    if (OB_FAIL(rc)) {
+      delete physical_oper;
+      LOG_WARN("failed to create left physical plan for union. rc=%s", strrc(rc));
+      return rc;
+    }
+    physical_oper->add_child(std::move(left_oper));
+  }
+  
+  // 为右子树创建物理计划
+  if (logical_oper.children().size() >= 2) {
+    unique_ptr<PhysicalOperator> right_oper;
+    rc = create(*logical_oper.children()[1], right_oper);
+    if (OB_FAIL(rc)) {
+      delete physical_oper;
+      LOG_WARN("failed to create right physical plan for union. rc=%s", strrc(rc));
+      return rc;
+    }
+    physical_oper->add_child(std::move(right_oper));
+  }
+  
+  oper = unique_ptr<PhysicalOperator>(physical_oper);
+  LOG_TRACE("create a union physical operator");
+  return RC::SUCCESS;
 }

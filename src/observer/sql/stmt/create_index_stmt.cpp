@@ -56,7 +56,7 @@ RC CreateIndexStmt::create(Db *db, CreateIndexSqlNode &create_index, Stmt *&stmt
     return RC::SCHEMA_INDEX_NAME_REPEAT;
   }
 
-  stmt = new CreateIndexStmt(table, field_metas, create_index.index_name, create_index.unique, create_index.vector_index);
+  stmt = new CreateIndexStmt(table, field_metas, create_index.index_name, create_index.unique, create_index.fulltext, create_index.vector_index);
     
   return RC::SUCCESS;
 }

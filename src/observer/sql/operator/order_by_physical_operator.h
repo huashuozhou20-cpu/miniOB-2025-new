@@ -42,10 +42,22 @@ public:
 private:
   RC fetch_next();
   RC     quick_sort(Tuple *upper_tuple = nullptr);
+  RC     external_sort(Tuple *upper_tuple = nullptr);
   RC     limit_sort(Tuple *upper_tuple = nullptr);
   bool     cmp(const vector<Value>& a_vals, const vector<Value>& b_vals);
+  
+  // External sort helpers
+  RC write_chunk_to_file(const vector<ValueListTuple> &chunk, const vector<vector<Value>> &chunk_values, 
+                         const vector<size_t> &chunk_ids, const string &filename);
+  RC read_chunk_from_file(const string &filename, vector<ValueListTuple> &chunk, 
+                          vector<vector<Value>> &chunk_values, vector<size_t> &chunk_ids);
+  RC merge_sorted_chunks(const vector<string> &chunk_files, const string &output_file);
+  void cleanup_temp_files(const vector<string> &files);
 
 private:
+  static constexpr size_t MEMORY_THRESHOLD = 10000;  // Threshold for external sort
+  static constexpr size_t CHUNK_SIZE = 5000;         // Size of each chunk for external sort
+  
   std::vector<std::unique_ptr<Expression>> order_by_;
   std::vector<bool>                        is_asc_;
   bool                                     first_emited_ = false;  /// 第一条数据是否已经输出
@@ -55,4 +67,8 @@ private:
   vector<vector<Value>>                    order_values_;        
   size_t                                   current_id_;
   int                                      limit_ = -1;
+  
+  // External sort state
+  string                                   external_sort_file_;  // Final merged file
+  vector<string>                           temp_files_;          // Temporary files to cleanup
 };

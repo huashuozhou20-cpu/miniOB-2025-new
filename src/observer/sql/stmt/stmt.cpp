@@ -96,6 +96,10 @@ RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt,
       return DescTableStmt::create(db, sql_node.desc_table, stmt);
     }
 
+    case SCF_ALTER_TABLE: {
+      return AlterTableStmt::create(db, sql_node.alter_table, stmt);
+    }
+
     case SCF_HELP: {
       return HelpStmt::create(stmt);
     }

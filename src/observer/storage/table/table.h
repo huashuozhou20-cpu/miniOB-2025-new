@@ -91,10 +91,22 @@ public:
 
   RC recover_insert_record(Record &record);
 
+  /**
+   * @brief 修改表结构
+   * @param trx 事务
+   * @param alter_type 修改类型
+   * @param attr_info 用于 ADD_COLUMN 的属性信息
+   * @param old_name 旧名称（用于 DROP_COLUMN, RENAME_COLUMN, RENAME_TABLE）
+   * @param new_name 新名称（用于 RENAME_COLUMN, RENAME_TABLE）
+   */
+  RC alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info,
+                 const std::string &old_name, const std::string &new_name);
+
   // TODO refactor
   RC create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &field_metas, const char *index_name);
   RC create_vector_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &field_metas, const char *index_name,
       VectorIndexNode &vector_index);
+  RC create_fulltext_index(Trx *trx, std::vector<const FieldMeta *> &field_metas, const char *index_name);
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, ReadWriteMode mode);
 
