@@ -1420,7 +1420,7 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
 
   const char *str = arg_value.data();
   if (str == nullptr) {
-    result.set_int(0);
+    result = Value(0);
     return RC::SUCCESS;
   }
 
@@ -1433,7 +1433,7 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
     }
   }
 
-  result.set_int(len);
+  result = Value(len);
   return RC::SUCCESS;
 }
 
@@ -1445,7 +1445,7 @@ RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
   }
 
   float val = arg_value.get_float();
-  result.set_float(::round(val));
+  result = Value(::round(val));
   return RC::SUCCESS;
 }
 
@@ -1489,7 +1489,7 @@ RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) con
 
   vector<float> *vec = arg_value.get_vector();
   if (vec == nullptr || vec->empty()) {
-    result.set_string("[]", 2);
+    result.Value("[]", 2);
     return RC::SUCCESS;
   }
 
@@ -1521,7 +1521,7 @@ RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) con
   }
   result_str += "]";
 
-  result.set_string(result_str.c_str(), result_str.length());
+  result = Value(result_str.c_str(), result_str.length());
   return RC::SUCCESS;
 }
 
@@ -1594,7 +1594,7 @@ RC SysFuncExpr::eval_tokenize(const Value &text_value, const Value &parser_value
   const char *parser_str = parser_value.data();
   
   if (text == nullptr || parser_str == nullptr) {
-    result.set_string("", 0);
+    result = Value("", 0);
     return RC::SUCCESS;
   }
 
@@ -1635,7 +1635,7 @@ RC SysFuncExpr::eval_tokenize(const Value &text_value, const Value &parser_value
     result_str += tokens[i];
   }
   
-  result.set_string(result_str.c_str(), result_str.length());
+  result = Value(result_str.c_str(), result_str.length());
   return RC::SUCCESS;
 }
 
@@ -1655,7 +1655,7 @@ RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_
   const char *query_text = query_value.data();
   
   if (field_text == nullptr || query_text == nullptr) {
-    result.set_float(0.0f);
+    result = Value(0.0f);
     return RC::SUCCESS;
   }
 
@@ -1680,7 +1680,7 @@ RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_
   }
   
   // Return simple score (will be replaced with BM25 in FullTextIndex)
-  result.set_float(static_cast<float>(match_count));
+  result = Value(static_cast<float>(match_count));
   return RC::SUCCESS;
 }
 
@@ -1795,7 +1795,7 @@ RC SysFuncExpr::eval_date_format(const Value &date_value, const Value &format_va
     }
   }
 
-  result.set_string(result_str.c_str(), result_str.length());
+  result = Value(result_str.c_str(), result_str.length());
   return RC::SUCCESS;
 }
 
