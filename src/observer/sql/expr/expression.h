@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include <regex>
 #include <unordered_set>
-
+#include <vector>
 #include "common/value.h"
 #include "storage/field/field.h"
 #include "sql/expr/aggregator.h"
@@ -752,9 +752,11 @@ public:
   Type sysfunc_type() const { return sysfunc_type_; }
 
   std::unique_ptr<Expression> &child() { return child_; }
+  const std::unique_ptr<Expression> &child() const { return child_; }
   std::unique_ptr<Expression> &second_child() { return second_child_; }
+  const std::unique_ptr<Expression> &second_child() const { return second_child_; }
   std::unique_ptr<Expression> &third_child() { return third_child_; }
-
+  const std::unique_ptr<Expression> &third_child() const { return third_child_; }
   unique_ptr<Expression> deep_copy() override;
 
 public:
