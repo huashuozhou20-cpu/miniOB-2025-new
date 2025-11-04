@@ -14,20 +14,21 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "sql/executor/executor.h"
+#include "common/rc.h"
 
-class AlterTableStmt;
+class SQLStageEvent;
 
 /**
  * @brief 执行alter table语句
  * @ingroup Executor
  */
-class AlterTableExecutor : public Executor
+class AlterTableExecutor 
 {
 public:
   AlterTableExecutor() = default;
   virtual ~AlterTableExecutor() = default;
 
-  RC execute(SQLStageEvent *sql_event) override;
+  RC execute(SQLStageEvent *sql_event);
 };
+
 
