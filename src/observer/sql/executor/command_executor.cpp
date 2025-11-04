@@ -60,7 +60,10 @@ RC CommandExecutor::execute(SQLStageEvent *sql_event)
       DescTableExecutor executor;
       rc = executor.execute(sql_event);
     } break;
-
+    case StmtType::ALTER_TABLE: {
+      AlterTableExecutor executor;
+      rc = executor.execute(sql_event);
+    } break;
     case StmtType::HELP: {
       HelpExecutor executor;
       rc = executor.execute(sql_event);
