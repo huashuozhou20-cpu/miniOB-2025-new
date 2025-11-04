@@ -13,8 +13,9 @@ list(PREPEND CMAKE_PREFIX_PATH
 # 优先尝试 CONFIG 模式
 find_package(Libevent CONFIG QUIET)
 
-if (NOT Libevent_FOUND)
-  message(STATUS "Libevent CONFIG not found, fallback to manual locate...")
+# 检查是否找到了 Libevent::core 目标（即使 CONFIG 模式找到，也可能没有正确导入目标）
+if (NOT TARGET Libevent::core)
+  message(STATUS "Libevent::core target not found, fallback to manual locate...")
 
   # 头文件
   find_path(LIBEVENT_INCLUDE_DIR event2/event.h
