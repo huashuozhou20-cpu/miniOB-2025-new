@@ -269,6 +269,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
 %type <sql_node>            desc_table_stmt
 %type <sql_node>            create_index_stmt
 %type <sql_node>            drop_index_stmt
+%type <sql_node>            alter_table_stmt
 %type <sql_node>            sync_stmt
 %type <sql_node>            begin_stmt
 %type <sql_node>            commit_stmt
@@ -313,6 +314,7 @@ command_wrapper:
   | desc_table_stmt
   | create_index_stmt
   | drop_index_stmt
+  | alter_table_stmt
   | sync_stmt
   | begin_stmt
   | commit_stmt
@@ -384,6 +386,51 @@ desc_table_stmt:
       $$ = new ParsedSqlNode(SCF_DESC_TABLE);
       $$->desc_table.relation_name = $2;
       free($2);
+    }
+    ;
+
+alter_table_stmt:
+    ALTER TABLE ID ADD COLUMN attr_def
+    {
+      $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
+      AlterTableSqlNode &alter_table = $$->alter_table;
+      alter_table.relation_name = $3;
+      alter_table.alter_type = AlterTableSqlNode::AlterType::ADD_COLUMN;
+      alter_table.attr_info = *$5;
+      free($3);
+      delete $5;
+    }
+    | ALTER TABLE ID DROP COLUMN ID
+    {
+      $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
+      AlterTableSqlNode &alter_table = $$->alter_table;
+      alter_table.relation_name = $3;
+      alter_table.alter_type = AlterTableSqlNode::AlterType::DROP_COLUMN;
+      alter_table.old_name = $5;
+      free($3);
+      free($5);
+    }
+    | ALTER TABLE ID RENAME COLUMN ID TO ID
+    {
+      $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
+      AlterTableSqlNode &alter_table = $$->alter_table;
+      alter_table.relation_name = $3;
+      alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_COLUMN;
+      alter_table.old_name = $5;
+      alter_table.new_name = $7;
+      free($3);
+      free($5);
+      free($7);
+    }
+    | ALTER TABLE ID RENAME TO ID
+    {
+      $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
+      AlterTableSqlNode &alter_table = $$->alter_table;
+      alter_table.relation_name = $3;
+      alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_TABLE;
+      alter_table.new_name = $5;
+      free($3);
+      free($5);
     }
     ;
 

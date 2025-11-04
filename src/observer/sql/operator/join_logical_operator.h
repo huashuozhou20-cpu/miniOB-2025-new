@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "sql/operator/logical_operator.h"
+#include "sql/expr/expression.h"
 
 /**
  * @brief 连接算子
@@ -29,5 +30,12 @@ public:
 
   LogicalOperatorType type() const override { return LogicalOperatorType::JOIN; }
 
+  void set_join_condition(std::unique_ptr<Expression> join_condition) {
+    join_condition_ = std::move(join_condition);
+  }
+
+  Expression *join_condition() const { return join_condition_.get(); }
+
 private:
+  std::unique_ptr<Expression> join_condition_;  ///< JOIN 条件表达式（ON 子句）
 };

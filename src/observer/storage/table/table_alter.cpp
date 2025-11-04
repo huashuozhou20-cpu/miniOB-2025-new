@@ -97,7 +97,7 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       }
       
       // 检查是否有索引包含此列
-      for (size_t i = 0; i < new_table_meta.index_num(); i++) {
+      for (int i = 0; i < static_cast<int>(new_table_meta.index_num()); i++) {
         const IndexMeta *index = new_table_meta.index(i);
         for (const std::string &index_field : index->field()) {
           if (index_field == old_name) {
