@@ -1445,7 +1445,7 @@ RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
   }
 
   float val = arg_value.get_float();
-  result = Value(::round(val));
+  result = Value(static_cast<float>(::round(val)));
   return RC::SUCCESS;
 }
 
@@ -1692,16 +1692,43 @@ vector<string> SysFuncExpr::tokenize_jieba(const string &text) const
   // Simplified implementation: split by common Chinese punctuation and spaces
   // In production, this should use cppjieba library
   string current_token;
-  for (char c : text) {
-    if (isspace(c) || c == '，' || c == '。' || c == '！' || c == '？' || 
-        c == '；' || c == '：' || c == '、') {
+  // Chinese punctuation marks (UTF-8 encoded as strings)
+  const string chinese_punct = "，。！？；：、";
+  
+  for (size_t i = 0; i < text.length(); ) {
+    unsigned char c = static_cast<unsigned char>(text[i]);
+    
+    // Determine UTF-8 character length
+    size_t char_len = 1;
+    if ((c & 0x80) != 0) {
+      if ((c & 0xE0) == 0xC0) {
+        char_len = 2;  // 2-byte UTF-8
+      } else if ((c & 0xF0) == 0xE0) {
+        char_len = 3;  // 3-byte UTF-8 (Chinese characters)
+      } else if ((c & 0xF8) == 0xF0) {
+        char_len = 4;  // 4-byte UTF-8
+      }
+    }
+    
+    // Extract the complete UTF-8 character
+    string char_str = text.substr(i, char_len);
+    
+    // Check if it's punctuation (space or Chinese punctuation)
+    bool is_punct = false;
+    if (isspace(c)) {
+      is_punct = true;
+    } else if (char_len > 1 && chinese_punct.find(char_str) != string::npos) {
+      is_punct = true;
+    }   
+    if (is_punct) {
       if (!current_token.empty()) {
         tokens.push_back(current_token);
         current_token.clear();
       }
-    } else if (isalnum(c) || (c & 0x80)) {  // ASCII or UTF-8 start byte
-      current_token += c;
+    } else {
+       current_token += char_str;
     }
+    i += char_len;
   }
   if (!current_token.empty()) {
     tokens.push_back(current_token);
