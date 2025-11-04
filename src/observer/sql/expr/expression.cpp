@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
+`/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
 miniob is licensed under Mulan PSL v2.
 You can use this software according to the terms and conditions of the Mulan PSL v2.
 You may obtain a copy of Mulan PSL v2 at:
@@ -1276,7 +1276,7 @@ bool SysFuncExpr::equal(const Expression &other) const
   }
   const SysFuncExpr &other_func_expr = static_cast<const SysFuncExpr &>(other);
   bool equal = sysfunc_type_ == other_func_expr.sysfunc_type() && child_->equal(*other_func_expr.child());
-  if (sysfunc_type_ == Type::DATE_FORMAT) {
+  if (sysfunc_type_ == Type::DATE_FORMAT || sysfunc_type_ == Type::TOKENIZE || sysfunc_type_ == Type::MATCH_AGAINST) {
     equal = equal && second_child_ && other_func_expr.second_child() && 
             second_child_->equal(*other_func_expr.second_child());
   } else if (sysfunc_type_ == Type::DISTANCE) {
@@ -1303,6 +1303,10 @@ AttrType SysFuncExpr::value_type() const
       return AttrType::CHARS;
     case Type::STRING_TO_VECTOR:
       return AttrType::VECTORS;
+    case Type::TOKENIZE:
+      return AttrType::CHARS;
+    case Type::MATCH_AGAINST:
+      return AttrType::FLOATS;
     default:
       return AttrType::UNDEFINED;
   }
@@ -1323,6 +1327,10 @@ int SysFuncExpr::value_length() const
       return -1;  // variable length
     case Type::STRING_TO_VECTOR:
       return -1;  // variable length (depends on vector dimension)
+    case Type::TOKENIZE:
+      return -1;  // variable length
+    case Type::MATCH_AGAINST:
+      return 4;  // float
     default:
       return -1;
   }
@@ -1347,7 +1355,8 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
   }
 
   // Get the second argument for functions that need it
-  if (sysfunc_type_ == Type::DATE_FORMAT || sysfunc_type_ == Type::DISTANCE) {
+  if (sysfunc_type_ == Type::DATE_FORMAT || sysfunc_type_ == Type::DISTANCE || 
+      sysfunc_type_ == Type::TOKENIZE || sysfunc_type_ == Type::MATCH_AGAINST) {
     if (!second_child_) {
       LOG_WARN("Function requires second argument");
       return RC::INVALID_ARGUMENT;
