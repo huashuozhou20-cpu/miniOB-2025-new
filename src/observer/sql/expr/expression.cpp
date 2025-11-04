@@ -1489,7 +1489,7 @@ RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) con
 
   vector<float> *vec = arg_value.get_vector();
   if (vec == nullptr || vec->empty()) {
-    result.Value("[]", 2);
+    result = Value("[]", 2);
     return RC::SUCCESS;
   }
 
