@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/union_logical_operator.h"
 
 #include <common/log/log.h>
+#include <set>
+#include <unordered_set>
 
 #include "sql/operator/calc_logical_operator.h"
 #include "sql/operator/delete_logical_operator.h"
@@ -145,24 +147,135 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   last_oper = &table_oper;
 
   auto &tables = select_stmt->tables();
+  
+  FilterStmt *filter_stmt = select_stmt->filter_stmt();
+  
+  // 提取 JOIN 条件和 WHERE 条件
+  std::vector<unique_ptr<Expression>> join_conditions;
+  std::vector<unique_ptr<Expression>> where_conditions;
+  
+  if (filter_stmt != nullptr && tables.size() > 1) {
+    // 多表情况下，需要分离 JOIN 条件和 WHERE 条件
+    auto &filter_units = filter_stmt->filter_units();
+    for (auto& expr : filter_units) {
+      // 检查条件是否涉及两个表（JOIN 条件）
+      bool is_join_condition = false;
+      if (expr->type() == ExprType::COMPARISON) {
+        ComparisonExpr *cmp_expr = static_cast<ComparisonExpr*>(expr.get());
+        auto& left = cmp_expr->left();
+        auto& right = cmp_expr->right();
+        
+        // 提取左右表达式涉及的表名
+        std::set<std::string> left_tables;
+        std::set<std::string> right_tables;
+        
+        auto collect_tables = [&](Expression *e, std::set<std::string> &tbls) {
+          if (e->type() == ExprType::FIELD) {
+            FieldExpr *field_expr = static_cast<FieldExpr*>(e);
+            const BaseTable *tbl = field_expr->table();
+            if (tbl != nullptr) {
+              tbls.insert(tbl->name());
+              const std::string &alias = field_expr->table_alias();
+              if (!alias.empty()) {
+                tbls.insert(alias);
+              }
+            }
+          } else {
+            // 递归检查子表达式
+            ExpressionIterator::iterate_child_expr(*e, [&](std::unique_ptr<Expression> &child) {
+              if (child->type() == ExprType::FIELD) {
+                FieldExpr *field_expr = static_cast<FieldExpr*>(child.get());
+                const BaseTable *tbl = field_expr->table();
+                if (tbl != nullptr) {
+                  tbls.insert(tbl->name());
+                  const std::string &alias = field_expr->table_alias();
+                  if (!alias.empty()) {
+                    tbls.insert(alias);
+                  }
+                }
+              }
+              return RC::SUCCESS;
+            });
+          }
+          return RC::SUCCESS;
+        };
+        
+        collect_tables(left.get(), left_tables);
+        collect_tables(right.get(), right_tables);
+        
+        // JOIN 条件：左右都涉及表，且是不同的表
+        if (!left_tables.empty() && !right_tables.empty()) {
+          // 检查是否有交集（如果左右涉及同一个表，则不是 JOIN 条件）
+          bool has_common_table = false;
+          for (const auto &t : left_tables) {
+            if (right_tables.find(t) != right_tables.end()) {
+              has_common_table = true;
+              break;
+            }
+          }
+          
+          if (!has_common_table) {
+            is_join_condition = true;
+          }
+        }
+      }
+      
+      if (is_join_condition) {
+        join_conditions.emplace_back(std::move(expr));
+      } else {
+        where_conditions.emplace_back(std::move(expr));
+      }
+    }
+  }
+  // 单表情况下，保持原逻辑，直接使用 filter_stmt
+  
+  // 创建表算子
+  size_t table_idx = 0;
   for (auto& [table, alias] : tables) {    
     unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, ReadWriteMode::READ_ONLY, alias));
     if (table_oper == nullptr) {
       table_oper = std::move(table_get_oper);
     } else {
       JoinLogicalOperator *join_oper = new JoinLogicalOperator;
+      
+      // 设置 JOIN 条件：提取涉及当前两个表的条件
+      if (table_idx == 1 && !join_conditions.empty()) {
+        // 对于第一个 JOIN，使用所有 JOIN 条件
+        if (join_conditions.size() == 1) {
+          join_oper->set_join_condition(std::move(join_conditions[0]));
+        } else {
+          unique_ptr<ConjunctionExpr> conjunction_expr(new ConjunctionExpr(ConjunctionExpr::Type::AND, join_conditions));
+          join_oper->set_join_condition(std::move(conjunction_expr));
+        }
+      }
+      
       join_oper->add_child(std::move(table_oper));
       join_oper->add_child(std::move(table_get_oper));
       table_oper = unique_ptr<LogicalOperator>(join_oper);
     }
+    table_idx++;
   }
 
   unique_ptr<LogicalOperator> predicate_oper;
 
-  RC rc = create_plan(select_stmt->filter_stmt(), predicate_oper);
-  if (OB_FAIL(rc)) {
-    LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
-    return rc;
+  // 创建 WHERE 条件的 FilterStmt
+  if (tables.size() > 1 && !where_conditions.empty()) {
+    // 多表情况下，使用分离后的 WHERE 条件
+    FilterStmt *where_filter_stmt = new FilterStmt(filter_stmt ? filter_stmt->and_or() : false);
+    where_filter_stmt->filter_units().swap(where_conditions);
+    RC rc = create_plan(where_filter_stmt, predicate_oper);
+    delete where_filter_stmt;
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
+      return rc;
+    }
+  } else if (filter_stmt != nullptr) {
+    // 单表情况下，直接使用原始的 filter_stmt
+    RC rc = create_plan(filter_stmt, predicate_oper);
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
+      return rc;
+    }
   }
 
   if (predicate_oper) {
