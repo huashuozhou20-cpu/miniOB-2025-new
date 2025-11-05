@@ -156,8 +156,15 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   
   if (filter_stmt != nullptr && tables.size() > 1) {
     // 多表情况下，需要分离 JOIN 条件和 WHERE 条件
+    // 注意：我们不能直接移动 filter_stmt->filter_units() 中的表达式，因为可能会影响其他使用（如视图）
+    // 所以我们需要先判断哪些是 JOIN 条件，然后只移动这些条件
     auto &filter_units = filter_stmt->filter_units();
-    for (auto& expr : filter_units) {
+    
+    // 先判断哪些是 JOIN 条件，哪些是 WHERE 条件
+    std::vector<bool> is_join_condition_flags(filter_units.size(), false);
+    
+    for (size_t i = 0; i < filter_units.size(); i++) {
+      auto &expr = filter_units[i];
       if (expr == nullptr) {
         continue; // 跳过无效表达式
       }
@@ -224,10 +231,19 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
         }
       }
       
-      if (is_join_condition) {
-        join_conditions.emplace_back(std::move(expr));
+      is_join_condition_flags[i] = is_join_condition;
+    }
+    
+    // 现在移动表达式到对应的集合
+    for (size_t i = 0; i < filter_units.size(); i++) {
+      if (filter_units[i] == nullptr) {
+        continue;
+      }
+      
+      if (is_join_condition_flags[i]) {
+        join_conditions.emplace_back(std::move(filter_units[i]));
       } else {
-        where_conditions.emplace_back(std::move(expr));
+        where_conditions.emplace_back(std::move(filter_units[i]));
       }
     }
     // 注意：这里我们移动了 filter_units 中的所有表达式，原始的 filter_stmt 会被清空
