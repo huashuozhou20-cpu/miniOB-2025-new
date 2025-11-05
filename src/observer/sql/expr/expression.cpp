@@ -1497,7 +1497,9 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
 {
   if (arg_value.attr_type() != AttrType::CHARS) {
     LOG_WARN("LENGTH function only supports CHAR type");
-    return RC::INVALID_ARGUMENT;
+    // 按需求：非目标数据类型时返回字符串 FAILURE
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   const char *str = arg_value.data();
@@ -1523,7 +1525,9 @@ RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
 {
   if (arg_value.attr_type() != AttrType::FLOATS) {
     LOG_WARN("ROUND function only supports FLOAT type");
-    return RC::INVALID_ARGUMENT;
+    // 按需求：非目标数据类型时返回字符串 FAILURE
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   float val = arg_value.get_float();
@@ -1866,12 +1870,16 @@ RC SysFuncExpr::eval_date_format(const Value &date_value, const Value &format_va
 {
   if (date_value.attr_type() != AttrType::DATES) {
     LOG_WARN("DATE_FORMAT function only supports DATE type");
-    return RC::INVALID_ARGUMENT;
+    // 按需求：非目标数据类型时返回字符串 FAILURE
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   if (format_value.attr_type() != AttrType::CHARS) {
     LOG_WARN("DATE_FORMAT format string must be CHAR type");
-    return RC::INVALID_ARGUMENT;
+    // 按需求：非目标数据类型时返回字符串 FAILURE
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   const char *date_str = date_value.data();
@@ -1879,19 +1887,22 @@ RC SysFuncExpr::eval_date_format(const Value &date_value, const Value &format_va
 
   if (date_str == nullptr || format_str == nullptr) {
     LOG_WARN("Invalid date or format string");
-    return RC::INVALID_ARGUMENT;
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   // Parse date string (format: YYYY-MM-DD, length is 10)
   if (strlen(date_str) != 10) {
     LOG_WARN("Invalid date format length: %s", date_str);
-    return RC::INVALID_ARGUMENT;
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   int year, month, day;
   if (sscanf(date_str, "%4d-%2d-%2d", &year, &month, &day) != 3) {
     LOG_WARN("Invalid date format: %s", date_str);
-    return RC::INVALID_ARGUMENT;
+    result = Value("FAILURE", 7);
+    return RC::SUCCESS;
   }
 
   // Month names

@@ -29,17 +29,23 @@ int FloatType::compare(const Value &left, const Value &right) const
 
 RC FloatType::add(const Value &left, const Value &right, Value &result) const
 {
-  result.set_float(left.get_float() + right.get_float());
+  double lv = static_cast<double>(left.get_float());
+  double rv = static_cast<double>(right.get_float());
+  result.set_float(static_cast<float>(lv + rv));
   return RC::SUCCESS;
 }
 RC FloatType::subtract(const Value &left, const Value &right, Value &result) const
 {
-  result.set_float(left.get_float() - right.get_float());
+  double lv = static_cast<double>(left.get_float());
+  double rv = static_cast<double>(right.get_float());
+  result.set_float(static_cast<float>(lv - rv));
   return RC::SUCCESS;
 }
 RC FloatType::multiply(const Value &left, const Value &right, Value &result) const
 {
-  result.set_float(left.get_float() * right.get_float());
+  double lv = static_cast<double>(left.get_float());
+  double rv = static_cast<double>(right.get_float());
+  result.set_float(static_cast<float>(lv * rv));
   return RC::SUCCESS;
 }
 
@@ -48,7 +54,9 @@ RC FloatType::divide(const Value &left, const Value &right, Value &result) const
   if (right.get_float() > -EPSILON && right.get_float() < EPSILON) {
     result.set_null();
   } else {
-    result.set_float(left.get_float() / right.get_float());
+    double lv = static_cast<double>(left.get_float());
+    double rv = static_cast<double>(right.get_float());
+    result.set_float(static_cast<float>(lv / rv));
   }
   return RC::SUCCESS;
 }
