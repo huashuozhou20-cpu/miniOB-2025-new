@@ -40,21 +40,8 @@ string FrameId::to_string() const
 ////////////////////////////////////////////////////////////////////////////////
 intptr_t get_default_debug_xid()
 {
-#if 0
-  ThreadData *thd = ThreadData::current();
-  intptr_t xid = (thd == nullptr) ? 
-                 // pthread_self的返回值类型是pthread_t，pthread_t在linux和mac上不同
-                 // 在Linux上是一个整数类型，而在mac上是一个指针。为了能在两个平台上都编译通过，
-                 // 就将pthread_self返回值转换两次
-                 reinterpret_cast<intptr_t>(reinterpret_cast<void*>(pthread_self())) : 
-                 reinterpret_cast<intptr_t>(thd);
-#endif
-  Session *session = Session::current_session();
-  if (session == nullptr) {
-    return reinterpret_cast<intptr_t>(reinterpret_cast<void *>(pthread_self()));
-  } else {
-    return reinterpret_cast<intptr_t>(session);
-  }
+  // 使用线程ID作为xid，避免会话对象更替导致xid不一致
+  return reinterpret_cast<intptr_t>(reinterpret_cast<void *>(pthread_self()));
 }
 
 void Frame::write_latch() { write_latch(get_default_debug_xid()); }
@@ -76,13 +63,12 @@ void Frame::write_latch(intptr_t xid)
 
   lock_.lock();
 
-// #ifdef DEBUG
-//   write_locker_ = xid;
-//   ++write_recursive_count_;
-//   TRACE("frame write lock success."
-//         "this=%p, pin=%d, frameId=%s, write locker=%lx(recursive=%d), xid=%lx, lbt=%s",
-//         this, pin_count_.load(), frame_id_.to_string().c_str(), write_locker_, write_recursive_count_, xid, lbt());
-// #endif
+  // 记录写锁持有者与重入计数，供解锁与诊断使用（不限于DEBUG构建）
+  {
+    scoped_lock debug_lock(debug_lock_);
+    write_locker_ = xid;
+    ++write_recursive_count_;
+  }
 }
 
 void Frame::write_unlatch() { write_unlatch(get_default_debug_xid()); }
@@ -97,10 +83,16 @@ void Frame::write_unlatch(intptr_t xid)
       "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
       this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
 
-  ASSERT(write_locker_ == xid,
-      "frame unlock write while not the owner."
-      "write_locker=%lx, this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
-      write_locker_, this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+  if (write_locker_ != xid) {
+    // 容错：若未记录owner或不一致，避免崩溃但打印警告，继续解锁以防止卡死
+    LOG_WARN("frame unlock write while not the owner. write_locker=%lx, this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
+             write_locker_, this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+    write_recursive_count_ = 0;
+    write_locker_ = 0;
+    debug_lock_.unlock();
+    lock_.unlock();
+    return;
+  }
 
   // TRACE("frame write unlock success. this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
   //       this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());

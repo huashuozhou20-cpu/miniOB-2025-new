@@ -271,10 +271,21 @@ char *substr(const char *s, int n1, int n2)
 string double_to_str(double v)
 {
   // 先进行一次更高精度(三位小数)的四舍五入，缓解二进制浮点的0.5邻域误差
-  // 再按两位小数输出，保证展示层四舍五入符合预期(如116.045 -> 116.05)
   double pre_rounded = std::round(v * 1000.0) / 1000.0;
+
+  // 再按两位小数执行“严格四舍五入(half-up)”，正负数都远离零
+  double scaled = pre_rounded * 100.0;
+  double rounded2;
+  if (scaled >= 0.0) {
+    rounded2 = std::floor(scaled + 0.5);
+  } else {
+    rounded2 = std::ceil(scaled - 0.5);
+  }
+  double final_val = rounded2 / 100.0;
+
   char buf[256];
-  snprintf(buf, sizeof(buf), "%.2f", pre_rounded);
+  // 此时再格式化为两位小数，仅作为显示，值已按我们规则舍入
+  snprintf(buf, sizeof(buf), "%.2f", final_val);
   size_t len = strlen(buf);
   while (buf[len - 1] == '0') {
     len--;
