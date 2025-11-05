@@ -95,7 +95,6 @@ RC UnionPhysicalOperator::close()
 
   // 清理所有数据
   all_values_.clear();
-  seen_tuples_.clear();
   current_index_ = 0;
   initialized_ = false;
 
@@ -127,7 +126,6 @@ RC UnionPhysicalOperator::tuple_schema(TupleSchema &schema) const
 RC UnionPhysicalOperator::fetch_all_tuples()
 {
   all_values_.clear();
-  seen_tuples_.clear();
 
   // 获取 schema（从左子算子）
   RC rc = left_->tuple_schema(schema_);
@@ -160,10 +158,18 @@ RC UnionPhysicalOperator::fetch_all_tuples()
       // UNION ALL：直接添加，不去重
       all_values_.push_back(std::move(values));
     } else {
-      // UNION：需要去重
-      std::string tuple_str = tuple_to_string(*tuple);
-      if (seen_tuples_.find(tuple_str) == seen_tuples_.end()) {
-        seen_tuples_.insert(tuple_str);
+      // UNION：需要去重，使用 tuple_equal 进行比较
+      bool is_duplicate = false;
+      for (const auto &existing_values : all_values_) {
+        // 创建临时的 ValueTuple 进行比较
+        ValueTuple temp_tuple;
+        temp_tuple.set_values(existing_values);
+        if (tuple_equal(*tuple, temp_tuple)) {
+          is_duplicate = true;
+          break;
+        }
+      }
+      if (!is_duplicate) {
         all_values_.push_back(std::move(values));
       }
     }
@@ -198,10 +204,18 @@ RC UnionPhysicalOperator::fetch_all_tuples()
       // UNION ALL：直接添加，不去重
       all_values_.push_back(std::move(values));
     } else {
-      // UNION：需要去重
-      std::string tuple_str = tuple_to_string(*tuple);
-      if (seen_tuples_.find(tuple_str) == seen_tuples_.end()) {
-        seen_tuples_.insert(tuple_str);
+      // UNION：需要去重，使用 tuple_equal 进行比较
+      bool is_duplicate = false;
+      for (const auto &existing_values : all_values_) {
+        // 创建临时的 ValueTuple 进行比较
+        ValueTuple temp_tuple;
+        temp_tuple.set_values(existing_values);
+        if (tuple_equal(*tuple, temp_tuple)) {
+          is_duplicate = true;
+          break;
+        }
+      }
+      if (!is_duplicate) {
         all_values_.push_back(std::move(values));
       }
     }

@@ -150,7 +150,7 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   
   FilterStmt *filter_stmt = select_stmt->filter_stmt();
   
-  // 提取 JOIN 条件和 WHERE 条件
+  // 提取 JOIN 条件和 WHERE 条件（仅用于多表查询）
   std::vector<unique_ptr<Expression>> join_conditions;
   std::vector<unique_ptr<Expression>> where_conditions;
   
@@ -158,6 +158,10 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
     // 多表情况下，需要分离 JOIN 条件和 WHERE 条件
     auto &filter_units = filter_stmt->filter_units();
     for (auto& expr : filter_units) {
+      if (expr == nullptr) {
+        continue; // 跳过无效表达式
+      }
+      
       // 检查条件是否涉及两个表（JOIN 条件）
       bool is_join_condition = false;
       if (expr->type() == ExprType::COMPARISON) {
@@ -226,6 +230,8 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
         where_conditions.emplace_back(std::move(expr));
       }
     }
+    // 注意：这里我们移动了 filter_units 中的所有表达式，原始的 filter_stmt 会被清空
+    // 但这是预期的，因为我们在后续会使用分离后的 join_conditions 和 where_conditions
   }
   // 单表情况下，保持原逻辑，直接使用 filter_stmt
   
@@ -260,16 +266,20 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
 
   // 创建 WHERE 条件的 FilterStmt
   RC rc = RC::SUCCESS;
-  if (tables.size() > 1 && !where_conditions.empty()) {
-    // 多表情况下，使用分离后的 WHERE 条件
-    FilterStmt *where_filter_stmt = new FilterStmt(filter_stmt ? filter_stmt->and_or() : false);
-    where_filter_stmt->filter_units().swap(where_conditions);
-    rc = create_plan(where_filter_stmt, predicate_oper);
-    delete where_filter_stmt;
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
-      return rc;
+  if (tables.size() > 1) {
+    // 多表情况下
+    if (!where_conditions.empty()) {
+      // 有 WHERE 条件，使用分离后的 WHERE 条件
+      FilterStmt *where_filter_stmt = new FilterStmt(filter_stmt ? filter_stmt->and_or() : false);
+      where_filter_stmt->filter_units().swap(where_conditions);
+      rc = create_plan(where_filter_stmt, predicate_oper);
+      delete where_filter_stmt;
+      if (OB_FAIL(rc)) {
+        LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
+        return rc;
+      }
     }
+    // 如果没有 WHERE 条件（所有条件都是 JOIN 条件），则不创建 predicate_oper
   } else if (filter_stmt != nullptr) {
     // 单表情况下，直接使用原始的 filter_stmt
     rc = create_plan(filter_stmt, predicate_oper);
@@ -371,11 +381,30 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
 
 RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<LogicalOperator> &logical_operator)
 {
+  if (filter_stmt == nullptr) {
+    logical_operator = nullptr;
+    return RC::SUCCESS;
+  }
+  
   RC                                  rc = RC::SUCCESS;
   std::vector<unique_ptr<Expression>> cmp_exprs;
   auto &filter_units = filter_stmt->filter_units();
+  
+  if (filter_units.empty()) {
+    logical_operator = nullptr;
+    return RC::SUCCESS;
+  }
+  
   for (auto& expr : filter_units) {
+    if (expr == nullptr) {
+      continue; // 跳过已被移动的表达式
+    }
+    
     ComparisonExpr* cmp_expr = static_cast<ComparisonExpr*>(expr.get());
+    if (cmp_expr == nullptr) {
+      continue; // 跳过非 ComparisonExpr 类型的表达式
+    }
+    
     auto& left  = cmp_expr->left();
     auto& right = cmp_expr->right(); 
 
