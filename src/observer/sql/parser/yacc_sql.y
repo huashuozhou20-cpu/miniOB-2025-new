@@ -874,7 +874,7 @@ key_values:
     ID EQ assign_value
     {
       $$ = new Key_values;
-      $$->relation_list.emplace_back(move($1));
+      $$->relation_list.emplace_back(move(string($1)));
       free($1);
       $$->value_list.emplace_back(unique_ptr<Expression>($3));
     }
@@ -886,7 +886,7 @@ key_values:
         $$ = new Key_values;
       }
 
-      $$->relation_list.emplace_back(move($1));
+      $$->relation_list.emplace_back(move(string($1)));
       free($1);
       $$->value_list.emplace_back(unique_ptr<Expression>($3));
     }
@@ -1186,10 +1186,10 @@ rel_list:
         $$ = new Joins;
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), $1);
+      $$->relation_list.emplace($$->relation_list.begin(), string($1));
       free($1);
       if($2 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), $2);
+        $$->alias_list.emplace($$->alias_list.begin(), string($2));
         free($2);
       } else {
         $$->alias_list.emplace($$->alias_list.begin(), string());
@@ -1213,7 +1213,7 @@ rel_list:
           $3->alias_list.begin(), $3->alias_list.end());
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), $1);
+      $$->relation_list.emplace($$->relation_list.begin(), string($1));
       free($1);
       if($2 != nullptr){
         $$->alias_list.emplace($$->alias_list.begin(), string($2));
@@ -1239,10 +1239,10 @@ join_list:
         $$ = new Joins;
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), $3);
+      $$->relation_list.emplace($$->relation_list.begin(), string($3));
       free($3);
       if($4 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), $4);
+        $$->alias_list.emplace($$->alias_list.begin(), string($4));
         free($4);
       } else {
         $$->alias_list.emplace($$->alias_list.begin(), string());

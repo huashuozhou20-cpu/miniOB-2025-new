@@ -2733,7 +2733,7 @@ yyreduce:
 #line 875 "yacc_sql.y"
     {
       (yyval.key_values) = new Key_values;
-      (yyval.key_values)->relation_list.emplace_back(move((yyvsp[-2].string)));
+      (yyval.key_values)->relation_list.emplace_back(move(string((yyvsp[-2].string))));
       free((yyvsp[-2].string));
       (yyval.key_values)->value_list.emplace_back(unique_ptr<Expression>((yyvsp[0].expression)));
     }
@@ -2749,7 +2749,7 @@ yyreduce:
         (yyval.key_values) = new Key_values;
       }
 
-      (yyval.key_values)->relation_list.emplace_back(move((yyvsp[-4].string)));
+      (yyval.key_values)->relation_list.emplace_back(move(string((yyvsp[-4].string))));
       free((yyvsp[-4].string));
       (yyval.key_values)->value_list.emplace_back(unique_ptr<Expression>((yyvsp[-2].expression)));
     }
@@ -3165,10 +3165,10 @@ yyreduce:
         (yyval.join_list) = new Joins;
       }
 
-      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), (yyvsp[-2].string));
+      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), string((yyvsp[-2].string)));
       free((yyvsp[-2].string));
       if((yyvsp[-1].string) != nullptr){
-        (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), (yyvsp[-1].string));
+        (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), string((yyvsp[-1].string)));
         free((yyvsp[-1].string));
       } else {
         (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), string());
@@ -3197,7 +3197,7 @@ yyreduce:
           (yyvsp[-2].join_list)->alias_list.begin(), (yyvsp[-2].join_list)->alias_list.end());
       }
 
-      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), (yyvsp[-4].string));
+      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), string((yyvsp[-4].string)));
       free((yyvsp[-4].string));
       if((yyvsp[-3].string) != nullptr){
         (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), string((yyvsp[-3].string)));
@@ -3228,10 +3228,10 @@ yyreduce:
         (yyval.join_list) = new Joins;
       }
 
-      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), (yyvsp[-3].string));
+      (yyval.join_list)->relation_list.emplace((yyval.join_list)->relation_list.begin(), string((yyvsp[-3].string)));
       free((yyvsp[-3].string));
       if((yyvsp[-2].string) != nullptr){
-        (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), (yyvsp[-2].string));
+        (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), string((yyvsp[-2].string)));
         free((yyvsp[-2].string));
       } else {
         (yyval.join_list)->alias_list.emplace((yyval.join_list)->alias_list.begin(), string());
