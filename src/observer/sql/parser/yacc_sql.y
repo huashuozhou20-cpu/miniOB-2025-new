@@ -166,6 +166,12 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
         UNIQUE
         UNION
         ALTER
+        ADD
+        COLUMN
+        RENAME
+        TO
+        FULLTEXT
+        ALL
         L2_DISTANCE
         COSINE_DISTANCE
         INNER_PRODUCT
@@ -396,9 +402,9 @@ alter_table_stmt:
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::ADD_COLUMN;
-      alter_table.attr_info = *$5;
+      alter_table.attr_info = *$6;
       free($3);
-      delete $5;
+      delete $6;
     }
     | ALTER TABLE ID DROP COLUMN ID
     {
@@ -406,9 +412,9 @@ alter_table_stmt:
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::DROP_COLUMN;
-      alter_table.old_name = $5;
+      alter_table.old_name = $6;
       free($3);
-      free($5);
+      free($6);
     }
     | ALTER TABLE ID RENAME COLUMN ID TO ID
     {
@@ -416,11 +422,11 @@ alter_table_stmt:
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_COLUMN;
-      alter_table.old_name = $5;
-      alter_table.new_name = $7;
+      alter_table.old_name = $6;
+      alter_table.new_name = $8;
       free($3);
-      free($5);
-      free($7);
+      free($6);
+      free($8);
     }
     | ALTER TABLE ID RENAME TO ID
     {
@@ -428,9 +434,9 @@ alter_table_stmt:
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_TABLE;
-      alter_table.new_name = $5;
+      alter_table.new_name = $6;
       free($3);
-      free($5);
+      free($6);
     }
     ;
 
@@ -1115,14 +1121,12 @@ expression:
     | LBRACE select_stmt RBRACE {
       $$ = new SelectExpr($2);
     }
-    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE SSS RBRACE
     {
       // MATCH(field) AGAINST('query') as expression (for ORDER BY and SELECT)
       Expression *field_expr = new UnboundFieldExpr($3->relation_name, $3->attribute_name);
       Expression *query_expr = new ValueExpr(Value($7));
       $$ = create_sysfunc_expression("match_against", field_expr, query_expr, nullptr, sql_string, &@$);
-      free($3->relation_name);
-      free($3->attribute_name);
       delete $3;
       free($7);
     }
@@ -1312,7 +1316,7 @@ condition:
       $$->right_expr = unique_ptr<Expression>($3);
       $$->comp = $2;
     }
-    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE SSS RBRACE
     {
       // MATCH(field) AGAINST('query') -> match_against(field, 'query')
       $$ = new ConditionSqlNode;
@@ -1322,8 +1326,6 @@ condition:
       $$->left_expr = unique_ptr<Expression>(match_expr);
       $$->right_expr = unique_ptr<Expression>(new ValueExpr(Value(0)));
       $$->comp = GREAT_THAN;
-      free($3->relation_name);
-      free($3->attribute_name);
       delete $3;
       free($7);
     }
