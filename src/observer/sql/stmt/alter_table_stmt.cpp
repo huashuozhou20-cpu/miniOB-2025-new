@@ -16,7 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
-
+#include "common/lang/string.h"
 RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
 {
   stmt = nullptr;
@@ -27,7 +27,7 @@ RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
   }
 
   const char *table_name = alter_sql.relation_name.c_str();
-  if (is_blank(table_name)) {
+  if (common::is_blank(table_name)) {
     LOG_WARN("invalid argument. table name is blank");
     return RC::INVALID_ARGUMENT;
   }
@@ -46,7 +46,7 @@ RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
       const FieldMeta *field = table->table_meta().field(alter_sql.attr_info.name.c_str());
       if (field != nullptr) {
         LOG_WARN("column already exists. table=%s, column=%s", table_name, alter_sql.attr_info.name.c_str());
-        return RC::SCHEMA_FIELD_EXIST;
+        return RC::SCHEMA_TABLE_EXIST;
       }
       break;
     }
@@ -75,7 +75,7 @@ RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
       const FieldMeta *new_field = table->table_meta().field(alter_sql.new_name.c_str());
       if (new_field != nullptr) {
         LOG_WARN("column already exists. table=%s, column=%s", table_name, alter_sql.new_name.c_str());
-        return RC::SCHEMA_FIELD_EXIST;
+        return RC::SCHEMA_TABLE_EXIST;
       }
       break;
     }

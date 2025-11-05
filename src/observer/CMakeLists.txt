@@ -76,6 +76,7 @@ ADD_LIBRARY(observer_static STATIC ${LIB_SRC})
 target_include_directories(observer_static PRIVATE
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include           # 可能是 include/json/json.h
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include/jsoncpp   # 也可能是 include/jsoncpp/json/json.h
+  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/local/include      # 也可能是 usr/local/include/json/json.h
   /usr/include/jsoncpp                                 # 如果系统装了 libjsoncpp-dev
 )
 INCLUDE (readline)

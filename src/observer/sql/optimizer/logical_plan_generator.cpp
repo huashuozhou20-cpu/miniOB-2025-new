@@ -259,11 +259,12 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   unique_ptr<LogicalOperator> predicate_oper;
 
   // 创建 WHERE 条件的 FilterStmt
+  RC rc = RC::SUCCESS;
   if (tables.size() > 1 && !where_conditions.empty()) {
     // 多表情况下，使用分离后的 WHERE 条件
     FilterStmt *where_filter_stmt = new FilterStmt(filter_stmt ? filter_stmt->and_or() : false);
     where_filter_stmt->filter_units().swap(where_conditions);
-    RC rc = create_plan(where_filter_stmt, predicate_oper);
+    rc = create_plan(where_filter_stmt, predicate_oper);
     delete where_filter_stmt;
     if (OB_FAIL(rc)) {
       LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
@@ -271,7 +272,7 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
     }
   } else if (filter_stmt != nullptr) {
     // 单表情况下，直接使用原始的 filter_stmt
-    RC rc = create_plan(filter_stmt, predicate_oper);
+    rc = create_plan(filter_stmt, predicate_oper);
     if (OB_FAIL(rc)) {
       LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
       return rc;

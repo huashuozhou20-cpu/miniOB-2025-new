@@ -122,7 +122,7 @@ RC FullTextIndex::insert_entry(const char *record, const RID *rid)
   Value value;
   const char *field_data = record + field_meta_->offset();
   if (field_meta_->type() == AttrType::CHARS) {
-    value.set_string(field_data, field_meta_->len());
+    value = Value(field_data, field_meta_->len());
   } else if (field_meta_->type() == AttrType::TEXTS) {
     // 从 text buffer 读取
     int64_t offset = 0, length = 0;
@@ -134,7 +134,7 @@ RC FullTextIndex::insert_entry(const char *record, const RID *rid)
       RC rc = table_->read_text(offset, length, text_data);
       if (rc == RC::SUCCESS) {
         text_data[length] = '\0';
-        value.set_string(text_data, length);
+        value = Value(text_data, length);
       }
       delete[] text_data;
       if (rc != RC::SUCCESS) {
@@ -270,7 +270,7 @@ std::vector<RID> FullTextIndex::search(const std::string &query)
   }
 
   // 计算每个文档的 BM25 分数
-  unordered_map<RID, double> doc_scores;
+  unordered_map<RID, double, RIDHash> doc_scores;
   
   // 计算每个词的 IDF（逆文档频率）
   size_t total_docs = document_index_.size();
