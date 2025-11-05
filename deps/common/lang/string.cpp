@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 
 #include <iomanip>
+#include <cmath>
 
 #include "common/log/log.h"
 #include "common/lang/algorithm.h"
