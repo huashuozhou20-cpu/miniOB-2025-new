@@ -537,8 +537,8 @@ RC OrderByPhysicalOperator::read_chunk_from_file(const string &filename,
             Value cell;
             // Note: This is a simplified parser. In production, you'd want proper deserialization
             // For now, we'll try to parse as different types
-            if (cell_str == "NULL" || cell_str.empty()) {
-                cell.set_null();
+            if (cell_str == "null" || cell_str == "NULL" || cell_str.empty()) {
+                cell = Value(AttrType::NULLS);
             } else {
                 // Try to parse as int
                 try {
@@ -591,8 +591,8 @@ RC OrderByPhysicalOperator::read_chunk_from_file(const string &filename,
             }
             
             Value val;
-            if (val_str == "NULL" || val_str.empty()) {
-                val.set_null();
+            if (val_str == "null" || val_str == "NULL" || val_str.empty()) {
+                val = Value(AttrType::NULLS);
             } else {
                 try {
                     int int_val = stoi(val_str);
@@ -767,8 +767,8 @@ RC OrderByPhysicalOperator::read_next_tuple_from_file(ifstream &fs, ValueListTup
         }
         
         Value cell;
-        if (cell_str == "NULL" || cell_str.empty()) {
-            cell.set_null();
+        if (cell_str == "null" || cell_str == "NULL" || cell_str.empty()) {
+            cell = Value(AttrType::NULLS);
         } else {
             try {
                 int int_val = stoi(cell_str);
@@ -810,8 +810,8 @@ RC OrderByPhysicalOperator::read_next_tuple_from_file(ifstream &fs, ValueListTup
         }
         
         Value val;
-        if (val_str == "NULL" || val_str.empty()) {
-            val.set_null();
+        if (val_str == "null" || val_str == "NULL" || val_str.empty()) {
+            val = Value(AttrType::NULLS);
         } else {
             try {
                 int int_val = stoi(val_str);

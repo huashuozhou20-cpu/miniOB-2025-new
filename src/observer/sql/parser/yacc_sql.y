@@ -1205,18 +1205,20 @@ rel_list:
         conditions.insert(conditions.begin(), 
           std::make_move_iterator($3->condition_list.conditions.begin()), 
           std::make_move_iterator($3->condition_list.conditions.end()));
+        $$->alias_list.insert($$->alias_list.begin(),
+          $3->alias_list.begin(), $3->alias_list.end());
       }
 
       $$->relation_list.emplace($$->relation_list.begin(), $1);
+      free($1);
       if($2 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), $2);
+        $$->alias_list.emplace($$->alias_list.begin(), string($2));
         free($2);
       } else {
         $$->alias_list.emplace($$->alias_list.begin(), string());
       }
 
       delete $3;
-      free($1);
     }
     ;
 

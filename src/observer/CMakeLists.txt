@@ -74,10 +74,9 @@ MESSAGE("Archive directory:" ${LIBRARY_OUTPUT_PATH})
 ADD_LIBRARY(observer_static STATIC ${LIB_SRC})
 # === JsonCpp 头文件路径修复（同时兼容两种目录结构） ===
 target_include_directories(observer_static PRIVATE
-  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/local/include        # deps/3rd/usr/local/include/json/json.h
-  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include              # 可能是 include/json/json.h
-  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include/jsoncpp      # 也可能是 include/jsoncpp/json/json.h
-  /usr/include/jsoncpp                                    # 如果系统装了 libjsoncpp-dev
+  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include           # 可能是 include/json/json.h
+  ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include/jsoncpp   # 也可能是 include/jsoncpp/json/json.h
+  /usr/include/jsoncpp                                 # 如果系统装了 libjsoncpp-dev
 )
 INCLUDE (readline)
 MINIOB_FIND_READLINE()

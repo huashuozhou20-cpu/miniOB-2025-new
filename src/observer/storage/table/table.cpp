@@ -733,6 +733,74 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
   return rc;
 }
 
+RC Table::drop_index(const char *index_name)
+{
+  if (common::is_blank(index_name)) {
+    LOG_INFO("Invalid input arguments, table name is %s, index_name is blank", name());
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // 查找索引
+  Index *index = find_index(index_name);
+  if (index == nullptr) {
+    LOG_WARN("Index not found. table=%s, index=%s", name(), index_name);
+    return RC::INVALID_ARGUMENT;
+  }
+
+  // 删除索引文件
+  RC rc = index->drop();
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to drop index file. table=%s, index=%s, rc=%s", name(), index_name, strrc(rc));
+    return rc;
+  }
+
+  // 从内存中删除索引
+  for (auto it = indexes_.begin(); it != indexes_.end(); ++it) {
+    if (*it == index) {
+      delete *it;
+      indexes_.erase(it);
+      break;
+    }
+  }
+
+  // 更新 TableMeta
+  TableMeta new_table_meta(table_meta_);
+  rc = new_table_meta.remove_index(index_name);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to remove index from meta. table=%s, index=%s, rc=%s", name(), index_name, strrc(rc));
+    return rc;
+  }
+
+  // 保存元数据到文件
+  string tmp_file = table_meta_file(base_dir_.c_str(), name()) + ".tmp";
+  fstream fs;
+  fs.open(tmp_file, ios_base::out | ios_base::binary | ios_base::trunc);
+  if (!fs.is_open()) {
+    LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
+    return RC::IOERR_OPEN;
+  }
+  if (new_table_meta.serialize(fs) < 0) {
+    LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
+    return RC::IOERR_WRITE;
+  }
+  fs.close();
+
+  // 覆盖原始元数据文件
+  string meta_file = table_meta_file(base_dir_.c_str(), name());
+  int ret = rename(tmp_file.c_str(), meta_file.c_str());
+  if (ret != 0) {
+    LOG_ERROR("Failed to rename tmp meta file (%s) to normal meta file (%s) while dropping index (%s) on table (%s). "
+              "system error=%d:%s",
+              tmp_file.c_str(), meta_file.c_str(), index_name, name(), errno, strerror(errno));
+    return RC::IOERR_WRITE;
+  }
+
+  table_meta_.swap(new_table_meta);
+
+  LOG_INFO("Successfully dropped index (%s) on the table (%s)", index_name, name());
+  return RC::SUCCESS;
+}
+
 RC Table::delete_record(const RID &rid)
 {
   RC     rc = RC::SUCCESS;

@@ -24,16 +24,12 @@ See the Mulan PSL v2 for more details. */
 #include "storage/field/field_meta.h"
 #include "storage/index/index_meta.h"
 
-class Table;  // Forward declaration
-
 /**
  * @brief 表元数据
  *
  */
 class TableMeta : public common::Serializable
 {
-  friend class Table;  // Allow Table to access protected members for ALTER TABLE operations
-
 public:
   TableMeta()          = default;
   virtual ~TableMeta() = default;
@@ -46,6 +42,7 @@ public:
       std::span<const AttrInfoSqlNode> attributes, StorageFormat storage_format = StorageFormat::ROW_FORMAT);
 
   RC add_index(const IndexMeta &index);
+  RC remove_index(const char *index_name);
 
 public:
   int32_t             table_id() const { return table_id_; }

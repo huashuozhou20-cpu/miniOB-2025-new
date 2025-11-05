@@ -292,3 +292,4 @@ std::string UnionPhysicalOperator::tuple_to_string(const Tuple &tuple) const
 
   return oss.str();
 }
+

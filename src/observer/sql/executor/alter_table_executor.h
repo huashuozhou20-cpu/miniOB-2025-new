@@ -22,7 +22,7 @@ class SQLStageEvent;
  * @brief 执行alter table语句
  * @ingroup Executor
  */
-class AlterTableExecutor 
+class AlterTableExecutor
 {
 public:
   AlterTableExecutor() = default;
@@ -30,5 +30,4 @@ public:
 
   RC execute(SQLStageEvent *sql_event);
 };
-
 

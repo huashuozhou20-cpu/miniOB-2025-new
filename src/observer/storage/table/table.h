@@ -107,6 +107,7 @@ public:
   RC create_vector_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &field_metas, const char *index_name,
       VectorIndexNode &vector_index);
   RC create_fulltext_index(Trx *trx, std::vector<const FieldMeta *> &field_metas, const char *index_name);
+  RC drop_index(const char *index_name);
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, ReadWriteMode mode);
 

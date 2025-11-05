@@ -19,11 +19,15 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/logical_plan_generator.h"
 #include "sql/executor/sql_result.h"
 #include "sql/stmt/select_stmt.h"
+#include "storage/index/fulltext_index.h"
+#include "storage/index/index.h"
+#include "storage/table/table.h"
 #include <cmath>
 #include <cstring>
 #include <cstdio>
 #include <sstream>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -222,7 +226,7 @@ RC CastExpr::try_get_value(Value &result) const
 ////////////////////////////////////////////////////////////////////////////////
 
 ComparisonExpr::ComparisonExpr(CompOp comp, unique_ptr<Expression> left, unique_ptr<Expression> right)
-    : comp_(comp), left_(std::move(left)), right_(std::move(right)), pattern("")
+    : comp_(comp), left_(std::move(left)), right_(std::move(right))
 {
   if((comp_ == CompOp::LIKE_OP || comp_ == CompOp::NOT_LIKE)
      && right_->type() == ExprType::VALUE){
@@ -1405,7 +1409,85 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
     case Type::TOKENIZE:
       return eval_tokenize(arg_value, format_value, value);
     case Type::MATCH_AGAINST:
-      return eval_match_against(arg_value, format_value, value);
+      return eval_match_against(arg_value, format_value, value, tuple);
+    default:
+      return RC::UNIMPLEMENTED;
+  }
+}
+
+RC SysFuncExpr::try_get_value(Value &value) const
+{
+  // For try_get_value, we need an empty tuple since we can't evaluate with actual data
+  // This is used during parsing/compilation phase
+  // For functions that can be evaluated at compile time, try to evaluate them
+  // For others, return UNIMPLEMENTED
+  
+  Value arg_value;
+  
+  // Try to get the first argument value
+  RC rc = child_->try_get_value(arg_value);
+  if (OB_FAIL(rc)) {
+    return rc;
+  }
+  
+  // Check for NULL
+  if (arg_value.attr_type() == AttrType::NULLS) {
+    value.set_null();
+    return RC::SUCCESS;
+  }
+  
+  // Get the second argument for functions that need it
+  Value format_value;
+  if (sysfunc_type_ == Type::DATE_FORMAT || sysfunc_type_ == Type::DISTANCE || 
+      sysfunc_type_ == Type::TOKENIZE || sysfunc_type_ == Type::MATCH_AGAINST) {
+    if (!second_child_) {
+      return RC::INVALID_ARGUMENT;
+    }
+    rc = second_child_->try_get_value(format_value);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+    if (format_value.attr_type() == AttrType::NULLS) {
+      value.set_null();
+      return RC::SUCCESS;
+    }
+  }
+  
+  // For DISTANCE, we need a third argument (metric type)
+  Value metric_value;
+  if (sysfunc_type_ == Type::DISTANCE) {
+    if (!third_child_) {
+      return RC::INVALID_ARGUMENT;
+    }
+    rc = third_child_->try_get_value(metric_value);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+    if (metric_value.attr_type() == AttrType::NULLS) {
+      value.set_null();
+      return RC::SUCCESS;
+    }
+  }
+  
+  // Evaluate the function
+  switch (sysfunc_type_) {
+    case Type::LENGTH:
+      return eval_length(arg_value, value);
+    case Type::ROUND:
+      return eval_round(arg_value, value);
+    case Type::DATE_FORMAT:
+      return eval_date_format(arg_value, format_value, value);
+    case Type::DISTANCE:
+      return eval_distance(arg_value, format_value, metric_value, value);
+    case Type::VECTOR_TO_STRING:
+      return eval_vector_to_string(arg_value, value);
+    case Type::STRING_TO_VECTOR:
+      return eval_string_to_vector(arg_value, value);
+    case Type::TOKENIZE:
+      return eval_tokenize(arg_value, format_value, value);
+    case Type::MATCH_AGAINST:
+      // MATCH_AGAINST requires tuple, so can't be evaluated at compile time
+      return RC::UNIMPLEMENTED;
     default:
       return RC::UNIMPLEMENTED;
   }
@@ -1628,18 +1710,27 @@ RC SysFuncExpr::eval_tokenize(const Value &text_value, const Value &parser_value
     }
   }
   
-  // Join tokens with space
-  string result_str;
+  // Format tokens as JSON array: ["token1", "token2", ...]
+  string result_str = "[";
   for (size_t i = 0; i < tokens.size(); i++) {
-    if (i > 0) result_str += " ";
-    result_str += tokens[i];
+    if (i > 0) result_str += ", ";
+    result_str += "\"";
+    // Escape quotes in token
+    for (char c : tokens[i]) {
+      if (c == '"' || c == '\\') {
+        result_str += '\\';
+      }
+      result_str += c;
+    }
+    result_str += "\"";
   }
+  result_str += "]";
   
   result = Value(result_str.c_str(), result_str.length());
   return RC::SUCCESS;
 }
 
-RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_value, Value &result) const
+RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_value, Value &result, const Tuple &tuple) const
 {
   if (field_value.attr_type() != AttrType::CHARS && field_value.attr_type() != AttrType::TEXTS) {
     LOG_WARN("MATCH AGAINST function only supports CHAR or TEXT type");
@@ -1651,18 +1742,49 @@ RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_
     return RC::INVALID_ARGUMENT;
   }
 
-  const char *field_text = field_value.data();
   const char *query_text = query_value.data();
-  
-  if (field_text == nullptr || query_text == nullptr) {
+  if (query_text == nullptr) {
     result = Value(0.0f);
     return RC::SUCCESS;
   }
 
-  // TODO: Get fulltext index from context and calculate BM25 score
-  // For now, return a simple score based on word frequency
-  string field_str(field_text);
   string query_str(query_text);
+
+  // Try to get fulltext index from FieldExpr and tuple
+  if (child_ && child_->type() == ExprType::FIELD) {
+    const FieldExpr *field_expr = static_cast<const FieldExpr *>(child_.get());
+    const BaseTable *table = field_expr->table();
+    const char *field_name = field_expr->field_name();
+    
+    if (table && field_name && !table->is_view()) {
+      // Try to get RID from tuple
+      const BaseTable *tuple_table = nullptr;
+      RID rid;
+      RC rc = tuple.get_tuple_rid(0, tuple_table, rid);
+      
+      if (rc == RC::SUCCESS && tuple_table == table) {
+        // Find fulltext index for this field
+        const Table *real_table = static_cast<const Table *>(table);
+        Index *index = real_table->find_index_by_field(field_name);
+        
+        if (index && index->is_fulltext_index()) {
+          FullTextIndex *fulltext_index = static_cast<FullTextIndex *>(index);
+          double bm25_score = fulltext_index->calculate_bm25_score(query_str, rid);
+          result = Value(static_cast<float>(bm25_score));
+          return RC::SUCCESS;
+        }
+      }
+    }
+  }
+
+  // Fallback: simple word frequency scoring
+  const char *field_text = field_value.data();
+  if (field_text == nullptr) {
+    result = Value(0.0f);
+    return RC::SUCCESS;
+  }
+
+  string field_str(field_text);
   
   // Simple scoring: count how many query words appear in field
   istringstream query_iss(query_str);
@@ -1679,7 +1801,7 @@ RC SysFuncExpr::eval_match_against(const Value &field_value, const Value &query_
     }
   }
   
-  // Return simple score (will be replaced with BM25 in FullTextIndex)
+  // Return simple score
   result = Value(static_cast<float>(match_count));
   return RC::SUCCESS;
 }
@@ -1719,17 +1841,20 @@ vector<string> SysFuncExpr::tokenize_jieba(const string &text) const
       is_punct = true;
     } else if (char_len > 1 && chinese_punct.find(char_str) != string::npos) {
       is_punct = true;
-    }   
+    }
+    
     if (is_punct) {
       if (!current_token.empty()) {
         tokens.push_back(current_token);
         current_token.clear();
       }
     } else {
-       current_token += char_str;
+      current_token += char_str;
     }
+    
     i += char_len;
   }
+  
   if (!current_token.empty()) {
     tokens.push_back(current_token);
   }

@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <regex>
 #include <unordered_set>
 #include <vector>
+
 #include "common/value.h"
 #include "storage/field/field.h"
 #include "sql/expr/aggregator.h"
@@ -748,6 +749,7 @@ public:
   int      value_length() const override;
 
   RC get_value(const Tuple &tuple, Value &value) const override;
+  RC try_get_value(Value &value) const override;
 
   Type sysfunc_type() const { return sysfunc_type_; }
 
@@ -757,6 +759,7 @@ public:
   const std::unique_ptr<Expression> &second_child() const { return second_child_; }
   std::unique_ptr<Expression> &third_child() { return third_child_; }
   const std::unique_ptr<Expression> &third_child() const { return third_child_; }
+
   unique_ptr<Expression> deep_copy() override;
 
 public:
@@ -770,7 +773,7 @@ private:
   RC eval_vector_to_string(const Value &arg_value, Value &result) const;
   RC eval_string_to_vector(const Value &arg_value, Value &result) const;
   RC eval_tokenize(const Value &text_value, const Value &parser_value, Value &result) const;
-  RC eval_match_against(const Value &field_value, const Value &query_value, Value &result) const;
+  RC eval_match_against(const Value &field_value, const Value &query_value, Value &result, const Tuple &tuple) const;
   
   // Helper for jieba tokenization
   std::vector<std::string> tokenize_jieba(const std::string &text) const;
