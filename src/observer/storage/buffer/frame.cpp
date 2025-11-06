@@ -14,7 +14,13 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/buffer/frame.h"
 #include "session/session.h"
-#include "session/thread_data.h"
+// #include "session/thread_data.h"  // Not needed, ThreadData is not used
+#include <sstream>
+#include "common/lang/mutex.h"
+
+using std::stringstream;
+using std::string;
+using std::scoped_lock;
 
 FrameId::FrameId(int buffer_pool_id, PageNum page_num) : buffer_pool_id_(buffer_pool_id), page_num_(page_num) {}
 
@@ -66,12 +72,12 @@ void Frame::write_latch(intptr_t xid)
     ASSERT(pin_count_.load() > 0,
         "frame lock. write lock failed while pin count is invalid. "
         "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
-        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, "");
 
     ASSERT(read_lockers_.find(xid) == read_lockers_.end(),
         "frame lock write while holding the read lock."
         "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
-        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, "");
   }
 
   lock_.lock();

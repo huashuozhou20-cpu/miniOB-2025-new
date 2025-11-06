@@ -18,6 +18,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/memory.h"
 #include "common/type/attr_type.h"
 #include "common/type/data_type.h"
+#include <vector>
+#include <string>
+
+using std::string;
+using std::vector;
 
 static constexpr int MAX_TEXT_LENGTH = 65535;//设置TEXT数据的最大长度
 class Date;
@@ -192,8 +197,8 @@ public:
   void set_boolean(bool val);
   void set_vector(const char *data, int length);
   void set_vector(const char *data);
-  void set_vector(const vector<float>* embedding);
-  void set_vector(vector<float>&& embedding);
+  void set_vector(const std::vector<float>* embedding);
+  void set_vector(std::vector<float>&& embedding);
   void set_null();
   void set_long(int64_t val);
 
@@ -216,7 +221,7 @@ public:
   string get_string() const;
   bool   get_boolean() const;
   int64_t get_long() const;
-  vector<float> *get_vector() const;
+  std::vector<float> *get_vector() const;
 
   static constexpr int ATTR_TYPE_LENGTH[] = {-1, 4, 4, 4, 4, 1, 10, 4, 8, 0};
 
@@ -240,7 +245,7 @@ private:
     float   float_value_;
     bool    bool_value_;
     char   *pointer_value_;
-    vector<float>   *vector_value_;
+    std::vector<float>   *vector_value_;
     int64_t long_value_;
   } value_ = {.int_value_ = 0};
 

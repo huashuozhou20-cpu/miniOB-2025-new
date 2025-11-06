@@ -79,20 +79,20 @@ target_include_directories(observer_static PRIVATE
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/local/include      # 也可能是 usr/local/include/json/json.h
   /usr/include/jsoncpp                                 # 如果系统装了 libjsoncpp-dev
 )
-INCLUDE (readline)
-MINIOB_FIND_READLINE()
-IF (HAVE_READLINE)
-  TARGET_LINK_LIBRARIES(observer_static ${READLINE_LIBRARY})
-  TARGET_INCLUDE_DIRECTORIES(observer_static PRIVATE ${READLINE_INCLUDE_DIR})
-  ADD_DEFINITIONS(-DUSE_READLINE)
-  MESSAGE ("observer_static use readline")
-ELSE ()
-  MESSAGE ("readline is not found")
-ENDIF()
+# INCLUDE (readline)
+# MINIOB_FIND_READLINE()
+# IF (HAVE_READLINE)
+#   TARGET_LINK_LIBRARIES(observer_static ${READLINE_LIBRARY})
+#   TARGET_INCLUDE_DIRECTORIES(observer_static PRIVATE ${READLINE_INCLUDE_DIR})
+#   ADD_DEFINITIONS(-DUSE_READLINE)
+#   MESSAGE ("observer_static use readline")
+# ELSE ()
+#   MESSAGE ("readline is not found")
+# ENDIF()
 
 # 注意：这里用 Libevent::core / Libevent::pthreads（大写 L）
 TARGET_LINK_LIBRARIES(observer_static
-  common pthread dl
+  pthread dl
   Libevent::core Libevent::pthreads
   ${JSONCPP_LIB}
 )
@@ -100,7 +100,7 @@ TARGET_LINK_LIBRARIES(observer_static
 SET_TARGET_PROPERTIES(observer_static PROPERTIES OUTPUT_NAME observer)
 
 ADD_EXECUTABLE(observer ${MAIN_SRC})
-TARGET_LINK_LIBRARIES(observer observer_static)
+TARGET_LINK_LIBRARIES(observer observer_static common)
 
 # 安装
 INSTALL(TARGETS observer observer_static

@@ -44,7 +44,7 @@ public:
   Db                                 *db() { return db_; }
 
   static RC            create(Db *db, const CreateTableSqlNode &create_table, SelectSqlNode &select_sql, Stmt *&stmt, 
-    vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
     tables_t& table_map, int fa);
   static StorageFormat get_storage_format(const char *format_str);
 

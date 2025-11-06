@@ -19,10 +19,14 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/meta_util.h"
 #include "sql/parser/parse_defs.h"
 #include <fstream>
+#include <ios>
 #include <cstring>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+using std::fstream;
+using std::ios_base;
 
 RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info,
                      const std::string &old_name, const std::string &new_name)

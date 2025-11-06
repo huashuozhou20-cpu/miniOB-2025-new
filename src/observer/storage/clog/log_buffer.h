@@ -17,11 +17,14 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/types.h"
 #include "common/lang/mutex.h"
-#include "common/lang/vector.h"
 #include "common/lang/deque.h"
 #include "common/lang/atomic.h"
 #include "storage/clog/log_module.h"
 #include "storage/clog/log_entry.h"
+#include <vector>
+
+using std::mutex;
+using std::atomic;
 
 class LogFileWriter;
 
@@ -43,8 +46,8 @@ public:
   /**
    * @brief 在缓冲区中追加一条日志
    */
-  RC append(LSN &lsn, LogModule::Id module_id, vector<char> &&data);
-  RC append(LSN &lsn, LogModule module, vector<char> &&data);
+  RC append(LSN &lsn, LogModule::Id module_id, std::vector<char> &&data);
+  RC append(LSN &lsn, LogModule module, std::vector<char> &&data);
 
   /**
    * @brief 刷新缓冲区中的日志到磁盘

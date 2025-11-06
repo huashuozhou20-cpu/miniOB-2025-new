@@ -19,8 +19,9 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "session/session.h"
 #include "sql/stmt/drop_index_stmt.h"
-#include "storage/table/table.h"
 #include "storage/db/db.h"
+#include "storage/table/table.h"
+
 RC DropIndexExecutor::execute(SQLStageEvent *sql_event)
 {
   Stmt    *stmt    = sql_event->stmt();

@@ -12,13 +12,31 @@ See the Mulan PSL v2 for more details. */
 // Created by wangyunlai on 2024/01/30
 //
 
-#include "common/thread/thread_util.h"
+// #include "common/thread/thread_util.h"  // Not needed
 #include "storage/clog/disk_log_handler.h"
 #include "storage/clog/log_file.h"
 #include "storage/clog/log_replayer.h"
 #include "common/lang/chrono.h"
+#include "common/log/log.h"
+#include <pthread.h>
+#include <memory>
+#include <thread>
+#include <chrono>
 
 using namespace common;
+using std::make_unique;
+using std::thread;
+using std::chrono::milliseconds;
+using std::this_thread::sleep_for;
+
+// Helper function to set thread name
+static int thread_set_name(const char *name) {
+#ifdef __linux__
+  return pthread_setname_np(pthread_self(), name);
+#else
+  return 0;  // Not supported on this platform
+#endif
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // LogHandler
@@ -37,7 +55,7 @@ RC DiskLogHandler::start()
   }
 
   running_.store(true);
-  thread_ = make_unique<thread>(&DiskLogHandler::thread_func, this);
+  thread_ = std::make_unique<thread>(&DiskLogHandler::thread_func, this);
   LOG_INFO("log handler started");
   return RC::SUCCESS;
 }
@@ -151,7 +169,7 @@ RC DiskLogHandler::wait_lsn(LSN lsn)
 {
   // 直接强制等待。在生产系统中，我们可能会使用条件变量来等待。
   while (running_.load() && current_flushed_lsn() < lsn) {
-    this_thread::sleep_for(chrono::milliseconds(100));
+    sleep_for(milliseconds(100));
   }
 
   if (current_flushed_lsn() >= lsn) {
@@ -186,7 +204,7 @@ void DiskLogHandler::thread_func()
         LOG_WARN("failed to open log file. rc=%s", strrc(rc));
         // 总是使用最简单的方法等待一段时间，期望错误会被修复。
         // 这在生产系统中是不被允许的。
-        this_thread::sleep_for(chrono::milliseconds(100));
+        sleep_for(milliseconds(100));
         continue;
       }
       LOG_INFO("open log file success. file=%s", file_writer.to_string().c_str());
@@ -199,7 +217,7 @@ void DiskLogHandler::thread_func()
     }
 
     if (flush_count == 0 && rc == RC::SUCCESS) {
-      this_thread::sleep_for(chrono::milliseconds(100));
+      sleep_for(milliseconds(100));
       continue;
     }
   }

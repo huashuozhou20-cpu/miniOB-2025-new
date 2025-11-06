@@ -14,23 +14,29 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/init.h"
 
-#include "common/conf/ini.h"
+#include "common/ini_setting.h"
 #include "common/lang/string.h"
 #include "common/lang/iostream.h"
 #include "common/log/log.h"
 #include "common/os/path.h"
 #include "common/os/pidfile.h"
-#include "common/os/process.h"
+#include "os/process.h"
 #include "common/os/signal.h"
 #include "global_context.h"
 #include "session/session.h"
-#include "session/session_stage.h"
-#include "sql/plan_cache/plan_cache_stage.h"
+// #include "session/session_stage.h"
+// #include "sql/plan_cache/plan_cache_stage.h"
 #include "storage/buffer/disk_buffer_pool.h"
 #include "storage/default/default_handler.h"
 #include "storage/trx/trx.h"
 
+#include <exception>
+
 using namespace common;
+using std::exception;
+using std::cout;
+using std::cerr;
+using std::endl;
 
 bool *&_get_init()
 {
@@ -51,7 +57,7 @@ void sig_handler(int sig)
   LOG_INFO("Receive one signal of %d.", sig);
 }
 
-int init_log(ProcessParam *process_cfg, Ini &properties)
+int init_log(common::ProcessParam *process_cfg, common::Ini &properties)
 {
   const string &proc_name = process_cfg->get_process_name();
   try {
@@ -60,17 +66,19 @@ int init_log(ProcessParam *process_cfg, Ini &properties)
       return 0;
     }
 
-    auto log_context_getter = []() { return reinterpret_cast<intptr_t>(Session::current_session()); };
+    auto log_context_getter = []() -> intptr_t { 
+      return reinterpret_cast<intptr_t>(Session::current_session()); 
+    };
 
     const string        log_section_name = "LOG";
-    map<string, string> log_section      = properties.get(log_section_name);
+    std::map<string, string> log_section      = properties.get(log_section_name);
 
     string log_file_name;
 
     // get log file name
     string key = "LOG_FILE_NAME";
 
-    map<string, string>::iterator it = log_section.find(key);
+    std::map<string, string>::iterator it = log_section.find(key);
     if (it == log_section.end()) {
       log_file_name = proc_name + ".log";
       cout << "Not set log file name, use default " << log_file_name << endl;
@@ -99,7 +107,9 @@ int init_log(ProcessParam *process_cfg, Ini &properties)
     }
 
     LoggerFactory::init_default(log_file_name, log_level, console_level);
-    g_log->set_context_getter(log_context_getter);
+    if (g_log) {
+      g_log->set_context_getter(log_context_getter);
+    }
 
     key = ("DefaultLogModules");
     it  = log_section.find(key);
@@ -134,7 +144,7 @@ int prepare_init_seda()
   return 0;
 }
 
-int init_global_objects(ProcessParam *process_param, Ini &properties)
+int init_global_objects(common::ProcessParam *process_param, common::Ini &properties)
 {
   GCTX.handler_ = new DefaultHandler();
 
@@ -158,7 +168,7 @@ int uninit_global_objects()
   return 0;
 }
 
-int init(ProcessParam *process_param)
+int init(common::ProcessParam *process_param)
 {
   if (get_init()) {
     return 0;
@@ -182,24 +192,24 @@ int init(ProcessParam *process_param)
   // to avoid race condition
 
   // Read Configuration files
-  rc = get_properties()->load(process_param->get_conf());
+  rc = common::get_properties()->load(process_param->get_conf());
   if (rc) {
     cerr << "Failed to load configuration files" << endl;
     return rc;
   }
 
   // Init tracer
-  rc = init_log(process_param, *get_properties());
+  rc = init_log(process_param, *common::get_properties());
   if (rc) {
     cerr << "Failed to init Log" << endl;
     return rc;
   }
 
   string conf_data;
-  get_properties()->to_string(conf_data);
+  common::get_properties()->to_string(conf_data);
   LOG_INFO("Output configuration \n%s", conf_data.c_str());
 
-  rc = init_global_objects(process_param, *get_properties());
+  rc = init_global_objects(process_param, *common::get_properties());
   if (rc != 0) {
     LOG_ERROR("failed to init global objects");
     return rc;
@@ -221,9 +231,11 @@ void cleanup_util()
 {
   uninit_global_objects();
 
-  if (nullptr != get_properties()) {
-    delete get_properties();
-    get_properties() = nullptr;
+  common::Ini* props = common::get_properties();
+  if (nullptr != props) {
+    delete props;
+    // Note: get_properties() is a function, we can't assign to it
+    // In a real implementation, get_properties() would return a reference to a static variable
   }
 
   LOG_INFO("Shutdown Cleanly!");

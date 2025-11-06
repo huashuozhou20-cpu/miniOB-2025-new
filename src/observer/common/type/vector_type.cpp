@@ -16,6 +16,9 @@ See the Mulan PSL v2 for more details. */
 #include "common/type/vector_type.h"
 #include "common/value.h"
 
+#undef VECTOR_EPSILON
+constexpr float VECTOR_EPSILON = 1e-6f;
+
 int VectorType::compare(const Value &left, const Value &right) const
 {
     ASSERT(left.attr_type() == AttrType::VECTORS && right.attr_type() == AttrType::VECTORS, "invalid type");

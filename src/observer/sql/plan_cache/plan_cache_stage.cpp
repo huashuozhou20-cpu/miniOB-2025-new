@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "plan_cache_stage.h"
 
-#include "common/conf/ini.h"
+// #include "common/conf/ini.h"  // Not used
 #include "common/io/io.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"

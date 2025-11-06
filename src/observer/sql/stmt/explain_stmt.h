@@ -32,7 +32,7 @@ public:
   Stmt *child() const { return child_stmt_.get(); }
 
   static RC create(Db *db, const ExplainSqlNode &query, Stmt *&stmt,
-    vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs,
+    std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs,
     tables_t& table_map, int fa = -1);
 
 private:

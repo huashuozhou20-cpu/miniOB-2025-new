@@ -26,6 +26,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record_log.h"
 
 using namespace common;
+using std::vector;
 
 // class RecordOperation
 
@@ -89,7 +90,7 @@ RC RecordLogHandler::init(
 RC RecordLogHandler::init_new_page(Frame *frame, PageNum page_num, span<const char> data)
 {
   const int        log_payload_size = RecordLogHeader::SIZE + data.size();
-  vector<char>     log_payload(log_payload_size);
+  std::vector<char>     log_payload(log_payload_size);
   RecordLogHeader *header = reinterpret_cast<RecordLogHeader *>(log_payload.data());
   header->buffer_pool_id  = buffer_pool_id_;
   header->operation_type  = RecordOperation(RecordOperation::Type::INIT_PAGE).type_id();
@@ -112,7 +113,7 @@ RC RecordLogHandler::init_new_page(Frame *frame, PageNum page_num, span<const ch
 RC RecordLogHandler::insert_record(Frame *frame, const RID &rid, const char *record)
 {
   const int        log_payload_size = RecordLogHeader::SIZE + record_size_;
-  vector<char>     log_payload(log_payload_size);
+  std::vector<char>     log_payload(log_payload_size);
   RecordLogHeader *header = reinterpret_cast<RecordLogHeader *>(log_payload.data());
   header->buffer_pool_id  = buffer_pool_id_;
   header->operation_type  = RecordOperation(RecordOperation::Type::INSERT).type_id();
@@ -132,7 +133,7 @@ RC RecordLogHandler::insert_record(Frame *frame, const RID &rid, const char *rec
 RC RecordLogHandler::update_record(Frame *frame, const RID &rid, const char *record)
 {
   const int        log_payload_size = RecordLogHeader::SIZE + record_size_;
-  vector<char>     log_payload(log_payload_size);
+  std::vector<char>     log_payload(log_payload_size);
   RecordLogHeader *header = reinterpret_cast<RecordLogHeader *>(log_payload.data());
   header->buffer_pool_id  = buffer_pool_id_;
   header->operation_type  = RecordOperation(RecordOperation::Type::UPDATE).type_id();

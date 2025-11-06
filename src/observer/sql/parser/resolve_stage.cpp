@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "resolve_stage.h"
 
-#include "common/conf/ini.h"
+// #include "common/conf/ini.h"  // Not used
 #include "common/io/io.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
@@ -46,8 +46,8 @@ RC ResolveStage::handle_request(SQLStageEvent *sql_event)
 
   ParsedSqlNode *sql_node = sql_event->sql_node().get();
   Stmt          *stmt     = nullptr;
-  vector<vector<uint32_t>> depends;
-  vector<SelectExpr*> select_exprs;
+  std::vector<std::vector<uint32_t>> depends;
+  std::vector<SelectExpr*> select_exprs;
   tables_t table_map;
   rc = Stmt::create_stmt(db, *sql_node, stmt, depends, select_exprs, table_map);
   if (rc != RC::SUCCESS && rc != RC::UNIMPLEMENTED) {

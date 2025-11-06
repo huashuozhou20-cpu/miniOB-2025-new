@@ -14,9 +14,10 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/stmt/alter_table_stmt.h"
 #include "common/log/log.h"
+#include "common/lang/string.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
-#include "common/lang/string.h"
+
 RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
 {
   stmt = nullptr;

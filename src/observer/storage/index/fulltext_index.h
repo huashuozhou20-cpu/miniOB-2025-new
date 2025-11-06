@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include "storage/index/index.h"
 #include "storage/record/record.h"
+
 class Table;
 class FieldMeta;
 class IndexMeta;
@@ -83,17 +84,17 @@ private:
   const FieldMeta            *field_meta_ = nullptr;
   
   // 倒排索引: word -> set of RIDs
-  std::unordered_map<std::string, std::unordered_set<RID,RIDHash>> inverted_index_;
+  std::unordered_map<std::string, std::unordered_set<RID, RIDHash>> inverted_index_;
   
   // 文档索引: RID -> set of words (用于删除和更新)
-  std::unordered_map<RID, std::unordered_set<std::string>,RIDHash> document_index_;
+  std::unordered_map<RID, std::unordered_set<std::string>, RIDHash> document_index_;
   
   // BM25 参数
   static constexpr double BM25_K1 = 1.5;
   static constexpr double BM25_B = 0.75;
   
   // 文档长度（用于 BM25 计算）
-  std::unordered_map<RID, size_t,RIDHash> document_lengths_;
+  std::unordered_map<RID, size_t, RIDHash> document_lengths_;
   
   // 平均文档长度（用于 BM25 计算）
   double avg_document_length_ = 0.0;

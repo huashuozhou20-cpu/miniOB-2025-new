@@ -22,6 +22,10 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record_log.h"
 #include "common/types.h"
 
+#include <unordered_set>
+
+using std::unordered_set;
+
 class LogHandler;
 class ConditionFilter;
 class RecordPageHandler;
@@ -455,7 +459,7 @@ public:
 
   RC get_record(const RID &rid, Record &record);
 
-  RC visit_record(const RID &rid, function<bool(Record &)> updater);
+  RC visit_record(const RID &rid, std::function<bool(Record &)> updater);
 
 private:
   /**

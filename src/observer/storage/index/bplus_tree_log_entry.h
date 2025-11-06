@@ -19,6 +19,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/span.h"
 #include "common/lang/string.h"
 #include "storage/index/bplus_tree.h"
+#include <vector>
+#include <memory>
+
+using std::vector;
+using std::unique_ptr;
 
 class IndexNodeHandler;
 class BplusTreeHandler;
@@ -251,9 +256,9 @@ public:
   int32_t     item_bytes() const { return static_cast<int32_t>(items_.size()); }
 
 private:
-  int          index_    = -1;
-  int          item_num_ = -1;
-  vector<char> items_;
+  int               index_    = -1;
+  int               item_num_ = -1;
+  std::vector<char> items_;
 };
 
 /**
@@ -343,9 +348,9 @@ public:
   int32_t     key_bytes() const { return static_cast<int32_t>(key_.size()); }
 
 private:
-  PageNum      first_page_num_ = -1;
-  PageNum      page_num_       = -1;
-  vector<char> key_;
+  PageNum           first_page_num_ = -1;
+  PageNum           page_num_       = -1;
+  std::vector<char> key_;
 };
 
 /**
@@ -371,9 +376,9 @@ public:
   int32_t     key_bytes() const { return static_cast<int32_t>(key_.size()); }
 
 private:
-  int          index_ = -1;
-  vector<char> key_;
-  vector<char> old_key_;
+  int               index_ = -1;
+  std::vector<char> key_;
+  std::vector<char> old_key_;
 };
 
 }  // namespace bplus_tree

@@ -8,10 +8,16 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
+#include <sstream>
 #include "common/lang/comparator.h"
 #include "common/log/log.h"
 #include "common/type/char_type.h"
 #include "common/value.h"
+#include "common/lang/string.h"
+#include "common/lang/sstream.h"
+
+using namespace common;
+using std::stringstream;
 
 int CharType::compare(const Value &left, const Value &right) const
 {

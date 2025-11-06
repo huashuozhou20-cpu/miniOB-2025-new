@@ -1,5 +1,5 @@
 ADD_EXECUTABLE(clog_dump clog_dump.cpp)
-TARGET_LINK_LIBRARIES(clog_dump observer_static)
+TARGET_LINK_LIBRARIES(clog_dump observer_static common)
 TARGET_INCLUDE_DIRECTORIES(clog_dump PRIVATE ${PROJECT_SOURCE_DIR}/src/observer/)
 
 # Target 必须在定义 ADD_EXECUTABLE 之后， programs 不受这个限制

@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/order_by_physical_operator.h"
 #include "common/log/log.h"
+#include "common/value.h"
 
 using namespace std;
 using namespace filesystem;

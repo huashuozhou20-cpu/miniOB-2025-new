@@ -26,6 +26,8 @@ See the Mulan PSL v2 for more details. */
 using namespace common;
 
 static const int MEM_POOL_ITEM_NUM = 20;
+#undef DEFAULT_ITEM_NUM_PER_POOL
+static const int DEFAULT_ITEM_NUM_PER_POOL = 100;  // Default number of items per pool
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -44,6 +46,8 @@ RC BPFrameManager::init(int pool_num)
 {
   int ret = allocator_.init(false, pool_num);
   if (ret == 0) {
+    // LruCache is initialized in constructor, no need to call init
+    // The reserve parameter is set in constructor if needed
     return RC::SUCCESS;
   }
   return RC::NOMEM;
@@ -63,13 +67,13 @@ int BPFrameManager::purge_frames(int count, function<RC(Frame *frame)> purger)
 {
   lock_guard<mutex> lock_guard(lock_);
 
-  vector<Frame *> frames_can_purge;
+  std::vector<Frame *> frames_can_purge;
   if (count <= 0) {
     count = 1;
   }
   frames_can_purge.reserve(count);
 
-  auto purge_finder = [&frames_can_purge, count](const FrameId &frame_id, Frame *const frame) {
+  auto purge_finder = [&](const FrameId &frame_id, Frame *const frame) {
     if (frame->can_purge()) {
       frame->pin();
       frames_can_purge.push_back(frame);
@@ -443,7 +447,7 @@ RC DiskBufferPool::dispose_page(PageNum page_num)
   scoped_lock lock_guard(lock_);
   Frame      *used_frame = frame_manager_.get(id(), page_num);
   if (used_frame != nullptr) {
-    ASSERT("the page try to dispose is in use. frame:%s", used_frame->to_string().c_str());
+    LOG_WARN("the page try to dispose is in use. frame:%s", used_frame->to_string().c_str());
     frame_manager_.free(id(), page_num, used_frame);
   } else {
     LOG_DEBUG("page not found in memory while disposing it. pageNum=%d", page_num);
@@ -600,16 +604,16 @@ RC DiskBufferPool::write_page(PageNum page_num, Page &page)
   scoped_lock lock_guard(wr_lock_);
   int64_t     offset = ((int64_t)page_num) * sizeof(Page);
   if (lseek(file_desc_, offset, SEEK_SET) == -1) {
-    LOG_ERROR("Failed to write page %lld of %d due to failed to seek %s.", offset, file_desc_, strerror(errno));
+    LOG_ERROR("Failed to write page %ld of %d due to failed to seek %s.", offset, file_desc_, strerror(errno));
     return RC::IOERR_SEEK;
   }
 
   if (writen(file_desc_, &page, sizeof(Page)) != 0) {
-    LOG_ERROR("Failed to write page %lld of %d due to %s.", offset, file_desc_, strerror(errno));
+    LOG_ERROR("Failed to write page %ld of %d due to %s.", offset, file_desc_, strerror(errno));
     return RC::IOERR_WRITE;
   }
 
-  LOG_TRACE("write_page: buffer_pool_id:%d, page_num:%d, lsn=%d, check_sum=%d", id(), page_num, page.lsn, page.check_sum);
+  LOG_TRACE("write_page: buffer_pool_id:%d, page_num:%d, lsn=%ld, check_sum=%d", id(), page_num, page.lsn, page.check_sum);
   return RC::SUCCESS;
 }
 
@@ -690,11 +694,11 @@ RC DiskBufferPool::append_data(int64_t &offset, int64_t length, const char *data
   // 查看file_header中记录的文件末尾位置信息
   offset = BP_PAGE_SIZE * file_header_->page_count;
   if (lseek(file_desc_, offset, SEEK_SET) == -1) {
-    LOG_ERROR("Failed to lseek %s at offset %d :%s.", file_name_.c_str(), offset, strerror(errno));
+    LOG_ERROR("Failed to lseek %s at offset %ld :%s.", file_name_.c_str(), offset, strerror(errno));
     return RC::IOERR_SEEK;
   }
   if (0 != writen(file_desc_, data, length)) {
-    LOG_ERROR("Failed to write text into file due to %s.", offset, file_desc_, strerror(errno));
+    LOG_ERROR("Failed to write text into file %s, file_desc:%d, due to %s.", file_name_.c_str(), file_desc_, strerror(errno));
     return RC::IOERR_WRITE;
   }
   file_header_->page_count += (length + BP_PAGE_SIZE - 1) / BP_PAGE_SIZE;
@@ -704,7 +708,7 @@ RC DiskBufferPool::append_data(int64_t &offset, int64_t length, const char *data
 RC DiskBufferPool::get_data(int64_t offset, int64_t length, char *data)
 {
   if (lseek(file_desc_, offset, SEEK_SET) == -1) {
-    LOG_ERROR("Failed to lseek %s at offset %d :%s.", file_name_.c_str(), offset, strerror(errno));
+    LOG_ERROR("Failed to lseek %s at offset %ld :%s.", file_name_.c_str(), offset, strerror(errno));
     return RC::IOERR_SEEK;
   }
   int ret = readn(file_desc_, data, length);

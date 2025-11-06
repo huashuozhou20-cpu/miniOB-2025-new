@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/mutex.h"
 #include "common/lang/unordered_map.h"
 
+using namespace common;
+
 class Worker;
 
 /**

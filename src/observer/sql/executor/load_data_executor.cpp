@@ -18,6 +18,13 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "sql/executor/sql_result.h"
 #include "sql/stmt/load_data_stmt.h"
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <cerrno>
+#include <cstring>
 
 using namespace common;
 

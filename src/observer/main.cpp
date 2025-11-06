@@ -30,6 +30,9 @@ See the Mulan PSL v2 for more details. */
 #include "net/server_param.h"
 
 using namespace common;
+using std::cout;
+using std::cerr;
+using std::endl;
 
 #define NET "NET"
 
@@ -82,7 +85,7 @@ void parse_parameter(int argc, char **argv)
 
 Server *init_server()
 {
-  map<string, string> net_section = get_properties()->get(NET);
+  std::map<std::string, std::string> net_section = get_properties()->get(NET);
 
   ProcessParam *process_param = the_process_param();
 
@@ -90,15 +93,15 @@ Server *init_server()
   long max_connection_num = MAX_CONNECTION_NUM_DEFAULT;
   int  port               = PORT_DEFAULT;
 
-  map<string, string>::iterator it = net_section.find(CLIENT_ADDRESS);
+  std::map<std::string, std::string>::iterator it = net_section.find(CLIENT_ADDRESS);
   if (it != net_section.end()) {
-    string str = it->second;
+    std::string str = it->second;
     str_to_val(str, listen_addr);
   }
 
   it = net_section.find(MAX_CONNECTION_NUM);
   if (it != net_section.end()) {
-    string str = it->second;
+    std::string str = it->second;
     str_to_val(str, max_connection_num);
   }
 
@@ -108,7 +111,7 @@ Server *init_server()
   } else {
     it = net_section.find(PORT);
     if (it != net_section.end()) {
-      string str = it->second;
+      std::string str = it->second;
       str_to_val(str, port);
     }
   }

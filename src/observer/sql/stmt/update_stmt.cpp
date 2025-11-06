@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/table/table.h"
 
 UpdateStmt::UpdateStmt(BaseTable *table, std::vector<const FieldMeta *>&& fields, 
-  vector<unique_ptr<Expression>>&& values, FilterStmt *filter_stmt)
+  std::vector<std::unique_ptr<Expression>>&& values, FilterStmt *filter_stmt)
   : table_(table), fields_(move(fields)), values_(move(values)), filter_stmt_(filter_stmt)
 {}
 
@@ -32,7 +32,7 @@ UpdateStmt::~UpdateStmt()
 }
 
 RC UpdateStmt::create(Db *db, UpdateSqlNode &update, Stmt *&stmt, 
-  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
   tables_t& table_map, int fa)
 {
   const char *table_name = update.relation_name.c_str();
@@ -85,7 +85,7 @@ RC UpdateStmt::create(Db *db, UpdateSqlNode &update, Stmt *&stmt,
     table_map.insert({table_name, temp});
   }
 
-  depends.emplace_back(vector<uint32_t>());
+  depends.emplace_back(std::vector<uint32_t>());
 
   FilterStmt *filter_stmt = nullptr;
   RC          rc          = FilterStmt::create(

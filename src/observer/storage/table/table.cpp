@@ -15,7 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 
-#include "common/defs.h"
+// #include "common/defs.h" // Removed - not found
 #include "common/lang/string.h"
 #include "common/lang/span.h"
 #include "common/lang/algorithm.h"
@@ -53,7 +53,7 @@ Table::~Table()
     text_buffer_pool_ = nullptr;
   }
 
-  for (vector<Index *>::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
+  for (std::vector<Index *>::iterator it = indexes_.begin(); it != indexes_.end(); ++it) {
     Index *index = *it;
     delete index;
   }
@@ -98,7 +98,7 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
   close(fd);
 
   // 创建文件
-  const vector<FieldMeta> *trx_fields = db->trx_kit().trx_fields();
+  const std::vector<FieldMeta> *trx_fields = db->trx_kit().trx_fields();
   if ((rc = table_meta_.init(table_id, name, trx_fields, attributes, storage_format)) != RC::SUCCESS) {
     LOG_ERROR("Failed to init table meta. name:%s, ret:%d", name, rc);
     std::remove(path);

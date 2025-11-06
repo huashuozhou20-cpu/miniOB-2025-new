@@ -20,7 +20,7 @@ See the Mulan PSL v2 for more details. */
 
 MvccTrxKit::~MvccTrxKit()
 {
-  vector<Trx *> tmp_trxes;
+  std::vector<Trx *> tmp_trxes;
   tmp_trxes.swap(trxes_);
 
   for (Trx *trx : tmp_trxes) {
@@ -31,7 +31,7 @@ MvccTrxKit::~MvccTrxKit()
 RC MvccTrxKit::init()
 {
   // 事务使用一些特殊的字段，放到每行记录中，表示行记录的可见性。
-  fields_ = vector<FieldMeta>{
+  fields_ = std::vector<FieldMeta>{
       // field_id in trx fields is invisible.
       FieldMeta("__trx_xid_begin", AttrType::INTS, 0 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, 1/*field_id*/),
       FieldMeta("__trx_xid_end", AttrType::INTS, 4 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, 2/*field_id*/)};
@@ -40,7 +40,7 @@ RC MvccTrxKit::init()
   return RC::SUCCESS;
 }
 
-const vector<FieldMeta> *MvccTrxKit::trx_fields() const { return &fields_; }
+const std::vector<FieldMeta> *MvccTrxKit::trx_fields() const { return &fields_; }
 
 int32_t MvccTrxKit::next_trx_id() { return ++current_trx_id_; }
 
@@ -99,7 +99,7 @@ Trx *MvccTrxKit::find_trx(int32_t trx_id)
   return nullptr;
 }
 
-void MvccTrxKit::all_trxes(vector<Trx *> &trxes)
+void MvccTrxKit::all_trxes(std::vector<Trx *> &trxes)
 {
   lock_.lock();
   trxes = trxes_;

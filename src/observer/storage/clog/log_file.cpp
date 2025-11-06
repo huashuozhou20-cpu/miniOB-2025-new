@@ -14,14 +14,20 @@ See the Mulan PSL v2 for more details. */
 
 #include <fcntl.h>
 
-#include "common/lang/string_view.h"
-#include "common/lang/charconv.h"
+#include <string_view>
+#include <charconv>
+#include <cerrno>
+#include <cstring>
 #include "common/log/log.h"
 #include "storage/clog/log_file.h"
 #include "storage/clog/log_entry.h"
 #include "common/io/io.h"
 
 using namespace common;
+using std::string_view;
+using std::from_chars;
+using std::from_chars_result;
+using std::errc;
 
 RC LogFileReader::open(const char *filename)
 {
@@ -72,7 +78,7 @@ RC LogFileReader::iterate(function<RC(LogEntry &)> callback, LSN start_lsn /*=0*
       return RC::IOERR_READ;
     }
 
-    vector<char> data(header.size);
+    std::vector<char> data(header.size);
     ret = readn(fd_, data.data(), header.size);
     if (0 != ret) {
       LOG_WARN("read file failed. filename=%s, size=%d, ret=%d, error=%s", filename_.c_str(), header.size, ret, strerror(errno));
@@ -234,15 +240,15 @@ string LogFileWriter::to_string() const
 
 RC LogFileManager::init(const char *directory, int max_entry_number_per_file)
 {
-  directory_ = filesystem::absolute(filesystem::path(directory));
+  directory_ = std::filesystem::absolute(std::filesystem::path(directory));
   max_entry_number_per_file_ = max_entry_number_per_file;
 
   // 检查目录是否存在，不存在就创建出来
-  if (!filesystem::is_directory(directory_)) {
+  if (!std::filesystem::is_directory(directory_)) {
     LOG_INFO("directory is not exist. directory=%s", directory_.c_str());
 
-    error_code ec;
-    bool ret = filesystem::create_directories(directory_, ec);
+    std::error_code ec;
+    bool ret = std::filesystem::create_directories(directory_, ec);
     if (!ret) {
       LOG_WARN("create directory failed. directory=%s, error=%s", directory_.c_str(), ec.message().c_str());
       return RC::FILE_CREATE;
@@ -250,7 +256,7 @@ RC LogFileManager::init(const char *directory, int max_entry_number_per_file)
   }
 
   // 列出所有的日志文件
-  for (const filesystem::directory_entry &dir_entry : filesystem::directory_iterator(directory_)) {
+  for (const std::filesystem::directory_entry &dir_entry : std::filesystem::directory_iterator(directory_)) {
     if (!dir_entry.is_regular_file()) {
       continue;
     }
@@ -279,11 +285,19 @@ RC LogFileManager::init(const char *directory, int max_entry_number_per_file)
 
 RC LogFileManager::get_lsn_from_filename(const string &filename, LSN &lsn)
 {
-  if (!filename.starts_with(file_prefix_) || !filename.ends_with(file_suffix_)) {
+  // Check if filename starts with prefix and ends with suffix
+  size_t prefix_len = strlen(file_prefix_);
+  size_t suffix_len = strlen(file_suffix_);
+  if (filename.length() < prefix_len + suffix_len) {
+    return RC::INVALID_ARGUMENT;
+  }
+  
+  if (filename.substr(0, prefix_len) != file_prefix_ || 
+      filename.substr(filename.length() - suffix_len) != file_suffix_) {
     return RC::INVALID_ARGUMENT;
   }
 
-  string_view lsn_str(filename.data() + strlen(file_prefix_), filename.length() - strlen(file_suffix_) - strlen(file_prefix_));
+  string_view lsn_str(filename.data() + prefix_len, filename.length() - suffix_len - prefix_len);
   from_chars_result result = from_chars(lsn_str.data(), lsn_str.data() + lsn_str.size(), lsn);
   if (result.ec != errc()) {
     LOG_TRACE("invalid log file name: cannot calc lsn. filename=%s, error=%s", 
@@ -294,7 +308,7 @@ RC LogFileManager::get_lsn_from_filename(const string &filename, LSN &lsn)
   return RC::SUCCESS;
 }
 
-RC LogFileManager::list_files(vector<string> &files, LSN start_lsn)
+RC LogFileManager::list_files(std::vector<string> &files, LSN start_lsn)
 {
   files.clear();
 
@@ -332,7 +346,7 @@ RC LogFileManager::next_file(LogFileWriter &file_writer)
   }
 
   string filename = file_prefix_ + std::to_string(lsn) + file_suffix_;
-  filesystem::path file_path = directory_ / filename;
+  std::filesystem::path file_path = directory_ / filename;
   log_files_.emplace(lsn, file_path);
 
   return file_writer.open(file_path.c_str(), lsn + max_entry_number_per_file_ - 1);

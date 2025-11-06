@@ -11,9 +11,14 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "storage/index/index.h"
 #include "sql/expr/expression.h"
+
+using std::vector;
+using std::pair;
 
 struct Calculator
 {
@@ -67,7 +72,7 @@ public:
 
   bool is_vector_index() override { return true; }
 
-  vector<RID> ann_search(const vector<float> &base_vector, size_t limit);
+  std::vector<RID> ann_search(const std::vector<float> &base_vector, size_t limit);
 
   RC close() { return RC::UNIMPLEMENTED; }
 
@@ -112,9 +117,9 @@ private:
   int    probes_ = 1;
   int      attr_offset_;
   Calculator  calculator_;
-  vector<Value> centers_;
-  vector<Value> before_centers;
-  vector<vector<size_t>> clusters_;
-  vector<pair<RID, Value>> records_;
+  std::vector<Value> centers_;
+  std::vector<Value> before_centers;
+  std::vector<std::vector<size_t>> clusters_;
+  std::vector<std::pair<RID, Value>> records_;
   bool changed = false;
 };

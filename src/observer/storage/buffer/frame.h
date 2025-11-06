@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <pthread.h>
 #include <string.h>
+#include <string>
 
 #include "common/lang/mutex.h"
 #include "common/lang/string.h"
@@ -24,6 +25,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/types.h"
 #include "storage/buffer/page.h"
+
+#include <unordered_map>
+
+using std::unordered_map;
+using std::string;
+using std::atomic;
 
 /**
  * @brief 页帧标识符

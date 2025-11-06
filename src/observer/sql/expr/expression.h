@@ -95,7 +95,7 @@ public:
    */
   virtual RC get_value(const Tuple &tuple, Value &value) const = 0;
 
-  virtual RC get_value_set(const Tuple &tuple, vector<Value> &value_list) const {return RC::UNIMPLEMENTED;}
+  virtual RC get_value_set(const Tuple &tuple, std::vector<Value> &value_list) const {return RC::UNIMPLEMENTED;}
 
   /**
    * @brief 在没有实际运行的情况下，也就是无法获取tuple的情况下，尝试获取表达式的值
@@ -278,7 +278,7 @@ public:
     return RC::SUCCESS;
   }
   
-  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override
+  RC get_value_set(const Tuple &tuple, std::vector<Value> &value_list)const override
   {
     Value value;
     get_value(value);
@@ -315,7 +315,7 @@ public:
   ExprType type() const override { return ExprType::CAST; }
 
   RC get_value(const Tuple &tuple, Value &value) const override;
-  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
+  RC get_value_set(const Tuple &tuple, std::vector<Value> &value_list)const override;
 
   RC try_get_value(Value &value) const override;
 
@@ -624,7 +624,7 @@ public:
   AttrType value_type() const override { return value_type_;}
 
   RC get_value(const Tuple &tuple, Value &value) const override;
-  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
+  RC get_value_set(const Tuple &tuple, std::vector<Value> &value_list)const override;
   RC try_get_value(Value &value) const { 
     if(values_ != nullptr){
       if(values_->size() == 0 || values_->at(0).size() == 0){
@@ -643,7 +643,7 @@ public:
 
   RC logical_generate();
   RC physical_generate();
-  RC create_stmt(Db *db, vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  RC create_stmt(Db *db, std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
     tables_t& table_map, int fa);
 
   RC next_tuple(Tuple *&tuple, Tuple *upper_tuple = nullptr) const;
@@ -656,7 +656,7 @@ private:
 
   unique_ptr<LogicalOperator> logical_operator_;
   unique_ptr<PhysicalOperator> physical_operator_;
-  unique_ptr<vector<vector<Value>>> values_;
+  unique_ptr<std::vector<std::vector<Value>>> values_;
   ParsedSqlNode*  sql_node_ = nullptr;
   Trx*      trx_ = nullptr;
 };
@@ -672,7 +672,7 @@ public:
   virtual ~ValueListExpr() = default;
 
   RC get_value(const Tuple &tuple, Value &value) const override;
-  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
+  RC get_value_set(const Tuple &tuple, std::vector<Value> &value_list)const override;
 
   ExprType type() const override { return ExprType::VALUE_LIST; }
   AttrType value_type() const override { return exprs_[0]->value_type(); }

@@ -13,8 +13,13 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <sstream>
+#include <vector>
 #include "storage/clog/log_entry.h"
 #include "common/log/log.h"
+
+using namespace common;
+using std::stringstream;
+using std::vector;
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct LogHeader
@@ -63,12 +68,12 @@ LogEntry &LogEntry::operator=(LogEntry &&other)
   return *this;
 }
 
-RC LogEntry::init(LSN lsn, LogModule::Id module_id, vector<char> &&data)
+RC LogEntry::init(LSN lsn, LogModule::Id module_id, std::vector<char> &&data)
 {
   return init(lsn, LogModule(module_id), std::move(data));
 }
 
-RC LogEntry::init(LSN lsn, LogModule module, vector<char> &&data)
+RC LogEntry::init(LSN lsn, LogModule module, std::vector<char> &&data)
 {
   if (static_cast<int32_t>(data.size()) > max_payload_size()) {
     LOG_DEBUG("log entry size is too large. size=%d, max_payload_size=%d", data.size(), max_payload_size());

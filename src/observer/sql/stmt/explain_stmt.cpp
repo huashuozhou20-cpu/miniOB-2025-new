@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 ExplainStmt::ExplainStmt(std::unique_ptr<Stmt> child_stmt) : child_stmt_(std::move(child_stmt)) {}
 
 RC ExplainStmt::create(Db *db, const ExplainSqlNode &explain, Stmt *&stmt,
-  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
   tables_t& table_map, int fa)
 {
   Stmt *child_stmt = nullptr;

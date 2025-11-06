@@ -23,6 +23,9 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/rc.h"
 #include "common/lang/string.h"
+#include <string>
+
+using std::string;
 
 class PersistHandler
 {

@@ -19,6 +19,9 @@ See the Mulan PSL v2 for more details. */
 #include "common/types.h"
 #include "common/lang/span.h"
 #include "common/lang/functional.h"
+#include <functional>
+
+using std::function;
 
 struct RID;
 class Record;
@@ -173,5 +176,5 @@ private:
   DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
   DiskBufferPool    *text_buffer_pool_ = nullptr;   /// text文件关联的buffer pool
   RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
-  vector<Index *>    indexes_;
+  std::vector<Index *>    indexes_;
 };

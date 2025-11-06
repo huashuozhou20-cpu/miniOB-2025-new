@@ -14,9 +14,16 @@ See the Mulan PSL v2 for more details. */
 #include "common/type/float_type.h"
 #include "common/value.h"
 #include "common/lang/limits.h"
-#include "common/value.h"
+#include "common/lang/string.h"
 
 #include <cmath>
+#include <sstream>
+
+using namespace common;
+using std::stringstream;
+
+#undef EPSILON
+constexpr float EPSILON = 1e-6f;
 
 int FloatType::compare(const Value &left, const Value &right) const
 {
@@ -103,7 +110,7 @@ RC FloatType::set_value_from_str(Value &val, const string &data) const
 RC FloatType::to_string(const Value &val, string &result) const
 {
   stringstream ss;
-  ss << common::double_to_str(val.value_.float_value_);
+  ss << val.value_.float_value_;
   result = ss.str();
   return RC::SUCCESS;
 }

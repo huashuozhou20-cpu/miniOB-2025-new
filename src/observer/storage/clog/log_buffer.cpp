@@ -15,8 +15,16 @@ See the Mulan PSL v2 for more details. */
 #include "storage/clog/log_buffer.h"
 #include "storage/clog/log_file.h"
 #include "common/lang/chrono.h"
+#include "common/log/log.h"
+#include "common/lang/mutex.h"
+#include <thread>
+#include <chrono>
 
 using namespace common;
+using std::lock_guard;
+using std::mutex;
+using std::this_thread::sleep_for;
+using std::chrono::milliseconds;
 
 RC LogEntryBuffer::init(LSN lsn, int32_t max_bytes /*= 0*/)
 {
@@ -29,18 +37,18 @@ RC LogEntryBuffer::init(LSN lsn, int32_t max_bytes /*= 0*/)
   return RC::SUCCESS;
 }
 
-RC LogEntryBuffer::append(LSN &lsn, LogModule::Id module_id, vector<char> &&data)
+RC LogEntryBuffer::append(LSN &lsn, LogModule::Id module_id, std::vector<char> &&data)
 {
   return append(lsn, LogModule(module_id), std::move(data));
 }
 
-RC LogEntryBuffer::append(LSN &lsn, LogModule module, vector<char> &&data)
+RC LogEntryBuffer::append(LSN &lsn, LogModule module, std::vector<char> &&data)
 {
   /// 控制当前buffer使用的内存
   /// 简单粗暴，强制原地等待
   /// 但是如果当前想要新插入的日志比较大，不会做控制。所以理论上容纳的最大buffer内存是2*max_bytes_
   while (bytes_.load() >= max_bytes_) {
-    this_thread::sleep_for(chrono::milliseconds(10));
+    sleep_for(milliseconds(10));
   }
 
   LogEntry entry;

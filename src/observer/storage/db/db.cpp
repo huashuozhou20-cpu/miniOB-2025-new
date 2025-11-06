@@ -16,8 +16,11 @@ See the Mulan PSL v2 for more details. */
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <vector>
 #include <filesystem>
+#include <regex>
+#include <system_error>
 
 #include "common/lang/string.h"
 #include "common/log/log.h"
@@ -57,7 +60,7 @@ RC Db::init(const char *name, const char *dbpath, const char *trx_kit_name, cons
     return RC::INVALID_ARGUMENT;
   }
 
-  if (!filesystem::is_directory(dbpath)) {
+  if (!std::filesystem::is_directory(dbpath)) {
     LOG_ERROR("Failed to init DB, path is not a directory: %s", dbpath);
     return RC::INVALID_ARGUMENT;
   }
@@ -70,11 +73,11 @@ RC Db::init(const char *name, const char *dbpath, const char *trx_kit_name, cons
 
   trx_kit_.reset(trx_kit);
 
-  buffer_pool_manager_ = make_unique<BufferPoolManager>();
-  auto dblwr_buffer    = make_unique<DiskDoubleWriteBuffer>(*buffer_pool_manager_);
+  buffer_pool_manager_ = std::make_unique<BufferPoolManager>();
+  auto dblwr_buffer    = std::make_unique<DiskDoubleWriteBuffer>(*buffer_pool_manager_);
 
   const char      *double_write_buffer_filename  = "dblwr.db";
-  filesystem::path double_write_buffer_file_path = filesystem::path(dbpath) / double_write_buffer_filename;
+  std::filesystem::path double_write_buffer_file_path = std::filesystem::path(dbpath) / double_write_buffer_filename;
   rc                                             = dblwr_buffer->open_file(double_write_buffer_file_path.c_str());
   if (OB_FAIL(rc)) {
     LOG_ERROR("Failed to open double write buffer file. file=%s, rc=%s",
@@ -88,7 +91,7 @@ RC Db::init(const char *name, const char *dbpath, const char *trx_kit_name, cons
     return rc;
   }
 
-  filesystem::path clog_path       = filesystem::path(dbpath) / "clog";
+  std::filesystem::path clog_path       = std::filesystem::path(dbpath) / "clog";
   LogHandler      *tmp_log_handler = nullptr;
   rc                               = LogHandler::create(log_handler_name, tmp_log_handler);
   if (OB_FAIL(rc)) {
@@ -221,11 +224,23 @@ Table *Db::find_table(int32_t table_id) const
 
 RC Db::open_all_tables()
 {
-  vector<string> table_meta_files;
+  std::vector<string> table_meta_files;
 
-  int ret = list_file(path_.c_str(), TABLE_META_FILE_PATTERN, table_meta_files);
-  if (ret < 0) {
-    LOG_ERROR("Failed to list table meta files under %s.", path_.c_str());
+  // List files matching pattern using std::filesystem
+  try {
+    std::filesystem::path dir_path(path_);
+    std::regex pattern(TABLE_META_FILE_PATTERN);
+    
+    for (const auto &entry : std::filesystem::directory_iterator(dir_path)) {
+      if (entry.is_regular_file()) {
+        std::string filename = entry.path().filename().string();
+        if (std::regex_match(filename, pattern)) {
+          table_meta_files.push_back(filename);
+        }
+      }
+    }
+  } catch (const std::filesystem::filesystem_error &ex) {
+    LOG_ERROR("Failed to list table meta files under %s: %s", path_.c_str(), ex.what());
     return RC::IOERR_READ;
   }
 
@@ -260,7 +275,7 @@ RC Db::open_all_tables()
 
 const char *Db::name() const { return name_.c_str(); }
 
-void Db::all_tables(vector<string> &table_names) const
+void Db::all_tables(std::vector<string> &table_names) const
 {
   for (const auto &table_item : opened_tables_) {
     table_names.emplace_back(table_item.first);
@@ -344,8 +359,8 @@ RC Db::recover()
 
 RC Db::init_meta()
 {
-  filesystem::path db_meta_file_path = db_meta_file(path_.c_str(), name_.c_str());
-  if (!filesystem::exists(db_meta_file_path)) {
+  std::filesystem::path db_meta_file_path = db_meta_file(path_.c_str(), name_.c_str());
+  if (!std::filesystem::exists(db_meta_file_path)) {
     check_point_lsn_ = 0;
     LOG_INFO("Db meta file not exist. db=%s, file=%s", name_.c_str(), db_meta_file_path.c_str());
     return RC::SUCCESS;
@@ -388,8 +403,8 @@ RC Db::flush_meta()
   // 先创建一个临时文件，将元数据写入临时文件
   // 然后再将临时文件修改为正式文件
 
-  filesystem::path meta_file_path      = db_meta_file(path_.c_str(), name_.c_str());  // 正式文件名
-  filesystem::path temp_meta_file_path = meta_file_path;                              // 临时文件名
+  std::filesystem::path meta_file_path      = db_meta_file(path_.c_str(), name_.c_str());  // 正式文件名
+  std::filesystem::path temp_meta_file_path = meta_file_path;                              // 临时文件名
   temp_meta_file_path += ".tmp";
 
   RC  rc = RC::SUCCESS;
@@ -411,8 +426,8 @@ RC Db::flush_meta()
               name_.c_str(), temp_meta_file_path.c_str(), buffer.size(), n);
     rc = RC::IOERR_WRITE;
   } else {
-    error_code ec;
-    filesystem::rename(temp_meta_file_path, meta_file_path, ec);
+    std::error_code ec;
+    std::filesystem::rename(temp_meta_file_path, meta_file_path, ec);
     if (ec) {
       LOG_ERROR("Failed to rename db meta file. db=%s, file=%s, errno=%s", 
                 name_.c_str(), temp_meta_file_path.c_str(), ec.message().c_str());

@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/algorithm.h"
 #include "common/log/log.h"
 #include "net/ring_buffer.h"
+#include <algorithm>
+#include <cstring>
 
 const int32_t DEFAULT_BUFFER_SIZE = 16 * 1024;
 
@@ -37,7 +39,7 @@ RC RingBuffer::read(char *buf, int32_t size, int32_t &read_size)
     int32_t     tmp_size = 0;
     rc                   = buffer(tmp_buf, tmp_size);
     if (OB_SUCC(rc)) {
-      int32_t copy_size = min(size - read_size, tmp_size);
+      int32_t copy_size = std::min(size - read_size, tmp_size);
       memcpy(buf + read_size, tmp_buf, copy_size);
       read_size += copy_size;
 
@@ -95,7 +97,7 @@ RC RingBuffer::write(const char *data, int32_t size, int32_t &write_size)
     const int32_t read_pos     = this->read_pos();
     const int32_t tmp_buf_size = (read_pos <= write_pos_) ? (capacity() - write_pos_) : (read_pos - write_pos_);
 
-    const int32_t copy_size = min(size - write_size, tmp_buf_size);
+    const int32_t copy_size = std::min(size - write_size, tmp_buf_size);
     memcpy(buffer_.data() + write_pos_, data + write_size, copy_size);
     write_size += copy_size;
     write_pos_ = (write_pos_ + copy_size) % capacity();

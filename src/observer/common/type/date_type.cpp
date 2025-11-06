@@ -10,8 +10,12 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/lang/comparator.h"
 #include "common/log/log.h"
+#include <sstream>
 #include "common/type/date_type.h"
 #include "common/value.h"
+#include "common/lang/sstream.h"
+
+using std::stringstream;
 
 int DateType::compare(const Value &left, const Value &right) const
 {

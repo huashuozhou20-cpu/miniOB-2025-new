@@ -15,6 +15,13 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/string.h"
 #include "common/rc.h"
 #include "common/type/attr_type.h"
+#include <string>
+#include <vector>
+#include <memory>
+
+using std::string;
+using std::vector;
+using std::unique_ptr;
 
 class Value;
 
@@ -123,5 +130,5 @@ public:
 protected:
   AttrType attr_type_;
 
-  static array<unique_ptr<DataType>, static_cast<int>(AttrType::MAXTYPE)> type_instances_;
+  static std::array<std::unique_ptr<DataType>, static_cast<int>(AttrType::MAXTYPE)> type_instances_;
 };

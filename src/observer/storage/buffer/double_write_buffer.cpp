@@ -15,6 +15,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <mutex>
 #include <algorithm>
+#include <vector>
+#include <utility>
 
 #include "storage/buffer/double_write_buffer.h"
 #include "storage/buffer/disk_buffer_pool.h"
@@ -195,9 +197,9 @@ RC DiskDoubleWriteBuffer::read_page(DiskBufferPool *bp, PageNum page_num, Page &
 
 RC DiskDoubleWriteBuffer::clear_pages(DiskBufferPool *buffer_pool)
 {
-  vector<DoubleWritePage *> spec_pages;
+  std::vector<DoubleWritePage *> spec_pages;
   
-  auto remove_pred = [&spec_pages, buffer_pool](const pair<DoubleWritePageKey, DoubleWritePage *> &pair) {
+  auto remove_pred = [&spec_pages, buffer_pool](const std::pair<DoubleWritePageKey, DoubleWritePage *> &pair) {
     DoubleWritePage *dbl_page = pair.second;
     if (buffer_pool->id() == dbl_page->key.buffer_pool_id) {
       spec_pages.push_back(dbl_page);
@@ -207,14 +209,21 @@ RC DiskDoubleWriteBuffer::clear_pages(DiskBufferPool *buffer_pool)
   };
 
   lock_.lock();
-  erase_if(dblwr_pages_, remove_pred);
+  // Use manual erase loop instead of erase_if for C++17 compatibility
+  for (auto it = dblwr_pages_.begin(); it != dblwr_pages_.end();) {
+    if (remove_pred(*it)) {
+      it = dblwr_pages_.erase(it);
+    } else {
+      ++it;
+    }
+  }
   lock_.unlock();
 
   LOG_INFO("clear pages in double write buffer. file name=%s, page count=%d",
            buffer_pool->filename(), spec_pages.size());
 
   // 页面从小到大排序，防止出现小页面还没有写入，而页面编号更大的seek失败的情况
-  sort(spec_pages.begin(), spec_pages.end(), [](DoubleWritePage *a, DoubleWritePage *b) {
+  std::sort(spec_pages.begin(), spec_pages.end(), [](DoubleWritePage *a, DoubleWritePage *b) {
     return a->key.page_num < b->key.page_num;
   });
 
@@ -230,7 +239,7 @@ RC DiskDoubleWriteBuffer::clear_pages(DiskBufferPool *buffer_pool)
     write_page_internal(dbl_page);
   }
 
-  for_each(spec_pages.begin(), spec_pages.end(), [](DoubleWritePage *dbl_page) { delete dbl_page; });
+  std::for_each(spec_pages.begin(), spec_pages.end(), [](DoubleWritePage *dbl_page) { delete dbl_page; });
 
   return RC::SUCCESS;
 }
@@ -267,7 +276,7 @@ RC DiskDoubleWriteBuffer::load_pages()
       return RC::IOERR_SEEK;
     }
 
-    auto dblwr_page = make_unique<DoubleWritePage>();
+    auto dblwr_page = std::make_unique<DoubleWritePage>();
     Page &page     = dblwr_page->page;
     page.check_sum = (CheckSum)-1;
 
@@ -281,7 +290,7 @@ RC DiskDoubleWriteBuffer::load_pages()
     const CheckSum check_sum = crc32(page.data, BP_PAGE_DATA_SIZE);
     if (check_sum == page.check_sum) {
       DoubleWritePageKey key = dblwr_page->key;
-      dblwr_pages_.insert(pair<DoubleWritePageKey, DoubleWritePage *>(key, dblwr_page.release()));
+      dblwr_pages_.insert(std::pair<DoubleWritePageKey, DoubleWritePage *>(key, dblwr_page.release()));
     } else {
       LOG_TRACE("got a page with an invalid checksum. on disk:%d, in memory:%d", page.check_sum, check_sum);
     }

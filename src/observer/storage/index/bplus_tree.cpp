@@ -14,6 +14,9 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <span>
+#include <algorithm>
+#include <vector>
+#include <memory>
 
 #include "storage/index/bplus_tree.h"
 #include "common/lang/lower_bound.h"
@@ -23,6 +26,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/buffer/disk_buffer_pool.h"
 
 using namespace common;
+using std::vector;
+using std::make_unique;
 
 /**
  * @brief B+树的第一个页面存放的位置
@@ -233,11 +238,11 @@ int LeafIndexNodeHandler::lookup(const KeyComparator &comparator, const char *ke
 
 RC LeafIndexNodeHandler::insert(int index, const char *key, const char *value)
 {
-  vector<char> item(key_size() + value_size());
+  std::vector<char> item(key_size() + value_size());
   memcpy(item.data(), key, key_size());
   memcpy(item.data() + key_size(), value, value_size());
 
-  RC rc = mtr_.logger().node_insert_items(*this, index, item, 1);
+  RC rc = mtr_.logger().node_insert_items(*this, index, span<const char>(item.data(), item.size()), 1);
   if (OB_FAIL(rc)) {
     LOG_WARN("failed to log insert item. rc=%s", strrc(rc));
     return rc;
@@ -470,7 +475,7 @@ RC InternalIndexNodeHandler::insert(const char *key, PageNum page_num, const Key
 {
   int insert_position = -1;
   lookup(comparator, key, nullptr, &insert_position);
-  vector<char> item(key_size() + sizeof(PageNum));
+  std::vector<char> item(key_size() + sizeof(PageNum));
   memcpy(item.data(), key, key_size());
   memcpy(item.data() + key_size(), &page_num, sizeof(PageNum));
   RC rc = mtr_.logger().node_insert_items(*this, insert_position, span<const char>(item.data(), item.size()), 1);
@@ -850,12 +855,8 @@ RC BplusTreeHandler::create(LogHandler &log_handler, BufferPoolManager &bpm, boo
   header_dirty_ = false;
   bp->unpin_page(header_frame);
 
-  mem_pool_item_ = make_unique<common::MemPoolItem>(file_name);
-  if (mem_pool_item_->init(file_header->key_length) < 0) {
-    LOG_WARN("Failed to init memory pool for index %s", file_name);
-    close();
-    return RC::NOMEM;
-  }
+  mem_pool_item_ = std::make_unique<common::MemPoolItem>(file_name);
+  // MemPoolItem doesn't need initialization
 
   key_comparator_.init(unique, 1, 0, file_header->attr_type, file_header->attr_length);
   key_printer_.init(1, file_header->attr_type, file_header->attr_length);
@@ -932,12 +933,8 @@ RC BplusTreeHandler::create(LogHandler &log_handler, BufferPoolManager &bpm, con
   header_dirty_ = false;
   // bp->unpin_page(header_frame);
 
-  mem_pool_item_ = make_unique<common::MemPoolItem>(file_name);
-  if (mem_pool_item_->init(file_header->key_length) < 0) {
-    LOG_WARN("Failed to init memory pool for index");
-    close();
-    return RC::NOMEM;
-  }
+  mem_pool_item_ = std::make_unique<common::MemPoolItem>(file_name);
+  // MemPoolItem doesn't need initialization
 
   key_comparator_.init(file_header->unique,
       file_header->attr_num,
@@ -1005,12 +1002,8 @@ RC BplusTreeHandler::open(LogHandler &log_handler, DiskBufferPool &buffer_pool)
   disk_buffer_pool_ = &buffer_pool;
   log_handler_      = &log_handler;
 
-  mem_pool_item_ = make_unique<common::MemPoolItem>("b+tree");
-  if (mem_pool_item_->init(file_header_.key_length) < 0) {
-    LOG_WARN("Failed to init memory pool for index");
-    close();
-    return RC::NOMEM;
-  }
+  mem_pool_item_ = std::make_unique<common::MemPoolItem>("b+tree");
+  // MemPoolItem doesn't need initialization
 
   // close old page_handle
   buffer_pool.unpin_page(frame);
@@ -1568,9 +1561,9 @@ RC BplusTreeHandler::create_new_tree(BplusTreeMiniTransaction &mtr, const char *
 MemPoolItem::item_unique_ptr BplusTreeHandler::make_key(const char *user_key, const RID &rid)
 {
   MemPoolItem::item_unique_ptr key = mem_pool_item_->alloc_unique_ptr();
-  if (key == nullptr) {
+  if (!key) {
     LOG_WARN("Failed to alloc memory for key.");
-    return nullptr;
+    return MemPoolItem::item_unique_ptr();
   }
   // 先把bitmap复制进去，然后复制索引列
   int offset = file_header_.attr_length[0];
@@ -1592,7 +1585,7 @@ RC BplusTreeHandler::insert_entry(const char *user_key, const RID *rid)
   }
 
   MemPoolItem::item_unique_ptr pkey = make_key(user_key, *rid);
-  if (pkey == nullptr) {
+  if (!pkey) {
     LOG_WARN("Failed to alloc memory for key.");
     return RC::NOMEM;
   }
@@ -1890,7 +1883,7 @@ RC BplusTreeHandler::delete_entry_internal(BplusTreeMiniTransaction &mtr, Frame 
 RC BplusTreeHandler::delete_entry(const char *user_key, const RID *rid)
 {
   MemPoolItem::item_unique_ptr pkey = mem_pool_item_->alloc_unique_ptr();
-  if (nullptr == pkey) {
+  if (!pkey) {
     LOG_WARN("Failed to alloc memory for key. size=%d", file_header_.key_length);
     return RC::NOMEM;
   }
@@ -2035,7 +2028,7 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
 
   // 没有指定右边界范围，那么就返回右边界最大值
   if (nullptr == right_user_key) {
-    right_key_ = nullptr;
+    right_key_ = MemPoolItem::item_unique_ptr();
   } else {
 
     char *fixed_right_key          = const_cast<char *>(right_user_key);
@@ -2079,7 +2072,7 @@ void BplusTreeScanner::fetch_item(RID &rid)
 
 bool BplusTreeScanner::touch_end()
 {
-  if (right_key_ == nullptr) {
+  if (!right_key_) {
     return false;
   }
 

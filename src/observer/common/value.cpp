@@ -14,11 +14,19 @@ See the Mulan PSL v2 for more details. */
 #include "common/value.h"
 
 #include "common/lang/comparator.h"
-#include "common/lang/exception.h"
 #include "common/lang/sstream.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
 #include "sql/expr/expression.h"
+#include <sstream>
+#include <exception>
+#include <cmath>
+
+using std::stringstream;
+using std::exception;
+
+#undef EPSILON
+static constexpr float EPSILON = 1e-6f;
 
 Value::Value(int val) { set_int(val); }
 

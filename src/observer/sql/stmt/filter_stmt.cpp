@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/table/view.h"
 
 RC FilterStmt::create(Db *db, BaseTable *default_table, tables_t& table_map, Conditions& conditions, 
-    FilterStmt *&stmt, vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    FilterStmt *&stmt, std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
     int fa)
 {
   RC rc = RC::SUCCESS;
@@ -32,7 +32,7 @@ RC FilterStmt::create(Db *db, BaseTable *default_table, tables_t& table_map, Con
   size_t min_depend = UINT32_MAX;
 
   auto size = depends.size() - 1;
-  vector<unique_ptr<Expression>> bound_expressions;
+  std::vector<std::unique_ptr<Expression>> bound_expressions;
 
   auto bind_expression = [&](unique_ptr<Expression> &expr){
     if (nullptr == expr) {

@@ -16,6 +16,10 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/serializer.h"
 
 using namespace common;
+using std::vector;
+using std::make_unique;
+using std::string;
+using std::stringstream;
 
 namespace bplus_tree {
 
@@ -211,7 +215,7 @@ RC InitHeaderPageLogEntryHandler::deserialize(Frame *frame, Deserializer &buffer
     return RC::INTERNAL;
   }
 
-  handler = make_unique<InitHeaderPageLogEntryHandler>(frame, header);
+  handler = std::make_unique<InitHeaderPageLogEntryHandler>(frame, header);
   return RC::SUCCESS;
 }
 
@@ -256,7 +260,7 @@ RC SetParentPageLogEntryHandler::deserialize(Frame *frame, Deserializer &buffer,
     return RC::INTERNAL;
   }
 
-  handler = make_unique<SetParentPageLogEntryHandler>(frame, parent_page_num, -1 /*old_parent_page_num*/);
+  handler = std::make_unique<SetParentPageLogEntryHandler>(frame, parent_page_num, -1 /*old_parent_page_num*/);
   return RC::SUCCESS;
 }
 
@@ -314,12 +318,12 @@ RC NormalOperationLogEntryHandler::deserialize(
     return RC::INTERNAL;
   }
 
-  vector<char> items(item_bytes);
+  std::vector<char> items(item_bytes);
   if ((ret = buffer.read(items)) < 0) {
     return RC::INTERNAL;
   }
 
-  handler = make_unique<NormalOperationLogEntryHandler>(frame, operation.type(), index, items, item_num);
+  handler = std::make_unique<NormalOperationLogEntryHandler>(frame, operation.type(), index, items, item_num);
   return RC::SUCCESS;
 }
 
@@ -369,7 +373,7 @@ RC LeafInitEmptyLogEntryHandler::redo(BplusTreeMiniTransaction &mtr, BplusTreeHa
 
 RC LeafInitEmptyLogEntryHandler::deserialize(Frame *frame, Deserializer &buffer, unique_ptr<LogEntryHandler> &handler)
 {
-  handler = make_unique<LeafInitEmptyLogEntryHandler>(frame);
+  handler = std::make_unique<LeafInitEmptyLogEntryHandler>(frame);
   return RC::SUCCESS;
 }
 
@@ -402,7 +406,7 @@ RC LeafSetNextPageLogEntryHandler::deserialize(Frame *frame, Deserializer &buffe
     return RC::INTERNAL;
   }
 
-  handler = make_unique<LeafSetNextPageLogEntryHandler>(frame, page_num, -1 /*old_page_num*/);
+  handler = std::make_unique<LeafSetNextPageLogEntryHandler>(frame, page_num, -1 /*old_page_num*/);
   return RC::SUCCESS;
 }
 
@@ -439,7 +443,7 @@ RC InternalInitEmptyLogEntryHandler::redo(BplusTreeMiniTransaction &mtr, BplusTr
 RC InternalInitEmptyLogEntryHandler::deserialize(
     Frame *frame, Deserializer &buffer, unique_ptr<LogEntryHandler> &handler)
 {
-  handler = make_unique<InternalInitEmptyLogEntryHandler>(frame);
+  handler = std::make_unique<InternalInitEmptyLogEntryHandler>(frame);
   return RC::SUCCESS;
 }
 
@@ -482,12 +486,12 @@ RC InternalCreateNewRootLogEntryHandler::deserialize(
     return RC::INTERNAL;
   }
 
-  vector<char> key(key_size);
+  std::vector<char> key(key_size);
   if ((ret = buffer.read(key)) < 0) {
     return RC::INTERNAL;
   }
 
-  handler = make_unique<InternalCreateNewRootLogEntryHandler>(frame, first_page_num, key, page_num);
+  handler = std::make_unique<InternalCreateNewRootLogEntryHandler>(frame, first_page_num, key, page_num);
   return RC::SUCCESS;
 }
 
@@ -534,13 +538,13 @@ RC InternalUpdateKeyLogEntryHandler::deserialize(
     return RC::INTERNAL;
   }
 
-  vector<char> key(key_size);
+  std::vector<char> key(key_size);
   if ((ret = buffer.read(key)) < 0) {
     return RC::INTERNAL;
   }
 
-  vector<char> old_key(0);
-  handler = make_unique<InternalUpdateKeyLogEntryHandler>(frame, index, key, old_key);
+  std::vector<char> old_key(0);
+  handler = std::make_unique<InternalUpdateKeyLogEntryHandler>(frame, index, key, old_key);
   return RC::SUCCESS;
 }
 
@@ -591,7 +595,7 @@ RC UpdateRootPageLogEntryHandler::deserialize(Frame *frame, Deserializer &buffer
     return RC::INTERNAL;
   }
 
-  handler = make_unique<UpdateRootPageLogEntryHandler>(frame, root_page_num, -1 /*old_page_num*/);
+  handler = std::make_unique<UpdateRootPageLogEntryHandler>(frame, root_page_num, -1 /*old_page_num*/);
   return RC::SUCCESS;
 }
 

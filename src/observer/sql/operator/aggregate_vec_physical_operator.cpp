@@ -9,6 +9,7 @@ MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
 #include <algorithm>
+#include <vector>
 #include "common/log/log.h"
 #include "sql/operator/aggregate_vec_physical_operator.h"
 #include "sql/expr/aggregate_state.h"
@@ -18,12 +19,12 @@ See the Mulan PSL v2 for more details. */
 using namespace std;
 using namespace common;
 
-AggregateVecPhysicalOperator::AggregateVecPhysicalOperator(vector<Expression *> &&expressions)
+AggregateVecPhysicalOperator::AggregateVecPhysicalOperator(std::vector<Expression *> &&expressions)
 {
   aggregate_expressions_ = std::move(expressions);
   value_expressions_.reserve(aggregate_expressions_.size());
 
-  ranges::for_each(aggregate_expressions_, [this](Expression *expr) {
+  std::for_each(aggregate_expressions_.begin(), aggregate_expressions_.end(), [this](Expression *expr) {
     auto *      aggregate_expr = static_cast<AggregateExpr *>(expr);
     Expression *child_expr     = aggregate_expr->child().get();
     ASSERT(child_expr != nullptr, "aggregation expression must have a child expression");

@@ -15,6 +15,9 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <stddef.h>
+#include <string>
+#include <sstream>
+#include <limits>
 
 #include "common/log/log.h"
 #include "common/rc.h"
@@ -24,6 +27,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/limits.h"
 #include "storage/field/field_meta.h"
 #include "storage/index/index_meta.h"
+
+#include <functional>
+
+using std::string;
+using std::stringstream;
+using std::numeric_limits;
 
 class Field;
 
@@ -95,6 +104,15 @@ struct RIDHash
     return std::hash<PageNum>()(rid.page_num) ^ std::hash<SlotNum>()(rid.slot_num);
   }
 };
+
+namespace std {
+template<>
+struct hash<RID> {
+  size_t operator()(const RID &rid) const noexcept {
+    return std::hash<PageNum>()(rid.page_num) ^ (std::hash<SlotNum>()(rid.slot_num) << 1);
+  }
+};
+}
 
 /**
  * @brief 表示一个记录

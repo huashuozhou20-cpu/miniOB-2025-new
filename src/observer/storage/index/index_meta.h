@@ -14,8 +14,16 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string>
+#include <vector>
+#include <iostream>
+
 #include "common/rc.h"
 #include "common/lang/string.h"
+
+using std::string;
+using std::ostream;
+using std::vector;
 
 class TableMeta;
 class FieldMeta;

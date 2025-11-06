@@ -119,7 +119,7 @@ void NetServer::accept(int fd)
 
   Communicator *communicator = communicator_factory_.create(server_param_.protocol);
 
-  RC rc = communicator->init(client_fd, make_unique<Session>(Session::default_session()), addr_str);
+  RC rc = communicator->init(client_fd, std::make_unique<Session>(Session::default_session()), addr_str);
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to init communicator. rc=%s", strrc(rc));
     delete communicator;
@@ -319,7 +319,7 @@ int CliServer::serve()
 {
   CliCommunicator communicator;
 
-  RC rc = communicator.init(STDIN_FILENO, make_unique<Session>(Session::default_session()), "stdin");
+  RC rc = communicator.init(STDIN_FILENO, std::make_unique<Session>(Session::default_session()), "stdin");
   if (OB_FAIL(rc)) {
     LOG_WARN("failed to init cli communicator. rc=%s", strrc(rc));
     return -1;

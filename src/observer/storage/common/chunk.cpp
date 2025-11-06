@@ -9,6 +9,9 @@ MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
 #include "storage/common/chunk.h"
+#include <memory>
+
+using std::make_unique;
 
 void Chunk::add_column(unique_ptr<Column> col, int col_id)
 {
@@ -22,7 +25,7 @@ RC Chunk::reference(Chunk &chunk)
   this->columns_.resize(chunk.column_num());
   for (size_t i = 0; i < columns_.size(); ++i) {
     if (nullptr == columns_[i]) {
-      columns_[i] = make_unique<Column>();
+      columns_[i] = std::make_unique<Column>();
     }
     columns_[i]->reference(chunk.column(i));
     column_ids_.push_back(chunk.column_ids(i));

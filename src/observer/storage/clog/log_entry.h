@@ -17,9 +17,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/types.h"
 #include "storage/clog/log_module.h"
-#include "common/lang/vector.h"
 #include "common/lang/string.h"
 #include "common/lang/memory.h"
+#include <vector>
+#include <string>
+
+using namespace common;
 
 /**
  * @brief 描述一条日志头
@@ -67,8 +70,8 @@ public:
   static int32_t max_payload_size() { return max_size() - LogHeader::SIZE; }
 
 public:
-  RC init(LSN lsn, LogModule::Id module_id, vector<char> &&data);
-  RC init(LSN lsn, LogModule module, vector<char> &&data);
+  RC init(LSN lsn, LogModule::Id module_id, std::vector<char> &&data);
+  RC init(LSN lsn, LogModule module, std::vector<char> &&data);
 
   const LogHeader &header() const { return header_; }
   const char      *data() const { return data_.data(); }
@@ -84,6 +87,6 @@ public:
   string to_string() const;
 
 private:
-  LogHeader    header_;  /// 日志头
-  vector<char> data_;    /// 日志数据
+  LogHeader       header_;  /// 日志头
+  std::vector<char> data_;    /// 日志数据
 };

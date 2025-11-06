@@ -8,6 +8,8 @@ EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
+#include <memory>
+#include <array>
 #include "common/type/char_type.h"
 #include "common/type/float_type.h"
 #include "common/type/integer_type.h"
@@ -15,7 +17,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/type/date_type.h"
 #include "common/type/vector_type.h"
 
-array<unique_ptr<DataType>, static_cast<int>(AttrType::MAXTYPE)> DataType::type_instances_ = {
+using std::make_unique;
+using std::array;
+using std::unique_ptr;
+
+std::array<std::unique_ptr<DataType>, static_cast<int>(AttrType::MAXTYPE)> DataType::type_instances_ = {
     make_unique<DataType>(AttrType::UNDEFINED),
     make_unique<CharType>(),
     make_unique<IntegerType>(),

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 20)
 
+
 project(minidb)
 
 MESSAGE(STATUS "This is Project source dir " ${PROJECT_SOURCE_DIR})
@@ -45,7 +46,8 @@ ENDIF(WIN32)
 
 # This is for clangd plugin for vscode
 # mute sign-compare error in lex/yacc
-SET(CMAKE_COMMON_FLAGS "${CMAKE_COMMON_FLAGS} -Wall -Werror -Wno-error=sign-compare")
+# mute maybe-uninitialized error in std::regex (GCC 13 false positive)
+SET(CMAKE_COMMON_FLAGS "${CMAKE_COMMON_FLAGS} -Wall -Werror -Wno-error=sign-compare -Wno-error=maybe-uninitialized")
 IF (ENABLE_NOPIE)
     SET(CMAKE_COMMON_FLAGS "${CMAKE_COMMON_FLAGS} -no-pie")
     ADD_LINK_OPTIONS(-no-pie)

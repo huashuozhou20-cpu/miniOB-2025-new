@@ -19,7 +19,7 @@ using namespace std;
 using namespace common;
 
 HashGroupByPhysicalOperator::HashGroupByPhysicalOperator(
-    vector<unique_ptr<Expression>> &&group_by_exprs, vector<Expression *> &&expressions)
+    std::vector<std::unique_ptr<Expression>> &&group_by_exprs, std::vector<Expression *> &&expressions)
     : GroupByPhysicalOperator(std::move(expressions)), group_by_exprs_(std::move(group_by_exprs))
 {
 }

@@ -37,6 +37,21 @@ See the Mulan PSL v2 for more details. */
 #include "storage/buffer/page.h"
 #include "storage/buffer/buffer_pool_log.h"
 
+#include <unordered_map>
+#include <string>
+#include <set>
+#include <list>
+#include <memory>
+
+using std::string;
+using std::unordered_map;
+using std::set;
+using std::list;
+using std::unique_ptr;
+using common::LruCache;
+using std::mutex;
+using std::atomic;
+
 class BufferPoolManager;
 class DiskBufferPool;
 class DoubleWriteBuffer;
@@ -131,7 +146,7 @@ public:
    * @param purger 需要在释放frame之前，对页面做些什么操作。当前是刷新脏数据到磁盘
    * @return 返回本次清理了多少个页面
    */
-  int purge_frames(int count, function<RC(Frame *frame)> purger);
+  int purge_frames(int count, std::function<RC(Frame *frame)> purger);
 
   size_t frame_num() const { return frames_.count(); }
 

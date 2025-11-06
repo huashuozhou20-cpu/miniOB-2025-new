@@ -26,6 +26,9 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 using namespace bplus_tree;
+using std::vector;
+using std::unique_ptr;
+using std::string;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class BplusTreeLogger
@@ -189,7 +192,7 @@ RC BplusTreeLogger::__redo(LSN lsn, BplusTreeMiniTransaction &mtr, BplusTreeHand
   DEFER(need_log_ = true);
 
   RC rc = RC::SUCCESS;
-  vector<Frame *> frames;
+  std::vector<Frame *> frames;
   while (redo_buffer.remain() > 0) {
     unique_ptr<LogEntryHandler> entry;
 
@@ -232,7 +235,7 @@ RC BplusTreeLogger::__redo(LSN lsn, BplusTreeMiniTransaction &mtr, BplusTreeHand
   return RC::SUCCESS;
 }
 
-string BplusTreeLogger::log_entry_to_string(const LogEntry &entry)
+std::string BplusTreeLogger::log_entry_to_string(const LogEntry &entry)
 {
   stringstream ss;
   Deserializer buffer(entry.data(), entry.payload_size());

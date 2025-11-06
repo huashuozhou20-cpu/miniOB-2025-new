@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "session/session.h"
 #include "storage/trx/trx.h"
+#include "sql/expr/expression.h"
 
 SqlResult::SqlResult(Session *session) : session_(session) {}
 
@@ -90,12 +91,12 @@ void SqlResult::set_operator(std::unique_ptr<PhysicalOperator> oper)
   operator_->tuple_schema(tuple_schema_);
 }
 
-void SqlResult::set_depends(vector<vector<uint32_t>>&& depends)
+void SqlResult::set_depends(std::vector<std::vector<uint32_t>>&& depends)
 {
   analyzer_.depends_ = std::move(depends); 
 }
 
-void SqlResult::set_exprs(vector<SelectExpr*>&& select_exprs)
+void SqlResult::set_exprs(std::vector<SelectExpr*>&& select_exprs)
 {
   analyzer_.select_exprs_ = std::move(select_exprs); 
 }

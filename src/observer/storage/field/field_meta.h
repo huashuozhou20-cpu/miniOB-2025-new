@@ -14,9 +14,15 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string>
+#include <iostream>
+
 #include "common/rc.h"
 #include "common/lang/string.h"
 #include "sql/parser/parse_defs.h"
+
+using std::string;
+using std::ostream;
 
 namespace Json {
 class Value;

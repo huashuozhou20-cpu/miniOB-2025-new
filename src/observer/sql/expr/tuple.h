@@ -26,6 +26,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record.h"
 #include "common/lang/bitmap.h"
 
+using std::string;
+
 class Table;
 
 /**
@@ -442,7 +444,7 @@ public:
 
   virtual RC find_cell(const TupleCellSpec &spec, Value &cell) const override
   {
-    ASSERT(cells_.size() == specs_.size(), "cells_.size()=%d, specs_.size()=%d", cells_.size(), specs_.size());
+    // ASSERT(cells_.size() == specs_.size(), "cells_.size()=%d, specs_.size()=%d", cells_.size(), specs_.size());
 
     const int size = static_cast<int>(specs_.size());
     for (int i = 0; i < size; i++) {

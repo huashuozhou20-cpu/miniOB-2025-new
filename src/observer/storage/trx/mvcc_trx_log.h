@@ -17,9 +17,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/types.h"
 #include "common/lang/string.h"
-#include "common/lang/unordered_map.h"
 #include "storage/record/record.h"
 #include "storage/clog/log_replayer.h"
+#include <unordered_map>
+
+using namespace common;
+using std::unordered_map;
 
 class LogHandler;
 class Table;

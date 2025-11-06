@@ -18,6 +18,9 @@ See the Mulan PSL v2 for more details. */
 #include "common/types.h"
 #include "common/rc.h"
 #include "storage/clog/log_replayer.h"
+#include <string>
+
+using std::string;
 
 class DiskBufferPool;
 class BufferPoolManager;

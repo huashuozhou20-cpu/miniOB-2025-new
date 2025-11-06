@@ -18,6 +18,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/map.h"
 #include "common/lang/string.h"
 #include "common/lang/memory.h"
+#include <filesystem>
+#include <string>
+
+using std::string;
+
+namespace fs = std::filesystem;
 
 class Trx;
 class TrxKit;
@@ -91,9 +97,9 @@ public:
   RC sync();
 
 private:
-  filesystem::path  base_dir_;          ///< 存储引擎的根目录
-  filesystem::path  db_dir_;            ///< 数据库文件的根目录
+  fs::path  base_dir_;          ///< 存储引擎的根目录
+  fs::path  db_dir_;            ///< 数据库文件的根目录
   string            trx_kit_name_;      ///< 事务模型的名称
   string            log_handler_name_;  ///< 日志处理器的名称
-  map<string, Db *> opened_dbs_;        ///< 打开的数据库
+  std::map<string, Db *> opened_dbs_;        ///< 打开的数据库
 };

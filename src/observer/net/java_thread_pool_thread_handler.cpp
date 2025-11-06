@@ -19,7 +19,6 @@ See the Mulan PSL v2 for more details. */
 #include "net/communicator.h"
 #include "common/log/log.h"
 #include "common/thread/runnable.h"
-#include "common/queue/simple_queue.h"
 
 using namespace common;
 

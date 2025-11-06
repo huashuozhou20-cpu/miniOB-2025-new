@@ -253,20 +253,130 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
   
   // 创建表算子
   size_t table_idx = 0;
+  std::set<std::string> joined_tables; // 记录已加入的表（用于判断 JOIN 条件）
+  
   for (auto& [table, alias] : tables) {    
     unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, ReadWriteMode::READ_ONLY, alias));
     if (table_oper == nullptr) {
       table_oper = std::move(table_get_oper);
+      // 记录第一个表
+      joined_tables.insert(table->name());
+      if (!alias.empty()) {
+        joined_tables.insert(alias);
+      }
     } else {
       JoinLogicalOperator *join_oper = new JoinLogicalOperator;
       
       // 设置 JOIN 条件：提取涉及当前两个表的条件
-      if (table_idx == 1 && !join_conditions.empty()) {
-        // 对于第一个 JOIN，使用所有 JOIN 条件
-        if (join_conditions.size() == 1) {
-          join_oper->set_join_condition(std::move(join_conditions[0]));
+      // 当前 JOIN 涉及的表：已加入的表（joined_tables）和新表（table）
+      std::set<std::string> current_right_tables;
+      current_right_tables.insert(table->name());
+      if (!alias.empty()) {
+        current_right_tables.insert(alias);
+      }
+      
+      // 收集涉及当前 JOIN 两个表的条件
+      std::vector<unique_ptr<Expression>> current_join_conditions;
+      
+      for (auto it = join_conditions.begin(); it != join_conditions.end();) {
+        bool belongs_to_current_join = false;
+        
+        if ((*it)->type() == ExprType::COMPARISON) {
+          ComparisonExpr *cmp_expr = static_cast<ComparisonExpr*>((*it).get());
+          auto& left = cmp_expr->left();
+          auto& right = cmp_expr->right();
+          
+          // 提取左右表达式涉及的表名
+          std::set<std::string> left_tables;
+          std::set<std::string> right_tables;
+          
+          auto collect_tables = [&](Expression *e, std::set<std::string> &tbls) {
+            if (e->type() == ExprType::FIELD) {
+              FieldExpr *field_expr = static_cast<FieldExpr*>(e);
+              const BaseTable *tbl = field_expr->table();
+              if (tbl != nullptr) {
+                tbls.insert(tbl->name());
+                const std::string &field_alias = field_expr->table_alias();
+                if (!field_alias.empty()) {
+                  tbls.insert(field_alias);
+                }
+              }
+            } else {
+              // 递归检查子表达式
+              ExpressionIterator::iterate_child_expr(*e, [&](std::unique_ptr<Expression> &child) {
+                if (child->type() == ExprType::FIELD) {
+                  FieldExpr *field_expr = static_cast<FieldExpr*>(child.get());
+                  const BaseTable *tbl = field_expr->table();
+                  if (tbl != nullptr) {
+                    tbls.insert(tbl->name());
+                    const std::string &field_alias = field_expr->table_alias();
+                    if (!field_alias.empty()) {
+                      tbls.insert(field_alias);
+                    }
+                  }
+                }
+                return RC::SUCCESS;
+              });
+            }
+            return RC::SUCCESS;
+          };
+          
+          collect_tables(left.get(), left_tables);
+          collect_tables(right.get(), right_tables);
+          
+          // 检查条件是否涉及已加入的表和新表
+          bool left_in_joined = false;
+          bool right_in_joined = false;
+          bool left_in_current = false;
+          bool right_in_current = false;
+          
+          for (const auto &t : left_tables) {
+            if (joined_tables.find(t) != joined_tables.end()) {
+              left_in_joined = true;
+            }
+            if (current_right_tables.find(t) != current_right_tables.end()) {
+              left_in_current = true;
+            }
+          }
+          for (const auto &t : right_tables) {
+            if (joined_tables.find(t) != joined_tables.end()) {
+              right_in_joined = true;
+            }
+            if (current_right_tables.find(t) != current_right_tables.end()) {
+              right_in_current = true;
+            }
+          }
+          
+          // JOIN 条件：一边涉及已加入的表，另一边涉及新表
+          if ((left_in_joined && right_in_current) || (left_in_current && right_in_joined)) {
+            belongs_to_current_join = true;
+          } else if (!left_tables.empty() && !right_tables.empty()) {
+            // 如果条件涉及两个表，但都不是当前 JOIN 涉及的表，则跳过
+            // 这可能是后续 JOIN 的条件
+          }
+        } else if ((*it)->type() == ExprType::CONJUNCTION) {
+          // 处理 AND/OR 连接的表达式
+          // 对于复杂表达式，我们暂时不处理，因为难以判断是否属于当前 JOIN
+          // 这种情况下，我们假设它属于第一个 JOIN（保持向后兼容）
+          if (table_idx == 1) {
+            belongs_to_current_join = true;
+          }
+        }
+        
+        if (belongs_to_current_join) {
+          current_join_conditions.emplace_back(std::move(*it));
+          it = join_conditions.erase(it);
         } else {
-          unique_ptr<ConjunctionExpr> conjunction_expr(new ConjunctionExpr(ConjunctionExpr::Type::AND, join_conditions));
+          ++it;
+        }
+      }
+      
+      // 设置 JOIN 条件
+      if (!current_join_conditions.empty()) {
+        if (current_join_conditions.size() == 1) {
+          join_oper->set_join_condition(std::move(current_join_conditions[0]));
+        } else {
+          unique_ptr<ConjunctionExpr> conjunction_expr(new ConjunctionExpr(ConjunctionExpr::Type::AND, current_join_conditions));
           join_oper->set_join_condition(std::move(conjunction_expr));
         }
       }
@@ -274,6 +384,12 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
       join_oper->add_child(std::move(table_oper));
       join_oper->add_child(std::move(table_get_oper));
       table_oper = unique_ptr<LogicalOperator>(join_oper);
+      
+      // 更新已加入的表集合
+      joined_tables.insert(table->name());
+      if (!alias.empty()) {
+        joined_tables.insert(alias);
+      }
     }
     table_idx++;
   }
@@ -555,7 +671,7 @@ RC LogicalPlanGenerator::create_plan(UpdateStmt *update_stmt, unique_ptr<Logical
   }
 
   const std::vector<const FieldMeta *>& fields = update_stmt->fields();
-  vector<unique_ptr<Expression>>& values = update_stmt->values();
+  std::vector<unique_ptr<Expression>>& values = update_stmt->values();
 
   unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table, move(fields), move(values)));
 
@@ -615,10 +731,10 @@ RC LogicalPlanGenerator::create_plan(ExplainStmt *explain_stmt, unique_ptr<Logic
 
 RC LogicalPlanGenerator::create_group_by_plan(SelectStmt *select_stmt, unique_ptr<LogicalOperator> &logical_operator)
 {
-  vector<unique_ptr<Expression>> &group_by_expressions = select_stmt->group_by();
-  vector<unique_ptr<Expression>> &having_expressions = select_stmt->having_list();
-  vector<Expression *> aggregate_expressions;
-  vector<unique_ptr<Expression>> &query_expressions = select_stmt->query_expressions();
+  std::vector<unique_ptr<Expression>> &group_by_expressions = select_stmt->group_by();
+  std::vector<unique_ptr<Expression>> &having_expressions = select_stmt->having_list();
+  std::vector<Expression *> aggregate_expressions;
+  std::vector<unique_ptr<Expression>> &query_expressions = select_stmt->query_expressions();
   function<RC(std::unique_ptr<Expression>&)> collector = [&](unique_ptr<Expression> &expr) -> RC {
     RC rc = RC::SUCCESS;
     if(expr == nullptr)return rc;

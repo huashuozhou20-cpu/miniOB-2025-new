@@ -13,17 +13,27 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <poll.h>
+#include <pthread.h>
 
 #include "net/one_thread_per_connection_thread_handler.h"
 #include "common/log/log.h"
 #include "common/lang/thread.h"
 #include "common/lang/mutex.h"
-#include "common/lang/chrono.h"
-#include "common/thread/thread_util.h"
+#include <chrono>
+#include <thread>
 #include "net/communicator.h"
 #include "net/sql_task_handler.h"
 
 using namespace common;
+
+// Helper function to set thread name
+static int thread_set_name(const char *name) {
+#ifdef __linux__
+  return pthread_setname_np(pthread_self(), name);
+#else
+  return 0;  // Not supported on this platform
+#endif
+}
 
 class Worker
 {
@@ -54,7 +64,7 @@ public:
   RC join()
   {
     if (thread_) {
-      if (thread_->get_id() == this_thread::get_id()) {
+      if (thread_->get_id() == std::this_thread::get_id()) {
         thread_->detach(); // 如果当前线程join当前线程，就会卡死
       } else {
         thread_->join();
@@ -169,7 +179,7 @@ RC OneThreadPerConnectionThreadHandler::await_stop()
 {
   LOG_INFO("begin to await stop one thread per connection thread handler");
   while (!thread_map_.empty()) {
-    this_thread::sleep_for(chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
   LOG_INFO("end to await stop one thread per connection thread handler");
   return RC::SUCCESS;

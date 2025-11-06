@@ -14,8 +14,13 @@ See the Mulan PSL v2 for more details. */
 
 #include <queue>
 #include <random>
+#include <cmath>
 
 #include "storage/index/ivfflat_index.h"
+
+#ifndef VECTOR_EPSILON
+#define VECTOR_EPSILON 1e-6
+#endif
 
 using namespace std;
 

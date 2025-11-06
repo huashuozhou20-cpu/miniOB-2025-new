@@ -32,7 +32,7 @@ SelectStmt::~SelectStmt()
 }
 
 RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt, 
-  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
   tables_t& table_map, int fa)
 {
   if (nullptr == db) {
@@ -44,7 +44,7 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
   BinderContext binder_context;
 
   // collect tables in `from` statement
-  vector<pair<BaseTable *, string>>                tables;
+  std::vector<std::pair<BaseTable *, std::string>>                tables;
   auto size = depends.size();
  
   for (size_t i = 0; i < select_sql.relations.size(); i++) {
@@ -77,10 +77,10 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
   }
 
   // collect query fields in `select` statement
-  vector<unique_ptr<Expression>> bound_expressions;
+  std::vector<std::unique_ptr<Expression>> bound_expressions;
   ExpressionBinder expression_binder(binder_context);
   
-  for (unique_ptr<Expression> &expression : select_sql.expressions) {
+  for (std::unique_ptr<Expression> &expression : select_sql.expressions) {
     if(expression->type() == ExprType::STAR){
       StarExpr* star_expr = static_cast<StarExpr*>(expression.get());
       if(!star_expr->alias().empty())return RC::INVALID_ARGUMENT;
@@ -92,8 +92,8 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
     }
   }
 
-  vector<unique_ptr<Expression>> group_by_expressions;
-  for (unique_ptr<Expression> &expression : select_sql.group_by) {
+  std::vector<std::unique_ptr<Expression>> group_by_expressions;
+  for (std::unique_ptr<Expression> &expression : select_sql.group_by) {
     RC rc = expression_binder.bind_expression(expression, group_by_expressions);
     if (OB_FAIL(rc)) {
       LOG_INFO("bind expression failed. rc=%s", strrc(rc));
@@ -106,7 +106,7 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
     default_table = tables[0].first;
   }
 
-  depends.emplace_back(vector<uint32_t>());
+  depends.emplace_back(std::vector<uint32_t>());
   if(fa >= 0){
     depends.at(fa).emplace_back(size);
   }
@@ -123,8 +123,8 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
     return rc;
   }
 
-  vector<unique_ptr<Expression>> having_list_expressions;
-  for (unique_ptr<Expression> &expression : select_sql.having_list.having_list) {
+  std::vector<std::unique_ptr<Expression>> having_list_expressions;
+  for (std::unique_ptr<Expression> &expression : select_sql.having_list.having_list) {
     RC rc = expression_binder.bind_expression(expression, having_list_expressions);
     if (OB_FAIL(rc)) {
       LOG_INFO("bind expression failed. rc=%s", strrc(rc));
@@ -137,13 +137,13 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
     if(table_map.count(table_name) && table_map.at(table_name).second == size){
       table_map.erase(table_name);
     }
-    string& table_alias = select_sql.alias[i];
+    std::string& table_alias = select_sql.alias[i];
     if(!table_alias.empty())
       table_map.erase(table_alias);
   }
 
-  vector<unique_ptr<Expression>> order_by_expressions;
-  vector<bool> is_asc;
+  std::vector<std::unique_ptr<Expression>> order_by_expressions;
+  std::vector<bool> is_asc;
 
   for (auto& [expr, asc] : select_sql.order_by) {
     RC rc = expression_binder.bind_expression(expr, order_by_expressions);
@@ -151,7 +151,7 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
       LOG_INFO("bind expression failed. rc=%s", strrc(rc));
       return rc;
     }
-    is_asc.emplace_back(asc);
+    is_asc.push_back(asc);
   }
 
   // everything alright

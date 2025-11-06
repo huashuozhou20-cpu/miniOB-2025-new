@@ -14,10 +14,13 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <memory>
+
 #include "common/rc.h"
-#include "common/lang/vector.h"
 #include "common/lang/string.h"
-#include "common/lang/unordered_map.h"
 #include "common/lang/memory.h"
 #include "common/lang/span.h"
 #include "sql/parser/parse_defs.h"
@@ -25,6 +28,11 @@ See the Mulan PSL v2 for more details. */
 #include "storage/buffer/disk_buffer_pool.h"
 #include "storage/clog/disk_log_handler.h"
 #include "storage/buffer/double_write_buffer.h"
+
+using std::string;
+using std::unordered_map;
+using std::vector;
+using std::unique_ptr;
 
 class LogHandler;
 class BufferPoolManager;
@@ -100,7 +108,7 @@ public:
   const char *name() const;
 
   /// @brief 列出所有的表
-  void all_tables(vector<string> &table_names) const;
+  void all_tables(std::vector<string> &table_names) const;
 
   /**
    * @brief 将所有内存中的数据，刷新到磁盘中。

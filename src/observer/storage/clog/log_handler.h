@@ -14,13 +14,17 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include "common/lang/span.h"
+#include "storage/clog/log_module.h"
+#include <vector>
 #include "common/rc.h"
 #include "common/types.h"
 #include "common/lang/functional.h"
-#include "common/lang/memory.h"
-#include "common/lang/span.h"
-#include "common/lang/vector.h"
-#include "storage/clog/log_module.h"
+
+using std::vector;
+using std::span;
+using std::function;
+using LSN = int64_t;  // LSN is defined in src/observer/common/types.h, not in common namespace
 
 /**
  * @defgroup CLog commit log/redo log
@@ -86,7 +90,7 @@ public:
    * @note 子类不应该重新实现这个函数
    */
   virtual RC append(LSN &lsn, LogModule::Id module, span<const char> data);
-  virtual RC append(LSN &lsn, LogModule::Id module, vector<char> &&data);
+  virtual RC append(LSN &lsn, LogModule::Id module, std::vector<char> &&data);
 
   /**
    * @brief 等待某个LSN的日志被刷新到磁盘
@@ -103,5 +107,5 @@ private:
    * @brief 写入一条日志
    * @details 子类应该重现实现这个函数
    */
-  virtual RC _append(LSN &lsn, LogModule module, vector<char> &&data) = 0;
+  virtual RC _append(LSN &lsn, LogModule module, std::vector<char> &&data) = 0;
 };

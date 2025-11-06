@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <algorithm>
 #include <utility>
 
@@ -809,17 +810,23 @@ value:
     }
     |SSS {
       int len = strlen($1)-2;
-      char *tmp = common::substr($1,1,len);
+      char *tmp = (char*)malloc(len+1);
+      memcpy(tmp, $1+1, len);
+      tmp[len] = '\0';
       $$ = new Value(tmp, len);
       free(tmp);
       free($1);
+      @$ = @1;
     }
     |DATE_VALUE {
       int len = strlen($1)-2;
-      char *tmp = common::substr($1,1,len);
+      char *tmp = (char*)malloc(len+1);
+      memcpy(tmp, $1+1, len);
+      tmp[len] = '\0';
       $$ = new Value((Date*)tmp, len);
       free(tmp);
       free($1);
+      @$ = @1;
     }
     |NULL_T {
       $$ = new Value((void*)nullptr);
@@ -874,7 +881,7 @@ key_values:
     ID EQ assign_value
     {
       $$ = new Key_values;
-      $$->relation_list.emplace_back(move(string($1)));
+      $$->relation_list.emplace_back(std::string($1));
       free($1);
       $$->value_list.emplace_back(unique_ptr<Expression>($3));
     }
@@ -886,7 +893,7 @@ key_values:
         $$ = new Key_values;
       }
 
-      $$->relation_list.emplace_back(move(string($1)));
+      $$->relation_list.emplace_back(std::string($1));
       free($1);
       $$->value_list.emplace_back(unique_ptr<Expression>($3));
     }
@@ -1186,13 +1193,13 @@ rel_list:
         $$ = new Joins;
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), string($1));
+      $$->relation_list.emplace($$->relation_list.begin(), std::string($1));
       free($1);
       if($2 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), string($2));
+        $$->alias_list.emplace($$->alias_list.begin(), std::string($2));
         free($2);
       } else {
-        $$->alias_list.emplace($$->alias_list.begin(), string());
+        $$->alias_list.emplace($$->alias_list.begin(), std::string());
       }
     }
     | relation alias join_list COMMA rel_list{
@@ -1213,13 +1220,13 @@ rel_list:
           $3->alias_list.begin(), $3->alias_list.end());
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), string($1));
+      $$->relation_list.emplace($$->relation_list.begin(), std::string($1));
       free($1);
       if($2 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), string($2));
+        $$->alias_list.emplace($$->alias_list.begin(), std::string($2));
         free($2);
       } else {
-        $$->alias_list.emplace($$->alias_list.begin(), string());
+        $$->alias_list.emplace($$->alias_list.begin(), std::string());
       }
 
       delete $3;
@@ -1239,13 +1246,13 @@ join_list:
         $$ = new Joins;
       }
 
-      $$->relation_list.emplace($$->relation_list.begin(), string($3));
+      $$->relation_list.emplace($$->relation_list.begin(), std::string($3));
       free($3);
       if($4 != nullptr){
-        $$->alias_list.emplace($$->alias_list.begin(), string($4));
+        $$->alias_list.emplace($$->alias_list.begin(), std::string($4));
         free($4);
       } else {
-        $$->alias_list.emplace($$->alias_list.begin(), string());
+        $$->alias_list.emplace($$->alias_list.begin(), std::string());
       }
 
       if($5 != nullptr){
@@ -1463,13 +1470,17 @@ order_by_unit:
 load_data_stmt:
     LOAD DATA INFILE SSS INTO TABLE ID
     {
-      char *tmp_file_name = common::substr($4, 1, strlen($4) - 2);
+      int len = strlen($4) - 2;
+      char *tmp_file_name = (char*)malloc(len+1);
+      memcpy(tmp_file_name, $4+1, len);
+      tmp_file_name[len] = '\0';
 
       $$ = new ParsedSqlNode(SCF_LOAD_DATA);
       $$->load_data.relation_name = $7;
       $$->load_data.file_name = tmp_file_name;
       free($7);
       free(tmp_file_name);
+      @$ = @1;
     }
     ;
 

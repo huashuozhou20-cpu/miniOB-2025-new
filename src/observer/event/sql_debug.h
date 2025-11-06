@@ -14,8 +14,14 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string>
+#include <list>
+
 #include "common/lang/string.h"
 #include "common/lang/list.h"
+
+using std::string;
+using std::list;
 
 /**
  * @brief SQL调试信息
@@ -33,10 +39,10 @@ public:
   void add_debug_info(const string &debug_info);
   void clear_debug_info();
 
-  const list<string> &get_debug_infos() const;
+  const std::list<string> &get_debug_infos() const;
 
 private:
-  list<string> debug_infos_;
+  std::list<string> debug_infos_;
 };
 
 /**

@@ -13,8 +13,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/log/log.h"
 #include "common/lang/memory.h"
-#include "common/lang/vector.h"
 #include "storage/common/column.h"
+#include <vector>
+#include <memory>
+
+using std::unique_ptr;
 
 /**
  * @brief A Chunk represents a set of columns.
@@ -78,8 +81,8 @@ public:
   void reset();
 
 private:
-  vector<unique_ptr<Column>> columns_;
+  std::vector<unique_ptr<Column>> columns_;
   // TODO: remove it and support multi-tables,
   // `columnd_ids` store the ids of child operator that need to be output
-  vector<int> column_ids_;
+  std::vector<int> column_ids_;
 };

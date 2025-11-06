@@ -36,10 +36,10 @@ DefaultHandler::~DefaultHandler() noexcept { destroy(); }
 RC DefaultHandler::init(const char *base_dir, const char *trx_kit_name, const char *log_handler_name)
 {
   // 检查目录是否存在，或者创建
-  filesystem::path db_dir(base_dir);
+  std::filesystem::path db_dir(base_dir);
   db_dir /= "db";
   error_code ec;
-  if (!filesystem::is_directory(db_dir) && !filesystem::create_directories(db_dir, ec)) {
+  if (!std::filesystem::is_directory(db_dir) && !std::filesystem::create_directories(db_dir, ec)) {
     LOG_ERROR("Cannot access base dir: %s. msg=%d:%s", db_dir.c_str(), errno, strerror(errno));
     return RC::INTERNAL;
   }
@@ -88,14 +88,14 @@ RC DefaultHandler::create_db(const char *dbname)
   }
 
   // 如果对应名录已经存在，返回错误
-  filesystem::path dbpath = db_dir_ / dbname;
-  if (filesystem::is_directory(dbpath)) {
+  std::filesystem::path dbpath = db_dir_ / dbname;
+  if (std::filesystem::is_directory(dbpath)) {
     LOG_WARN("Db already exists: %s", dbname);
     return RC::SCHEMA_DB_EXIST;
   }
 
   error_code ec;
-  if (!filesystem::create_directories(dbpath, ec)) {
+  if (!std::filesystem::create_directories(dbpath, ec)) {
     LOG_ERROR("Create db fail: %s. error=%s", dbpath.c_str(), strerror(errno));
     return RC::IOERR_WRITE;
   }
@@ -115,8 +115,8 @@ RC DefaultHandler::open_db(const char *dbname)
     return RC::SUCCESS;
   }
 
-  filesystem::path dbpath = db_dir_ / dbname;
-  if (!filesystem::is_directory(dbpath)) {
+  std::filesystem::path dbpath = db_dir_ / dbname;
+  if (!std::filesystem::is_directory(dbpath)) {
     return RC::SCHEMA_DB_NOT_EXIST;
   }
 
@@ -147,7 +147,7 @@ RC DefaultHandler::drop_table(const char *dbname, const char *relation_name) { r
 
 Db *DefaultHandler::find_db(const char *dbname) const
 {
-  map<string, Db *>::const_iterator iter = opened_dbs_.find(dbname);
+  std::map<string, Db *>::const_iterator iter = opened_dbs_.find(dbname);
   if (iter == opened_dbs_.end()) {
     return nullptr;
   }

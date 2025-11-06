@@ -29,7 +29,7 @@ DeleteStmt::~DeleteStmt()
 }
 
 RC DeleteStmt::create(Db *db, DeleteSqlNode &delete_sql, Stmt *&stmt, 
-  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
   tables_t& table_map, int fa)
 {
   const char *table_name = delete_sql.relation_name.c_str();
@@ -52,7 +52,7 @@ RC DeleteStmt::create(Db *db, DeleteSqlNode &delete_sql, Stmt *&stmt,
     table_map.insert({table_name, temp});
   }
 
-  depends.push_back(vector<uint32_t>());
+  depends.push_back(std::vector<uint32_t>());
 
   FilterStmt *filter_stmt = nullptr;
   RC          rc          = FilterStmt::create(

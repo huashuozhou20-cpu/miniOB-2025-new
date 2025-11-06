@@ -16,6 +16,9 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/types.h"
 #include "common/lang/string.h"
+#include <string>
+
+using std::string;
 
 class Trx;
 class Db;

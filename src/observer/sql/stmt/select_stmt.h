@@ -39,7 +39,7 @@ public:
 
 public:
   static RC create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt, 
-    vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    std::vector<std::vector<uint32_t>>& depends, std::vector<SelectExpr*>& select_exprs, 
     tables_t& table_map, int fa = -1);
 
 public:

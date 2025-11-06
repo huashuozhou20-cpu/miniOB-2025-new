@@ -20,11 +20,16 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/lang/span.h"
 #include "common/lang/memory.h"
-#include "common/lang/vector.h"
 #include "common/lang/string.h"
 #include "storage/index/latch_memo.h"
 #include "storage/clog/log_replayer.h"
-// #include "storage/index/bplus_tree_log_entry.h"
+#include <vector>
+#include <memory>
+#include <string>
+
+using std::vector;
+using std::unique_ptr;
+using std::string;
 
 struct IndexFileHeader;
 class LogEntry;
@@ -143,19 +148,19 @@ public:
   /**
    * @brief 日志记录转字符串
    */
-  static string log_entry_to_string(const LogEntry &entry);
+  static std::string log_entry_to_string(const LogEntry &entry);
 
 private:
   RC __redo(LSN lsn, BplusTreeMiniTransaction &mtr, BplusTreeHandler &tree_handler, common::Deserializer &redo_buffer);
 
 protected:
-  RC append_log_entry(unique_ptr<bplus_tree::LogEntryHandler> entry);
+  RC append_log_entry(std::unique_ptr<bplus_tree::LogEntryHandler> entry);
 
 private:
   LogHandler &log_handler_;
   int32_t     buffer_pool_id_ = -1;  /// 关联的缓冲池ID
 
-  vector<unique_ptr<bplus_tree::LogEntryHandler>> entries_;  /// 当前记录了的日志
+  std::vector<std::unique_ptr<bplus_tree::LogEntryHandler>> entries_;  /// 当前记录了的日志
 
   bool need_log_ = true;  /// 是否需要记录日志。在回滚或重做过程中，不需要记录日志。
 };

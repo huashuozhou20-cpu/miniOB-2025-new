@@ -14,6 +14,10 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/lang/string.h"
+#include <string>
+
+using namespace common;
+using std::string;
 
 static constexpr const char *DB_META_SUFFIX          = ".db";
 static constexpr const char *TABLE_META_SUFFIX       = ".table";
@@ -28,4 +32,4 @@ string table_meta_file(const char *base_dir, const char *table_name);
 string view_meta_file(const char *base_dir, const char *view_name);
 string table_data_file(const char *base_dir, const char *table_name);
 string table_index_file(const char *base_dir, const char *table_name, const char *index_name);
-std::string table_text_file(const char *base_dir, const char *table_name);
+string table_text_file(const char *base_dir, const char *table_name);

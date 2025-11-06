@@ -16,22 +16,27 @@ See the Mulan PSL v2 for more details. */
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <stack>
+#include <algorithm>
 
 #include "sql/expr/tuple.h"
 #include "sql/operator/physical_operator.h"
+#include "common/rc.h"
 
 class Session;
+class SelectExpr;
 
 struct SelectAnalyzer
 {
-  vector<bool>                      instack;//是否在栈内
+  std::vector<bool>                      instack;//是否在栈内
   std::stack<int>                   st;
-  vector<int>                       dfn;
-  vector<int>                       low;
+  std::vector<int>                       dfn;
+  std::vector<int>                       low;
   int                               cnt = 0;
-  vector<int>                       scc;
-  vector<SelectExpr*> select_exprs_;           ///< 子查询表达式
-  vector<vector<uint32_t>> depends_;         ///< 依赖关系
+  std::vector<int>                       scc;
+  std::vector<SelectExpr*> select_exprs_;           ///< 子查询表达式
+  std::vector<std::vector<uint32_t>> depends_;         ///< 依赖关系
 
   void targan(int u = 0)
   {
@@ -104,8 +109,8 @@ public:
   void set_state_string(const std::string &state_string) { state_string_ = state_string; }
 
   void set_operator(std::unique_ptr<PhysicalOperator> oper);
-  void set_depends(vector<vector<uint32_t>>&& depends);
-  void set_exprs(vector<SelectExpr*>&& select_exprs);
+  void set_depends(std::vector<std::vector<uint32_t>>&& depends);
+  void set_exprs(std::vector<SelectExpr*>&& select_exprs);
 
   bool               has_operator() const { return operator_ != nullptr; }
   const TupleSchema &tuple_schema() const { return tuple_schema_; }

@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 
-InsertStmt::InsertStmt(BaseTable *table, vector<vector<Value>>&& values_set)
+InsertStmt::InsertStmt(BaseTable *table, std::vector<std::vector<Value>>&& values_set)
     : table_(table), values_set_(std::move(values_set))
 {}
 
@@ -41,8 +41,8 @@ RC InsertStmt::create(Db *db, InsertSqlNode &inserts, Stmt *&stmt)
   const TableMeta &table_meta = table->table_meta();
   const int        field_num  = table_meta.field_num() - table_meta.sys_field_num();
 
-  vector<vector<Value>> row_values(inserts.values);
-  vector<size_t> cols_id;
+  std::vector<std::vector<Value>> row_values(inserts.values);
+  std::vector<size_t> cols_id;
   if(inserts.attrs_name.size() != 0){
     cols_id.resize(inserts.attrs_name.size());
     for(size_t id = 0; id < cols_id.size(); id++){

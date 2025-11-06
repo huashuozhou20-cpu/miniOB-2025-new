@@ -16,10 +16,17 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/types.h"
 #include "common/rc.h"
-#include "common/lang/vector.h"
 #include "common/lang/deque.h"
 #include "common/lang/memory.h"
 #include "common/lang/thread.h"
+#include "common/lang/atomic.h"
+#include <vector>
+#include <memory>
+#include <thread>
+
+using std::atomic_bool;
+using std::unique_ptr;
+using std::thread;
 #include "storage/clog/log_module.h"
 #include "storage/clog/log_file.h"
 #include "storage/clog/log_buffer.h"
@@ -110,7 +117,7 @@ private:
    * @param[in] module  日志模块
    * @param[in] data    日志数据。具体的数据由各个模块自己定义
    */
-  RC _append(LSN &lsn, LogModule module, vector<char> &&data) override;
+  RC _append(LSN &lsn, LogModule module, std::vector<char> &&data) override;
 
 private:
   /**

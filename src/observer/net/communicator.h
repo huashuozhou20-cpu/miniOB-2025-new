@@ -17,6 +17,10 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/lang/string.h"
 #include "common/lang/memory.h"
+#include <memory>
+
+using namespace common;
+using std::unique_ptr;
 
 struct ConnectionContext;
 class SessionEvent;

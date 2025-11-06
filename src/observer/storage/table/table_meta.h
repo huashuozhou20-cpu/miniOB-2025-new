@@ -16,13 +16,17 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <vector>
-#include <span>
 
 #include "common/lang/serializable.h"
+#include "common/lang/span.h"
 #include "common/rc.h"
 #include "common/types.h"
 #include "storage/field/field_meta.h"
 #include "storage/index/index_meta.h"
+
+using std::string;
+using std::vector;
+using std::span;
 
 /**
  * @brief 表元数据
@@ -32,7 +36,7 @@ class TableMeta : public common::Serializable
 {
 public:
   friend class Table;
-
+  
   TableMeta()          = default;
   virtual ~TableMeta() = default;
 
@@ -41,7 +45,7 @@ public:
   void swap(TableMeta &other) noexcept;
 
   RC init(int32_t table_id, const char *name, const std::vector<FieldMeta> *trx_fields,
-      std::span<const AttrInfoSqlNode> attributes, StorageFormat storage_format = StorageFormat::ROW_FORMAT);
+      span<const AttrInfoSqlNode> attributes, StorageFormat storage_format = StorageFormat::ROW_FORMAT);
 
   RC add_index(const IndexMeta &index);
   RC remove_index(const char *index_name);
@@ -59,7 +63,7 @@ public:
   const int           find_field_idx_by_name(const char *field_name) const;
   auto                field_metas() const -> const std::vector<FieldMeta>* { return &fields_; }
 
-  auto                trx_fields() const -> std::span<const FieldMeta>;
+  auto                trx_fields() const -> span<const FieldMeta>;
   const StorageFormat storage_format() const { return storage_format_; }
 
   int field_num() const;  // sys field included

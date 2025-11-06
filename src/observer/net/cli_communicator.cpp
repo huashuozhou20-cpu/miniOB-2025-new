@@ -131,7 +131,7 @@ RC CliCommunicator::init(int fd, unique_ptr<Session> session, const string &addr
 {
   RC rc = PlainCommunicator::init(fd, std::move(session), addr);
   if (OB_FAIL(rc)) {
-    LOG_WARN("fail to init communicator", strrc(rc));
+    LOG_WARN("fail to init communicator: %s", strrc(rc));
     return rc;
   }
 

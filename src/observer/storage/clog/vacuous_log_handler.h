@@ -15,6 +15,10 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "storage/clog/log_handler.h"
+#include <functional>
+#include <vector>
+
+using namespace std;
 
 /**
  * @brief VacuousLogHandler is a log handler implenmentation that do nothing in all methods.
@@ -39,7 +43,7 @@ public:
   LSN current_lsn() const override { return 0; }
 
 private:
-  RC _append(LSN &lsn, LogModule module, vector<char> &&) override
+  RC _append(LSN &lsn, LogModule module, std::vector<char> &&) override
   {
     lsn = 0;
     return RC::SUCCESS;

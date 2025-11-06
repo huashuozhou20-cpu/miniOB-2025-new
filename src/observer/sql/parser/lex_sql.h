@@ -18,13 +18,13 @@ typedef int yy_size_t;
 /* 参考生成的lex_sql.cpp代码，这个宏定义会放在解析一个token之后，也可以在网上找到大量的参考资料 */
 /* 我们在这里设置当前解析的token的位置信息，这样在yacc中就可以使用这些信息了 */
 #define YY_USER_ACTION                                       \
-do {                                                         \
-  yylloc->first_line   = yylloc->last_line = yylineno;       \
-  yylloc->first_column = yycolumn;                           \
-  yylloc->last_column  = yylloc->first_column + yyleng - 1;  \
-  yycolumn += yyleng;                                        \
-}                                                            \
-while (0);
+  do {                                                       \
+    yylloc->first_line   = yylineno + 1;                     \
+    yylloc->first_column = yycolumn + 1;                     \
+    yylloc->last_line    = yylineno + 1;                     \
+    yylloc->last_column  = yycolumn + yyleng;                \
+    yycolumn += yyleng;                                      \
+  } while (0);
 
 #line 30 "lex_sql.h"
 
@@ -270,6 +270,7 @@ void yyfree ( void * , yyscan_t yyscanner );
 #ifdef YY_HEADER_EXPORT_START_CONDITIONS
 #define INITIAL 0
 #define STR 1
+#define COMMENT 2
 
 #endif
 
@@ -541,9 +542,9 @@ extern int yylex \
 #undef yyTABLES_NAME
 #endif
 
-#line 184 "lex_sql.l"
+#line 195 "lex_sql.l"
 
 
-#line 548 "lex_sql.h"
+#line 549 "lex_sql.h"
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */

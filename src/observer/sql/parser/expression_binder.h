@@ -15,8 +15,16 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <vector>
+#include <utility>
+#include <string>
+#include <memory>
 
 #include "sql/expr/expression.h"
+
+using std::string;
+using std::pair;
+using std::vector;
+using std::unique_ptr;
 
 class BinderContext
 {

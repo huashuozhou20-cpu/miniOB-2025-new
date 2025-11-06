@@ -311,7 +311,7 @@ public:
    * @param[in] capabilities MySQL协议中的capability标志
    * @param[out] net_packet 编码后的网络包
    */
-  virtual RC encode(uint32_t capabilities, vector<char> &net_packet) const = 0;
+  virtual RC encode(uint32_t capabilities, std::vector<char> &net_packet) const = 0;
 };
 
 /**
@@ -343,7 +343,7 @@ struct HandshakeV10 : public BasePacket
   /**
    * https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_connection_phase_packets_protocol_handshake_v10.html
    */
-  virtual RC encode(uint32_t capabilities, vector<char> &net_packet) const override
+  virtual RC encode(uint32_t capabilities, std::vector<char> &net_packet) const override
   {
     net_packet.resize(100);
 
@@ -393,7 +393,7 @@ struct OkPacket : public BasePacket
   /**
    * https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_basic_ok_packet.html
    */
-  RC encode(uint32_t capabilities, vector<char> &net_packet) const override
+  RC encode(uint32_t capabilities, std::vector<char> &net_packet) const override
   {
     net_packet.resize(100);
     char *buf = net_packet.data();
@@ -438,7 +438,7 @@ struct EofPacket : public BasePacket
   EofPacket(int8_t sequence = 0) : BasePacket(sequence) {}
   virtual ~EofPacket() = default;
 
-  RC encode(uint32_t capabilities, vector<char> &net_packet) const override
+  RC encode(uint32_t capabilities, std::vector<char> &net_packet) const override
   {
     net_packet.resize(10);
     char *buf = net_packet.data();
@@ -481,7 +481,7 @@ struct ErrPacket : public BasePacket
   ErrPacket(int8_t sequence = 0) : BasePacket(sequence) {}
   virtual ~ErrPacket() = default;
 
-  virtual RC encode(uint32_t capabilities, vector<char> &net_packet) const override
+  virtual RC encode(uint32_t capabilities, std::vector<char> &net_packet) const override
   {
     net_packet.resize(1000);
     char *buf = net_packet.data();
@@ -528,7 +528,7 @@ struct QueryPacket
  * @details packet_header is not included in net_packet
  * [MySQL Protocol COM_QUERY](https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_query.html)
  */
-RC decode_query_packet(vector<char> &net_packet, QueryPacket &query_packet)
+RC decode_query_packet(std::vector<char> &net_packet, QueryPacket &query_packet)
 {
   // query field is a null terminated string
   query_packet.query.assign(net_packet.data() + 1, net_packet.size() - 1);
@@ -629,7 +629,7 @@ RC MysqlCommunicator::read_event(SessionEvent *&event)
             sizeof(packet_header), packet_header.sequence_id, packet_header.payload_length, fd_);
   sequence_id_ = packet_header.sequence_id + 1;
 
-  vector<char> buf(packet_header.payload_length);
+  std::vector<char> buf(packet_header.payload_length);
   ret = common::readn(fd_, buf.data(), packet_header.payload_length);
   if (ret != 0) {
     LOG_WARN("failed to read packet payload. length=%d, addr=%s, error=%s", 
@@ -801,7 +801,7 @@ RC MysqlCommunicator::write_result(SessionEvent *event, bool &need_disconnect)
 
 RC MysqlCommunicator::send_packet(const BasePacket &packet)
 {
-  vector<char> net_packet;
+  std::vector<char> net_packet;
 
   RC rc = packet.encode(client_capabilities_flag_, net_packet);
   if (rc != RC::SUCCESS) {
@@ -838,7 +838,7 @@ RC MysqlCommunicator::send_column_definition(SqlResult *sql_result, bool &need_d
     return rc;
   }
 
-  vector<char> net_packet;
+  std::vector<char> net_packet;
   net_packet.resize(1024);
   char *buf = net_packet.data();
   int   pos = 0;
@@ -952,7 +952,7 @@ RC MysqlCommunicator::send_result_rows(SessionEvent *event, SqlResult *sql_resul
 {
   RC rc = RC::SUCCESS;
 
-  vector<char> packet;
+  std::vector<char> packet;
   packet.resize(4 * 1024 * 1024);  // TODO warning: length cannot be fix
 
   int    affected_rows = 0;
@@ -982,7 +982,7 @@ RC MysqlCommunicator::send_result_rows(SessionEvent *event, SqlResult *sql_resul
   return rc;
 }
 
-RC MysqlCommunicator::write_tuple_result(SqlResult *sql_result, vector<char> &packet, int &affected_rows, bool &need_disconnect)
+RC MysqlCommunicator::write_tuple_result(SqlResult *sql_result, std::vector<char> &packet, int &affected_rows, bool &need_disconnect)
 {
   Tuple *tuple         = nullptr;
   RC rc = RC::SUCCESS;
@@ -1027,7 +1027,7 @@ RC MysqlCommunicator::write_tuple_result(SqlResult *sql_result, vector<char> &pa
   }
   return rc;
 }
-RC MysqlCommunicator::write_chunk_result(SqlResult *sql_result, vector<char> &packet, int &affected_rows, bool &need_disconnect)
+RC MysqlCommunicator::write_chunk_result(SqlResult *sql_result, std::vector<char> &packet, int &affected_rows, bool &need_disconnect)
 {
   Chunk chunk;
   RC rc = RC::SUCCESS;

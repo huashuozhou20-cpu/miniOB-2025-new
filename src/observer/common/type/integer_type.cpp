@@ -13,6 +13,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/type/integer_type.h"
 #include "common/value.h"
+#include "common/lang/string.h"
+#include <sstream>
+
+using namespace common;
+using std::stringstream;
 
 int IntegerType::compare(const Value &left, const Value &right) const
 {

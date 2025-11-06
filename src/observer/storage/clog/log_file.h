@@ -16,11 +16,18 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/rc.h"
 #include "common/types.h"
-#include "common/lang/map.h"
-#include "common/lang/functional.h"
-#include "common/lang/filesystem.h"
-#include "common/lang/fstream.h"
 #include "common/lang/string.h"
+#include <functional>
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <map>
+
+using namespace common;
+using std::function;
+using std::string;
+using std::vector;
+using std::filesystem::path;
 
 class LogEntry;
 
@@ -123,7 +130,7 @@ public:
    * @param files 满足条件的所有日志文件名
    * @param start_lsn 想要查找的日志的最小LSN
    */
-  RC list_files(vector<string> &files, LSN start_lsn);
+  RC list_files(std::vector<string> &files, LSN start_lsn);
 
   /**
    * @brief 获取最新的一个日志文件名
@@ -148,8 +155,8 @@ private:
   static constexpr const char *file_prefix_ = "clog_";
   static constexpr const char *file_suffix_ = ".log";
 
-  filesystem::path directory_;                  /// 日志文件存放的目录
-  int              max_entry_number_per_file_;  /// 一个文件最大允许存放多少条日志
+  path directory_;                  /// 日志文件存放的目录
+  int  max_entry_number_per_file_;  /// 一个文件最大允许存放多少条日志
 
-  map<LSN, filesystem::path> log_files_;  /// 日志文件名和第一个LSN的映射
+  std::map<LSN, path> log_files_;  /// 日志文件名和第一个LSN的映射
 };

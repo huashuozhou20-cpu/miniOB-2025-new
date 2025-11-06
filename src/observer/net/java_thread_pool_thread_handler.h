@@ -18,6 +18,10 @@ See the Mulan PSL v2 for more details. */
 #include "net/sql_task_handler.h"
 #include "common/thread/thread_pool_executor.h"
 #include "common/lang/mutex.h"
+#include "common/lang/unordered_map.h"
+#include "common/lang/map.h"
+
+using namespace common;
 
 struct EventCallbackAg;
 
