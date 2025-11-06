@@ -17,6 +17,9 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/default/default_handler.h"
 #include "storage/trx/trx.h"
+#include <cstdio>
+#include <unistd.h>
+#include <cstring>
 
 Session &Session::default_session()
 {
@@ -46,15 +49,29 @@ Db *Session::get_current_db() const { return db_; }
 
 void Session::set_current_db(const string &dbname)
 {
+  printf("[DEBUG] Session::set_current_db: called with dbname=%s\n", dbname.c_str());
+  fflush(stdout);
+  
   DefaultHandler &handler = *GCTX.handler_;
   Db             *db      = handler.find_db(dbname.c_str());
+  
+  printf("[DEBUG] Session::set_current_db: find_db returned %p\n", db);
+  fflush(stdout);
+  
   if (db == nullptr) {
     LOG_WARN("no such database: %s", dbname.c_str());
     return;
   }
 
-  LOG_TRACE("change db to %s", dbname.c_str());
+  // 暂时注释掉 LOG_TRACE，看看是否是日志系统导致阻塞
+  // LOG_TRACE("change db to %s", dbname.c_str());
+  printf("[TRACE] change db to %s\n", dbname.c_str());
+  fflush(stdout);
+  
   db_ = db;
+  
+  printf("[DEBUG] Session::set_current_db: db_ set, returning\n");
+  fflush(stdout);
 }
 
 void Session::set_trx_multi_operation_mode(bool multi_operation_mode)

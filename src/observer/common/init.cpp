@@ -31,6 +31,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 
 #include <exception>
+#include <unistd.h>  // for write()
+#include <cstring>   // for strlen()
 
 using namespace common;
 using std::exception;
@@ -146,17 +148,46 @@ int prepare_init_seda()
 
 int init_global_objects(common::ProcessParam *process_param, common::Ini &properties)
 {
+  printf("[DEBUG] init_global_objects: Creating DefaultHandler\n");
+  fflush(stdout);
+  ssize_t w1 = write(STDOUT_FILENO, "[DEBUG] init_global_objects: Creating DefaultHandler\n", 52);
+  (void)w1;
+  
   GCTX.handler_ = new DefaultHandler();
 
   int ret = 0;
 
+  printf("[DEBUG] init_global_objects: Calling handler->init()\n");
+  fflush(stdout);
+  ssize_t w2 = write(STDOUT_FILENO, "[DEBUG] init_global_objects: Calling handler->init()\n", 52);
+  (void)w2;
+  
   RC rc = GCTX.handler_->init("miniob", 
                               process_param->trx_kit_name().c_str(),
                               process_param->durability_mode().c_str());
+  
+  printf("[DEBUG] init_global_objects: handler->init() returned\n");
+  fflush(stdout);
+  ssize_t w3 = write(STDOUT_FILENO, "[DEBUG] init_global_objects: handler->init() returned\n", 52);
+  (void)w3;
+  
   if (OB_FAIL(rc)) {
+    printf("[ERROR] failed to init handler. rc=%s\n", strrc(rc));
+    fflush(stdout);
     LOG_ERROR("failed to init handler. rc=%s", strrc(rc));
     return -1;
   }
+  
+  printf("[DEBUG] init_global_objects: handler->init() completed successfully\n");
+  fflush(stdout);
+  ssize_t w4 = write(STDOUT_FILENO, "[DEBUG] init_global_objects: handler->init() completed successfully\n", 65);
+  (void)w4;
+  
+  printf("[DEBUG] init_global_objects: About to return %d\n", ret);
+  fflush(stdout);
+  ssize_t w5 = write(STDOUT_FILENO, "[DEBUG] init_global_objects: About to return\n", 45);
+  (void)w5;
+  
   return ret;
 }
 
@@ -209,11 +240,27 @@ int init(common::ProcessParam *process_param)
   common::get_properties()->to_string(conf_data);
   LOG_INFO("Output configuration \n%s", conf_data.c_str());
 
+  printf("[DEBUG] About to call init_global_objects()\n");
+  fflush(stdout);
+  ssize_t w1 = write(STDOUT_FILENO, "[DEBUG] About to call init_global_objects()\n", 45);
+  (void)w1;
+  
   rc = init_global_objects(process_param, *common::get_properties());
+  
+  printf("[DEBUG] init_global_objects() returned with code: %d\n", rc);
+  fflush(stdout);
+  ssize_t w2 = write(STDOUT_FILENO, "[DEBUG] init_global_objects() returned\n", 40);
+  (void)w2;
+  
   if (rc != 0) {
     LOG_ERROR("failed to init global objects");
     return rc;
   }
+
+  printf("[DEBUG] After checking init_global_objects return code\n");
+  fflush(stdout);
+  ssize_t w3 = write(STDOUT_FILENO, "[DEBUG] After checking init_global_objects return code\n", 54);
+  (void)w3;
 
   // Block interrupt signals before creating child threads.
   // setSignalHandler(sig_handler);
@@ -222,7 +269,30 @@ int init(common::ProcessParam *process_param)
   //  wait interrupt signals
   // startWaitForSignals(&newSigset);
 
-  LOG_INFO("Successfully init utility");
+  // 先输出到标准输出，避免日志系统阻塞
+  printf("[DEBUG] About to log 'Successfully init utility'\n");
+  fflush(stdout);
+  
+  // 暂时注释掉 LOG_INFO，看看是否是日志系统导致阻塞
+  // LOG_INFO("Successfully init utility");
+  printf("[INFO] Successfully init utility\n");
+  fflush(stdout);
+  
+  printf("[DEBUG] After LOG_INFO, about to return\n");
+  fflush(stdout);
+  
+  cerr << "[DEBUG] init() completed successfully, returning STATUS_SUCCESS" << endl;
+  cerr.flush();  // 强制刷新输出
+  printf("[DEBUG] init() completed successfully, returning STATUS_SUCCESS\n");
+  fflush(stdout);
+  
+  // 使用系统调用直接输出，绕过所有缓冲
+  const char *msg1 = "[DEBUG] Using write() syscall to ensure output\n";
+  const char *msg2 = "[DEBUG] Using write() syscall to stderr\n";
+  ssize_t ret1 = write(STDOUT_FILENO, msg1, strlen(msg1));
+  ssize_t ret2 = write(STDERR_FILENO, msg2, strlen(msg2));
+  (void)ret1;  // 忽略返回值
+  (void)ret2;  // 忽略返回值
 
   return STATUS_SUCCESS;
 }

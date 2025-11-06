@@ -30,6 +30,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <memory>
 
+#include <iostream>
+
 #include "common/ini_setting.h"
 #include "common/io/io.h"
 #include "common/lang/mutex.h"
@@ -152,8 +154,10 @@ int NetServer::start_tcp_server()
   int                ret = 0;
   struct sockaddr_in sa;
 
+  std::cerr << "[DEBUG] Creating socket..." << std::endl;
   server_socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (server_socket_ < 0) {
+    std::cerr << "[ERROR] socket(): can not create server socket: " << strerror(errno) << std::endl;
     LOG_ERROR("socket(): can not create server socket: %s.", strerror(errno));
     return -1;
   }
@@ -161,13 +165,16 @@ int NetServer::start_tcp_server()
   int yes = 1;
   ret     = setsockopt(server_socket_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
   if (ret < 0) {
+    std::cerr << "[ERROR] Failed to set socket option of reuse address: " << strerror(errno) << std::endl;
     LOG_ERROR("Failed to set socket option of reuse address: %s.", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
+  std::cerr << "[DEBUG] Setting socket to non-blocking..." << std::endl;
   ret = set_non_block(server_socket_);
   if (ret < 0) {
+    std::cerr << "[ERROR] Failed to set socket option non-blocking: " << strerror(errno) << std::endl;
     LOG_ERROR("Failed to set socket option non-blocking:%s. ", strerror(errno));
     ::close(server_socket_);
     return -1;
@@ -178,22 +185,28 @@ int NetServer::start_tcp_server()
   sa.sin_port        = htons(server_param_.port);
   sa.sin_addr.s_addr = htonl(server_param_.listen_addr);
 
+  std::cerr << "[DEBUG] Binding to port " << server_param_.port << "..." << std::endl;
   ret = ::bind(server_socket_, (struct sockaddr *)&sa, sizeof(sa));
   if (ret < 0) {
+    std::cerr << "[ERROR] bind(): can not bind server socket: " << strerror(errno) << std::endl;
     LOG_ERROR("bind(): can not bind server socket, %s", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
 
+  std::cerr << "[DEBUG] Listening on socket..." << std::endl;
   ret = listen(server_socket_, server_param_.max_connection_num);
   if (ret < 0) {
+    std::cerr << "[ERROR] listen(): can not listen server socket: " << strerror(errno) << std::endl;
     LOG_ERROR("listen(): can not listen server socket, %s", strerror(errno));
     ::close(server_socket_);
     return -1;
   }
+  std::cerr << "[SUCCESS] Listen on port " << server_param_.port << std::endl;
   LOG_INFO("Listen on port %d", server_param_.port);
 
   started_ = true;
+  std::cerr << "[SUCCESS] Observer start success" << std::endl;
   LOG_INFO("Observer start success");
   return 0;
 }
@@ -243,23 +256,36 @@ int NetServer::start_unix_socket_server()
 
 int NetServer::serve()
 {
+  std::cerr << "[DEBUG] NetServer::serve() called, thread_handling=" << server_param_.thread_handling << std::endl;
+  LOG_INFO("NetServer::serve() called, thread_handling=%s", server_param_.thread_handling.c_str());
   thread_handler_ = ThreadHandler::create(server_param_.thread_handling.c_str());
   if (thread_handler_ == nullptr) {
+    std::cerr << "[ERROR] Failed to create thread handler: " << server_param_.thread_handling << std::endl;
     LOG_ERROR("Failed to create thread handler: %s", server_param_.thread_handling.c_str());
     return -1;
   }
+  std::cerr << "[DEBUG] Thread handler created successfully" << std::endl;
+  LOG_INFO("Thread handler created successfully");
 
   RC rc = thread_handler_->start();
   if (OB_FAIL(rc)) {
+    std::cerr << "[ERROR] failed to start thread handler: " << strrc(rc) << std::endl;
     LOG_ERROR("failed to start thread handler: %s", strrc(rc));
     return -1;
   }
+  std::cerr << "[DEBUG] Thread handler started successfully" << std::endl;
+  LOG_INFO("Thread handler started successfully");
 
+  std::cerr << "[DEBUG] Starting network server on port " << server_param_.port << std::endl;
+  LOG_INFO("Starting network server on port %d", server_param_.port);
   int retval = start();
   if (retval == -1) {
+    std::cerr << "[PANIC] Failed to start network" << std::endl;
     LOG_PANIC("Failed to start network");
     exit(-1);
   }
+  std::cerr << "[DEBUG] Network server started successfully" << std::endl;
+  LOG_INFO("Network server started successfully");
 
   if (!server_param_.use_std_io) {
     struct pollfd poll_fd;

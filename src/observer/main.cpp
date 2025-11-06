@@ -190,14 +190,33 @@ int main(int argc, char **argv)
 
   parse_parameter(argc, argv);
 
+  printf("[DEBUG] About to call init()\n");
+  fflush(stdout);
   rc = init(the_process_param());
+  printf("[DEBUG] init() returned with code: %d\n", rc);
+  fflush(stdout);
   if (rc != STATUS_SUCCESS) {
     cerr << "Shutdown due to failed to init!" << endl;
     cleanup();
     return rc;
   }
 
+  cerr << "[DEBUG] Initialization completed, starting server..." << endl;
+  cerr.flush();  // 强制刷新输出
+  printf("[DEBUG] Initialization completed, starting server...\n");
+  fflush(stdout);
   g_server = init_server();
+  if (g_server == nullptr) {
+    cerr << "[ERROR] Failed to create server!" << endl;
+    printf("[ERROR] Failed to create server!\n");
+    fflush(stdout);
+    cleanup();
+    return -1;
+  }
+  cerr << "[DEBUG] Server created, calling serve()..." << endl;
+  cerr.flush();  // 强制刷新输出
+  printf("[DEBUG] Server created, calling serve()...\n");
+  fflush(stdout);
   g_server->serve();
 
   LOG_INFO("Server stopped");

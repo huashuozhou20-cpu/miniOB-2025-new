@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <filesystem>
+#include <unistd.h>
+#include <cstring>
 
 #include "common/lang/string.h"
 #include "common/log/log.h"
@@ -26,6 +28,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record_manager.h"
 #include "storage/table/table.h"
 #include "storage/trx/trx.h"
+#include "storage/db/db.h"
 
 using namespace std;
 
@@ -63,10 +66,51 @@ RC DefaultHandler::init(const char *base_dir, const char *trx_kit_name, const ch
     return ret;
   }
 
+  printf("[DEBUG] DefaultHandler::init: open_db completed, setting session\n");
+  fflush(stdout);
+  const char *msg1 = "[DEBUG] DefaultHandler::init: open_db completed\n";
+  ssize_t w1 = write(STDOUT_FILENO, msg1, strlen(msg1));
+  (void)w1;
+
+  printf("[DEBUG] DefaultHandler::init: About to call Session::default_session()\n");
+  fflush(stdout);
+  const char *msg1a = "[DEBUG] DefaultHandler::init: About to call Session::default_session()\n";
+  ssize_t w1a = write(STDOUT_FILENO, msg1a, strlen(msg1a));
+  (void)w1a;
+
   Session &default_session = Session::default_session();
+  
+  printf("[DEBUG] DefaultHandler::init: Session::default_session() returned\n");
+  fflush(stdout);
+  const char *msg1b = "[DEBUG] DefaultHandler::init: Session::default_session() returned\n";
+  ssize_t w1b = write(STDOUT_FILENO, msg1b, strlen(msg1b));
+  (void)w1b;
+
+  printf("[DEBUG] DefaultHandler::init: About to call set_current_db()\n");
+  fflush(stdout);
+  const char *msg1c = "[DEBUG] DefaultHandler::init: About to call set_current_db()\n";
+  ssize_t w1c = write(STDOUT_FILENO, msg1c, strlen(msg1c));
+  (void)w1c;
+
   default_session.set_current_db(sys_db);
 
-  LOG_INFO("Default handler init with %s success", base_dir);
+  printf("[DEBUG] DefaultHandler::init: set_current_db() returned\n");
+  fflush(stdout);
+  const char *msg2 = "[DEBUG] DefaultHandler::init: set_current_db() returned\n";
+  ssize_t w2 = write(STDOUT_FILENO, msg2, strlen(msg2));
+  (void)w2;
+
+  // 暂时注释掉 LOG_INFO，看看是否是日志系统导致阻塞
+  // LOG_INFO("Default handler init with %s success", base_dir);
+  printf("[INFO] Default handler init with %s success\n", base_dir);
+  fflush(stdout);
+  
+  printf("[DEBUG] DefaultHandler::init: Success message logged, returning SUCCESS\n");
+  fflush(stdout);
+  const char *msg3 = "[DEBUG] DefaultHandler::init: returning SUCCESS\n";
+  ssize_t w3 = write(STDOUT_FILENO, msg3, strlen(msg3));
+  (void)w3;
+  
   return RC::SUCCESS;
 }
 
