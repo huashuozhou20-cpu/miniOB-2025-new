@@ -1139,6 +1139,12 @@ expression:
       delete $3;
       free($7);
     }
+    | value {
+      // Allow value to be used as expression (for WHERE conditions, etc.)
+      $$ = new ValueExpr(*$1);
+      $$->set_name(token_name(sql_string, &@$));
+      delete $1;
+    }
     ;
 
 
