@@ -130,6 +130,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
         FLOAT_T
         DATE_T
         VECTOR_T
+        VECTOR
         TEXT_T
         HELP
         EXIT
@@ -724,6 +725,7 @@ type:
     | STRING_T { $$ = static_cast<int>(AttrType::CHARS); }
     | FLOAT_T  { $$ = static_cast<int>(AttrType::FLOATS); }
     | VECTOR_T { $$ = static_cast<int>(AttrType::VECTORS); }
+    | VECTOR   { $$ = static_cast<int>(AttrType::VECTORS); }
     | TEXT_T   { $$ = static_cast<int>(AttrType::TEXTS);}
     ;
 date_type:

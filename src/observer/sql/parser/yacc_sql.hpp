@@ -88,65 +88,66 @@ extern int yydebug;
     FLOAT_T = 289,                 /* FLOAT_T  */
     DATE_T = 290,                  /* DATE_T  */
     VECTOR_T = 291,                /* VECTOR_T  */
-    TEXT_T = 292,                  /* TEXT_T  */
-    HELP = 293,                    /* HELP  */
-    EXIT = 294,                    /* EXIT  */
-    DOT = 295,                     /* DOT  */
-    INTO = 296,                    /* INTO  */
-    VALUES = 297,                  /* VALUES  */
-    FROM = 298,                    /* FROM  */
-    WHERE = 299,                   /* WHERE  */
-    INNER = 300,                   /* INNER  */
-    JOIN = 301,                    /* JOIN  */
-    AND = 302,                     /* AND  */
-    OR = 303,                      /* OR  */
-    SET = 304,                     /* SET  */
-    ON = 305,                      /* ON  */
-    AS = 306,                      /* AS  */
-    LOAD = 307,                    /* LOAD  */
-    DATA = 308,                    /* DATA  */
-    LIKE = 309,                    /* LIKE  */
-    NULL_T = 310,                  /* NULL_T  */
-    EXISTS = 311,                  /* EXISTS  */
-    IN = 312,                      /* IN  */
-    IS = 313,                      /* IS  */
-    NOT = 314,                     /* NOT  */
-    INFILE = 315,                  /* INFILE  */
-    EXPLAIN = 316,                 /* EXPLAIN  */
-    STORAGE = 317,                 /* STORAGE  */
-    FORMAT = 318,                  /* FORMAT  */
-    LIMIT = 319,                   /* LIMIT  */
-    EQ = 320,                      /* EQ  */
-    LT = 321,                      /* LT  */
-    GT = 322,                      /* GT  */
-    LE = 323,                      /* LE  */
-    GE = 324,                      /* GE  */
-    NE = 325,                      /* NE  */
-    UNIQUE = 326,                  /* UNIQUE  */
-    UNION = 327,                   /* UNION  */
-    ALTER = 328,                   /* ALTER  */
-    ADD = 329,                     /* ADD  */
-    COLUMN = 330,                  /* COLUMN  */
-    RENAME = 331,                  /* RENAME  */
-    TO = 332,                      /* TO  */
-    FULLTEXT = 333,                /* FULLTEXT  */
-    ALL = 334,                     /* ALL  */
-    L2_DISTANCE = 335,             /* L2_DISTANCE  */
-    COSINE_DISTANCE = 336,         /* COSINE_DISTANCE  */
-    INNER_PRODUCT = 337,           /* INNER_PRODUCT  */
-    DISTANCE = 338,                /* DISTANCE  */
-    LISTS = 339,                   /* LISTS  */
-    TYPE = 340,                    /* TYPE  */
-    PROBES = 341,                  /* PROBES  */
-    IVFFLAT = 342,                 /* IVFFLAT  */
-    MATCH = 343,                   /* MATCH  */
-    AGAINST = 344,                 /* AGAINST  */
-    NUMBER = 345,                  /* NUMBER  */
-    FLOAT = 346,                   /* FLOAT  */
-    ID_KEY = 347,                  /* ID_KEY  */
-    SSS = 348,                     /* SSS  */
-    DATE_VALUE = 349,              /* DATE_VALUE  */
-    UMINUS = 350                   /* UMINUS  */
+    VECTOR = 292,                  /* VECTOR  */
+    TEXT_T = 293,                  /* TEXT_T  */
+    HELP = 294,                    /* HELP  */
+    EXIT = 295,                    /* EXIT  */
+    DOT = 296,                     /* DOT  */
+    INTO = 297,                    /* INTO  */
+    VALUES = 298,                  /* VALUES  */
+    FROM = 299,                    /* FROM  */
+    WHERE = 300,                   /* WHERE  */
+    INNER = 301,                   /* INNER  */
+    JOIN = 302,                    /* JOIN  */
+    AND = 303,                     /* AND  */
+    OR = 304,                      /* OR  */
+    SET = 305,                     /* SET  */
+    ON = 306,                      /* ON  */
+    AS = 307,                      /* AS  */
+    LOAD = 308,                    /* LOAD  */
+    DATA = 309,                    /* DATA  */
+    LIKE = 310,                    /* LIKE  */
+    NULL_T = 311,                  /* NULL_T  */
+    EXISTS = 312,                  /* EXISTS  */
+    IN = 313,                      /* IN  */
+    IS = 314,                      /* IS  */
+    NOT = 315,                     /* NOT  */
+    INFILE = 316,                  /* INFILE  */
+    EXPLAIN = 317,                 /* EXPLAIN  */
+    STORAGE = 318,                 /* STORAGE  */
+    FORMAT = 319,                  /* FORMAT  */
+    LIMIT = 320,                   /* LIMIT  */
+    EQ = 321,                      /* EQ  */
+    LT = 322,                      /* LT  */
+    GT = 323,                      /* GT  */
+    LE = 324,                      /* LE  */
+    GE = 325,                      /* GE  */
+    NE = 326,                      /* NE  */
+    UNIQUE = 327,                  /* UNIQUE  */
+    UNION = 328,                   /* UNION  */
+    ALTER = 329,                   /* ALTER  */
+    ADD = 330,                     /* ADD  */
+    COLUMN = 331,                  /* COLUMN  */
+    RENAME = 332,                  /* RENAME  */
+    TO = 333,                      /* TO  */
+    FULLTEXT = 334,                /* FULLTEXT  */
+    ALL = 335,                     /* ALL  */
+    L2_DISTANCE = 336,             /* L2_DISTANCE  */
+    COSINE_DISTANCE = 337,         /* COSINE_DISTANCE  */
+    INNER_PRODUCT = 338,           /* INNER_PRODUCT  */
+    DISTANCE = 339,                /* DISTANCE  */
+    LISTS = 340,                   /* LISTS  */
+    TYPE = 341,                    /* TYPE  */
+    PROBES = 342,                  /* PROBES  */
+    IVFFLAT = 343,                 /* IVFFLAT  */
+    MATCH = 344,                   /* MATCH  */
+    AGAINST = 345,                 /* AGAINST  */
+    NUMBER = 346,                  /* NUMBER  */
+    FLOAT = 347,                   /* FLOAT  */
+    ID_KEY = 348,                  /* ID_KEY  */
+    SSS = 349,                     /* SSS  */
+    DATE_VALUE = 350,              /* DATE_VALUE  */
+    UMINUS = 351                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -155,7 +156,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 189 "yacc_sql.y"
+#line 190 "yacc_sql.y"
 
   ParsedSqlNode *                            sql_node;
   ConditionSqlNode *                         condition;
@@ -182,7 +183,7 @@ union YYSTYPE
   Key_values *                               key_values;
   enum VectorIndexType                       vector_index_type;
 
-#line 186 "yacc_sql.hpp"
+#line 187 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;

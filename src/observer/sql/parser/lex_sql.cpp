@@ -422,17 +422,17 @@ static const flex_int16_t yy_accept[384] =
        84,   27,   84,   84,   84,   31,   84,   84,   84,   35,
        84,   84,   84,   84,   42,   84,   84,   46,   84,   49,
        84,   84,   51,   84,   84,   84,   84,   84,   84,   84,
-       62,   84,   84,   65,   84,   82,   73,   84,   84,   84,
-       84,   84,   79,   84,   81,    0,    0,   84,   11,   70,
+       62,   84,   84,   65,   84,   83,   73,   84,   84,   84,
+       84,   84,   80,   84,   82,    0,    0,   84,   11,   70,
        84,   84,   84,   84,   84,   84,   84,   84,   84,   84,
        84,   84,   33,   84,   37,   84,   39,   84,   43,   84,
        84,   48,   50,   52,   84,   57,   84,   84,   84,   84,
-       84,   84,   66,   84,   74,   84,   84,   84,   84,   80,
+       84,   84,   66,   84,   74,   84,   84,   84,   84,   81,
 
         0,    0,   84,   17,   71,   84,   19,   21,   22,   84,
        26,   84,   84,   30,   84,   34,   38,   84,   41,   84,
        84,   54,   58,   59,   84,   60,   84,   84,   67,   68,
-       75,   76,   77,   83,    0,    0,    9,   84,   84,   28,
+       75,   76,   77,   79,    0,    0,    9,   84,   84,   28,
        29,   84,   84,   45,   84,   84,   64,   84,   84,    0,
         0,    0,    0,   84,   24,   32,   84,   84,   72,   63,
        78,    0,    0,   84,   84,   84,  105,    0,  106,    0,
@@ -1552,27 +1552,27 @@ RETURN_TOKEN(VECTOR_T);
 case 79:
 YY_RULE_SETUP
 #line 157 "lex_sql.l"
-RETURN_TOKEN(VIEW);
+RETURN_TOKEN(VECTOR_T);
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
 #line 158 "lex_sql.l"
-RETURN_TOKEN(WHERE);
+RETURN_TOKEN(VIEW);
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
 #line 159 "lex_sql.l"
-RETURN_TOKEN(WITH);
+RETURN_TOKEN(WHERE);
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
 #line 160 "lex_sql.l"
-RETURN_TOKEN(TEXT_T);
+RETURN_TOKEN(WITH);
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
 #line 161 "lex_sql.l"
-RETURN_TOKEN(VECTOR_T);
+RETURN_TOKEN(TEXT_T);
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
