@@ -116,18 +116,21 @@ RC FloatType::to_string(const Value &val, string &result) const
   ss.precision(2);
   ss << std::fixed << rounded;
   result = ss.str();
-  // Remove trailing zeros after decimal point, but keep at least 2 decimal places
-  size_t pos = result.find('.');
-  if (pos != string::npos) {
-    // Keep at least 2 decimal places for consistency
-    size_t min_length = pos + 3; // e.g., "123.00"
-    if (result.length() > min_length) {
-      size_t last_non_zero = result.find_last_not_of('0');
-      if (last_non_zero == pos) {
-        // All zeros after decimal point, keep ".00"
-        result = result.substr(0, pos + 3);
-      } else if (last_non_zero != string::npos && last_non_zero >= min_length - 1) {
+  
+  // 去除尾随零，但保留至少2位小数
+  size_t dot_pos = result.find('.');
+  if (dot_pos != string::npos) {
+    size_t last_non_zero = result.find_last_not_of('0');
+    if (last_non_zero == dot_pos) {
+      // 小数部分全为0，保留".00"
+      result = result.substr(0, dot_pos + 3);
+    } else if (last_non_zero != string::npos && last_non_zero > dot_pos) {
+      // 保留到最后一个非零数字，但至少保留2位小数
+      size_t min_length = dot_pos + 3; // ".XX"
+      if (last_non_zero + 1 >= min_length) {
         result = result.substr(0, last_non_zero + 1);
+      } else {
+        result = result.substr(0, min_length);
       }
     }
   }
