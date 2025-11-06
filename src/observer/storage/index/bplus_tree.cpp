@@ -1333,7 +1333,32 @@ RC BplusTreeHandler::insert_entry_into_leaf_node(
   bool                 exists          = false;  // 该数据是否已经存在指定的叶子节点中了
   int                  insert_position = leaf_node.lookup(key_comparator_, key, &exists);
 
-  if (exists) {
+  // 对于唯一索引，需要检查属性值是否重复（不考虑RID）
+  if (file_header_.unique) {
+    // 对于唯一索引，需要检查是否有相同属性值但不同RID的记录
+    // 先检查当前位置
+    if (insert_position < leaf_node.size()) {
+      const char *existing_key = leaf_node.key_at(insert_position);
+      const RID *existing_rid = (const RID *)leaf_node.value_at(insert_position);
+      // 比较属性值（不包括RID）
+      int attr_cmp = key_comparator_.attr_comparator()(key, existing_key);
+      if (attr_cmp == 0 && RID::compare(rid, existing_rid) != 0) {
+        LOG_TRACE("duplicate key found for unique index");
+        return RC::RECORD_DUPLICATE_KEY;
+      }
+    }
+    // 还需要检查前一个位置（因为lookup可能返回插入位置，但实际匹配的记录可能在前面）
+    if (insert_position > 0) {
+      const char *prev_key = leaf_node.key_at(insert_position - 1);
+      const RID *prev_rid = (const RID *)leaf_node.value_at(insert_position - 1);
+      int attr_cmp = key_comparator_.attr_comparator()(key, prev_key);
+      if (attr_cmp == 0 && RID::compare(rid, prev_rid) != 0) {
+        LOG_TRACE("duplicate key found for unique index at previous position");
+        return RC::RECORD_DUPLICATE_KEY;
+      }
+    }
+  } else if (exists) {
+    // 对于非唯一索引，如果完全相同的键（包括RID）已存在，则返回重复
     LOG_TRACE("entry exists");
     return RC::RECORD_DUPLICATE_KEY;
   }
