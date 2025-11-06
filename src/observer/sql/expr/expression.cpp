@@ -1518,30 +1518,55 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
     return RC::SUCCESS;
   }
 
-  // 使用 get_string() 获取实际字符串，然后计算其真实长度（不包括末尾填充的空格）
-  string str_val = arg_value.get_string();
-  // 移除末尾空格
-  while (!str_val.empty() && str_val.back() == ' ') {
-    str_val.pop_back();
+  // 直接使用原始数据指针和长度来计算实际字符串长度
+  // 对于 CHAR 类型，length_ 是字段定义的长度，可能包含填充的空格
+  int field_len = arg_value.length();
+  if (field_len <= 0) {
+    result = Value(0);
+    return RC::SUCCESS;
   }
-  int len = static_cast<int>(str_val.length());
 
-  result = Value(len);
+  // 计算实际字符串长度：从末尾开始移除空格，直到遇到非空格字符
+  int actual_len = field_len;
+  while (actual_len > 0 && str[actual_len - 1] == ' ') {
+    actual_len--;
+  }
+
+  // 如果实际长度为0，检查是否所有字符都是空格，或者字符串为空
+  if (actual_len == 0) {
+    // 检查是否至少有一个字符（即使是空格）
+    if (field_len > 0 && str[0] != '\0') {
+      // 如果第一个字符不是空字符，但所有字符都是空格，长度应该是字段长度
+      // 但根据 SQL 语义，LENGTH 应该返回非空格字符数，所以返回 0
+      result = Value(0);
+      return RC::SUCCESS;
+    }
+    result = Value(0);
+    return RC::SUCCESS;
+  }
+
+  result = Value(actual_len);
   return RC::SUCCESS;
 }
 
 RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
 {
-  if (arg_value.attr_type() != AttrType::FLOATS) {
-    LOG_WARN("ROUND function only supports FLOAT type");
+  // ROUND 函数支持 int 和 float 类型，自动进行类型转换
+  if (arg_value.attr_type() == AttrType::FLOATS) {
+    float val = arg_value.get_float();
+    result = Value(static_cast<float>(::round(val)));
+    return RC::SUCCESS;
+  } else if (arg_value.attr_type() == AttrType::INTS) {
+    // int 类型直接转换为 float 后四舍五入
+    int val = arg_value.get_int();
+    result = Value(static_cast<float>(val));
+    return RC::SUCCESS;
+  } else {
+    LOG_WARN("ROUND function only supports INT or FLOAT type");
     // 按需求：非目标数据类型时返回字符串 FAILURE
     result = Value("FAILURE", 7);
     return RC::SUCCESS;
   }
-
-  float val = arg_value.get_float();
-  result = Value(static_cast<float>(::round(val)));
-  return RC::SUCCESS;
 }
 
 RC SysFuncExpr::eval_distance(const Value &v1_value, const Value &v2_value, const Value &metric_value, Value &result) const

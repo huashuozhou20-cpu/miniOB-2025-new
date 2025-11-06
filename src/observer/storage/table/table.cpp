@@ -316,8 +316,8 @@ RC Table::update_record(const RID &rid, std::vector<const FieldMeta *> &fields, 
     Value            &value = values[id];
 
     if (value.attr_type() == AttrType::NULLS && !field->nullable()) {
-      LOG_WARN("value is null. table name:%s,field name:%s",
-        table_meta_.name(), field->name());
+      LOG_WARN("Column '%s' cannot be null. table name:%s",
+        field->name(), table_meta_.name());
       return RC::INVALID_ARGUMENT;
     }
 
@@ -450,8 +450,8 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
     const Value     &value = values[i];
 
     if (value.attr_type() == AttrType::NULLS && !field->nullable()) {
-      LOG_WARN("value is null. table name:%s,field name:%s",
-        table_meta_.name(), field->name());
+      LOG_WARN("Column '%s' cannot be null. table name:%s",
+        field->name(), table_meta_.name());
       return RC::INVALID_ARGUMENT;
     }
 
@@ -509,12 +509,41 @@ RC Table::set_value_to_record(char *record_data, const Value &value, const Field
     if (AttrType::TEXTS == field->type() || AttrType::VECTORS_HIGH == field->type()) {
       int64_t position[2];
       position[1] = value.length();
-      text_buffer_pool_->append_data(position[0], position[1], value.data());
+      const char *data_ptr = value.data();
+      // 对于空字符串或空指针，使用空字符串常量
+      if (data_ptr == nullptr) {
+        data_ptr = "";
+      }
+      text_buffer_pool_->append_data(position[0], position[1], data_ptr);
       memcpy(record_data + field->offset(), position, 2 * sizeof(int64_t));
     }
-    else if(AttrType::VECTORS == field->type())
-        memcpy(record_data + field->offset(), value.data(), copy_len);
-    else memcpy(record_data + field->offset(), value.data(), copy_len);
+    else if(AttrType::VECTORS == field->type()) {
+      const char *data_ptr = value.data();
+      if (data_ptr == nullptr && copy_len > 0) {
+        LOG_WARN("VECTOR field data is null but copy_len > 0. field=%s", field->name());
+        return RC::INVALID_ARGUMENT;
+      }
+      if (data_ptr != nullptr) {
+        memcpy(record_data + field->offset(), data_ptr, copy_len);
+      }
+    }
+    else {
+      // 对于 CHAR 和 DATE 类型，处理空字符串和空指针的情况
+      const char *data_ptr = value.data();
+      if (data_ptr == nullptr) {
+        // 如果数据指针为空（不应该发生，但做防护性检查）
+        // 对于 CHAR/DATE 类型，清零目标字段以确保安全
+        if (copy_len > 0) {
+          memset(record_data + field->offset(), 0, copy_len);
+        }
+        LOG_WARN("CHAR/DATE field data pointer is null. field=%s, copy_len=%zu", field->name(), copy_len);
+      } else {
+        // 正常情况：数据指针有效
+        if (copy_len > 0) {
+          memcpy(record_data + field->offset(), data_ptr, copy_len);
+        }
+      }
+    }
   }
 
   return RC::SUCCESS;

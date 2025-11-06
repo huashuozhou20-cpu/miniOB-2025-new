@@ -92,13 +92,18 @@ RC ProjectPhysicalOperator::tuple_schema(TupleSchema &schema) const
 {
   for (const unique_ptr<Expression> &expression : expressions_) {
     const string& alias = expression->alias();
-    if(show_table_name_ && expression->type() == ExprType::FIELD){
+    // 如果有字段别名，直接使用别名，不包含表别名前缀
+    if (!alias.empty()) {
+      schema.append_cell(alias.c_str());
+    } else if(show_table_name_ && expression->type() == ExprType::FIELD){
       FieldExpr* field_expr = static_cast<FieldExpr*>(expression.get());
       const string& table_alias = field_expr->table_alias();
 
       schema.append_cell(table_alias.empty() ? field_expr->table_name() : table_alias.c_str(),
-        alias.empty() ? expression->name() : alias.c_str());
-    } else schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+        expression->name());
+    } else {
+      schema.append_cell(expression->name());
+    }
   }
 
   return RC::SUCCESS;

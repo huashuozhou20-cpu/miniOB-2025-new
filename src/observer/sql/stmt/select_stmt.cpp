@@ -69,9 +69,12 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
       table_map.insert({table_name, temp});
     }
     if(!table_alias.empty()){
+      // 检查当前层的别名是否重复（不检查外层的 table_map，因为子查询允许与外层使用相同的别名）
       if(table_alias_set.count(table_alias))return RC::INVALID_ARGUMENT;
       table_alias_set.insert(table_alias);
       auto temp = make_pair(table, size);
+      // 如果 table_map 中已存在相同的别名（可能来自外层），先移除再插入，确保子查询的别名正确
+      table_map.erase(table_alias);
       table_map.insert({table_alias, temp});
     }
   }

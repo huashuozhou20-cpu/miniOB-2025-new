@@ -24,8 +24,34 @@ RC SumAggregator::accumulate(const Value &value)
     return RC::SUCCESS;
   }
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
+  // 类型检查：如果类型不匹配，尝试类型转换
+  if (value.attr_type() != value_.attr_type()) {
+    // 如果 value_ 是 float，尝试将 value 转换为 float
+    if (value_.attr_type() == AttrType::FLOATS && value.attr_type() == AttrType::INTS) {
+      Value float_value;
+      RC rc = Value::cast_to(value, AttrType::FLOATS, float_value);
+      if (rc == RC::SUCCESS) {
+        Value::add(float_value, value_, value_);
+        return RC::SUCCESS;
+      }
+    }
+    // 如果 value_ 是 int，尝试将 value 转换为 int
+    if (value_.attr_type() == AttrType::INTS && value.attr_type() == AttrType::FLOATS) {
+      // 如果第一个值是 int，后续出现 float，应该统一转换为 float
+      Value float_value_;
+      RC rc = Value::cast_to(value_, AttrType::FLOATS, float_value_);
+      if (rc == RC::SUCCESS) {
+        value_ = float_value_;
+        Value::add(value, value_, value_);
+        return RC::SUCCESS;
+      }
+    }
+    LOG_WARN("type mismatch. value type: %s, value_.type: %s", 
         attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    ASSERT(false, "type mismatch. value type: %s, value_.type: %s", 
+        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    return RC::INVALID_ARGUMENT;
+  }
   
   Value::add(value, value_, value_);
   return RC::SUCCESS;
@@ -47,10 +73,30 @@ RC MaxAggregator::accumulate(const Value &value)
     return RC::SUCCESS;
   }
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
+  // MAX 需要类型兼容，但允许 int 和 float 之间的比较
+  if (value.attr_type() == value_.attr_type()) {
+    Value::max(std::move(value), std::move(value_), value_);
+  } else if ((value_.attr_type() == AttrType::INTS && value.attr_type() == AttrType::FLOATS) ||
+             (value_.attr_type() == AttrType::FLOATS && value.attr_type() == AttrType::INTS)) {
+    // int 和 float 可以比较，统一转换为 float
+    Value float_value;
+    Value float_value_;
+    RC rc1 = Value::cast_to(value, AttrType::FLOATS, float_value);
+    RC rc2 = Value::cast_to(value_, AttrType::FLOATS, float_value_);
+    if (rc1 == RC::SUCCESS && rc2 == RC::SUCCESS) {
+      Value::max(std::move(float_value), std::move(float_value_), value_);
+    } else {
+      LOG_WARN("failed to cast value for MAX aggregation");
+      return RC::INVALID_ARGUMENT;
+    }
+  } else {
+    LOG_WARN("type mismatch for MAX aggregation. value type: %s, value_.type: %s", 
         attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    ASSERT(false, "type mismatch. value type: %s, value_.type: %s", 
+        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    return RC::INVALID_ARGUMENT;
+  }
   
-  Value::max(std::move(value), std::move(value_), value_);
   return RC::SUCCESS;
 }
 
@@ -70,10 +116,30 @@ RC MinAggregator::accumulate(const Value &value)
     return RC::SUCCESS;
   }
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
+  // MIN 需要类型兼容，但允许 int 和 float 之间的比较
+  if (value.attr_type() == value_.attr_type()) {
+    Value::min(std::move(value), std::move(value_), value_);
+  } else if ((value_.attr_type() == AttrType::INTS && value.attr_type() == AttrType::FLOATS) ||
+             (value_.attr_type() == AttrType::FLOATS && value.attr_type() == AttrType::INTS)) {
+    // int 和 float 可以比较，统一转换为 float
+    Value float_value;
+    Value float_value_;
+    RC rc1 = Value::cast_to(value, AttrType::FLOATS, float_value);
+    RC rc2 = Value::cast_to(value_, AttrType::FLOATS, float_value_);
+    if (rc1 == RC::SUCCESS && rc2 == RC::SUCCESS) {
+      Value::min(std::move(float_value), std::move(float_value_), value_);
+    } else {
+      LOG_WARN("failed to cast value for MIN aggregation");
+      return RC::INVALID_ARGUMENT;
+    }
+  } else {
+    LOG_WARN("type mismatch for MIN aggregation. value type: %s, value_.type: %s", 
         attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    ASSERT(false, "type mismatch. value type: %s, value_.type: %s", 
+        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+    return RC::INVALID_ARGUMENT;
+  }
   
-  Value::min(std::move(value), std::move(value_), value_);
   return RC::SUCCESS;
 }
 
@@ -88,15 +154,33 @@ RC MinAggregator::evaluate(Value& result, bool have_groub_by)
 RC AvgAggregator::accumulate(const Value &value)
 {
   if (value_.attr_type() == AttrType::UNDEFINED) {
-    value_ = Value((float)0.0);
+    // 初始化时，根据输入值的类型来设置 value_ 的类型（如果不是 NULL）
+    if(value.attr_type() == AttrType::NULLS) {
+      // 如果第一个值就是 NULL，暂时设置为 float 类型（avg 总是返回 float）
+      value_ = Value((float)0.0);
+    } else {
+      // 对于非 NULL 值，先转换为 float 类型
+      Value float_value;
+      RC rc = Value::cast_to(value, AttrType::FLOATS, float_value);
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to cast value to float for avg aggregation");
+        return rc;
+      }
+      value_ = float_value;
+    }
     countnum = Value((int)0);
   }
   if(value.attr_type() == AttrType::NULLS)return RC::SUCCESS;
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
-        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+  // 对于非 NULL 值，需要转换为 float 类型
+  Value float_value;
+  RC rc = Value::cast_to(value, AttrType::FLOATS, float_value);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to cast value to float for avg aggregation");
+    return rc;
+  }
   
-  Value::avg(value, value_, countnum);
+  Value::avg(float_value, value_, countnum);
   return RC::SUCCESS;
 }
 
@@ -116,11 +200,11 @@ RC CountAggregator::accumulate(const Value &value)
   if (value_.attr_type() == AttrType::UNDEFINED) {
     value_ = Value((int)0);
   }
+  // COUNT 忽略 NULL 值，不计数
   if(value.attr_type() == AttrType::NULLS)return RC::SUCCESS;
 
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
-        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
-  
+  // COUNT 不关心值的类型，只要不是 NULL 就计数
+  // 移除类型检查，因为 COUNT 可以处理任何类型的值
   Value::count(value_);
   return RC::SUCCESS;
 }

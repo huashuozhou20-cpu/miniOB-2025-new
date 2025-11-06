@@ -54,8 +54,21 @@ RC FilterStmt::create(Db *db, BaseTable *default_table, tables_t& table_map, Con
         Field      field(table, field_meta);
         FieldExpr *field_expr = new FieldExpr(field);
         field_expr->set_name(table->name());
-        if(unbound_field_expr->table_name() != table->name())
-          field_expr->set_table_alias(unbound_field_expr->table_name());
+        // 设置表别名：如果 unbound_field_expr 的 table_name 是表别名（不等于实际表名），则设置它
+        const char *unbound_table_name = unbound_field_expr->table_name();
+        if (!common::is_blank(unbound_table_name) && 0 != strcasecmp(unbound_table_name, table->name())) {
+          // 检查是否是表别名（在 table_map 中查找，如果找到且对应的表匹配，则是表别名）
+          bool is_table_alias = false;
+          for (const auto &pair : table_map) {
+            if (0 == strcasecmp(unbound_table_name, pair.first.c_str()) && pair.second.first == table) {
+              is_table_alias = true;
+              break;
+            }
+          }
+          if (is_table_alias) {
+            field_expr->set_table_alias(unbound_table_name);
+          }
+        }
         expr.reset(field_expr);
       }break;
       case ExprType::SELECT:{
@@ -101,10 +114,20 @@ RC FilterStmt::get_table_and_field(Db *db, BaseTable *default_table, tables_t& t
   if (common::is_blank(table_name)) {
     table = default_table;
   } else {
+    // 先尝试精确匹配（大小写敏感）
     auto iter = table_map.find(table_name);
     if (iter != table_map.end()) {
       table = iter->second.first;
       *min_depend = std::min(*min_depend, iter->second.second);
+    } else {
+      // 如果精确匹配失败，尝试大小写不敏感匹配（用于表别名）
+      for (auto &pair : table_map) {
+        if (0 == strcasecmp(table_name, pair.first.c_str())) {
+          table = pair.second.first;
+          *min_depend = std::min(*min_depend, pair.second.second);
+          break;
+        }
+      }
     }
   }
   if (nullptr == table) {
