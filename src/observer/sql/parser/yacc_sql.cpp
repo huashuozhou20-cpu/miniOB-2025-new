@@ -2498,7 +2498,7 @@ yyreduce:
 
   case 66: /* nullable: %empty  */
 #line 715 "yacc_sql.y"
-    { (yyval.boolean) = true; }
+    { (yyval.boolean) = false; }
 #line 2503 "yacc_sql.cpp"
     break;
 

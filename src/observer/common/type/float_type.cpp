@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <cmath>
 #include <sstream>
+#include <iomanip>
 
 using namespace common;
 using std::stringstream;
@@ -109,8 +110,26 @@ RC FloatType::set_value_from_str(Value &val, const string &data) const
 
 RC FloatType::to_string(const Value &val, string &result) const
 {
+  // Round to 2 decimal places
+  float rounded = roundf(val.value_.float_value_ * 100.0f) / 100.0f;
   stringstream ss;
-  ss << val.value_.float_value_;
+  ss.precision(2);
+  ss << std::fixed << rounded;
   result = ss.str();
+  // Remove trailing zeros after decimal point, but keep at least 2 decimal places
+  size_t pos = result.find('.');
+  if (pos != string::npos) {
+    // Keep at least 2 decimal places for consistency
+    size_t min_length = pos + 3; // e.g., "123.00"
+    if (result.length() > min_length) {
+      size_t last_non_zero = result.find_last_not_of('0');
+      if (last_non_zero == pos) {
+        // All zeros after decimal point, keep ".00"
+        result = result.substr(0, pos + 3);
+      } else if (last_non_zero != string::npos && last_non_zero >= min_length - 1) {
+        result = result.substr(0, last_non_zero + 1);
+      }
+    }
+  }
   return RC::SUCCESS;
 }

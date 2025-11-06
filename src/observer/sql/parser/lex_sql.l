@@ -133,6 +133,7 @@ LOAD                                    RETURN_TOKEN(LOAD);
 MATCH                                   RETURN_TOKEN(MATCH);
 NOT                                     RETURN_TOKEN(NOT);
 NULL_T                                  RETURN_TOKEN(NULL_T);
+NULL                                    RETURN_TOKEN(NULL_T);
 ON                                      RETURN_TOKEN(ON);
 OR                                      RETURN_TOKEN(OR);
 ORDER                                   RETURN_TOKEN(ORDER);

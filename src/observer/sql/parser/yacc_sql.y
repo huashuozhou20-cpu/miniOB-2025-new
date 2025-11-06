@@ -712,7 +712,7 @@ attr_def:
 
 nullable:
     /* empty */
-    { $$ = true; }
+    { $$ = false; }
     | NULL_T {$$ = true;}
     | NOT NULL_T {$$ = false;}
     ;
