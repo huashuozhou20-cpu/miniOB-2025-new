@@ -1,0 +1,27 @@
+======================================================================
+MiniOB 全部功能 SQL 测试
+======================================================================
+
+工作目录: /tmp/miniob_test_0_ei7ev8
+服务器: 127.0.0.1:6789
+
+启动 observer (TCP)...
+等待 observer 启动...
+✗ Observer 启动失败 - 端口未监听
+
+Observer 日志:
+num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+buffer pool manager init with memory size 16384000, page num: 2000, pool num: 20
+double write buffer load pages done. page num=0
+init log file manager success. directory=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog, log files=0
+Db meta file not exist. db=sys, file=miniob/db/sys/sys.db
+All table have been opened. num=0
+

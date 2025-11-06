@@ -1,0 +1,19 @@
+======================================================================
+MiniOB 全面功能测试 (TCP 端口)
+======================================================================
+
+启动 observer...
+
+测试连接...
+❌ 连接失败
+stdout: 
+Welcome to the OceanBase database implementation course.
+
+Copyright (c) 2021 OceanBase and/or its affiliates.
+
+Learn more about OceanBase at https://github.com/oceanbase/oceanbase
+Learn more about MiniOB at https://github.com/oceanbase/miniob
+
+
+stderr: Failed to connect. errmsg=111:Connection refused
+

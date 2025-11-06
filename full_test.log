@@ -1,0 +1,13 @@
+2025-11-06 12:47:44 - INFO  MiniOBTest 1052 - miniob test starting ...
+2025-11-06 12:47:44 - INFO  MiniOBTest 1010 - start compiling ... build path=/tmp/miniob_full_test/build
+2025-11-06 12:47:44 - INFO  MiniOBTest 961 - running command: 'cmake -B /tmp/miniob_full_test/build --log-level=WARNING /home/obuser/oceanbase-contest/test/miniob-2025-new'
+2025-11-06 12:47:54 - INFO  MiniOBTest 961 - running command: 'make --silent -C /tmp/miniob_full_test/build -j4'
+2025-11-06 12:47:54 - ERROR MiniOBTest 1036 - Compile failed
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - make: *** No targets specified and no makefile found.  Stop.
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - 
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - 
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - 
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - 
+2025-11-06 12:47:54 - ERROR MiniOBTest 1038 - 
+2025-11-06 12:47:54 - ERROR MiniOBTest 945 - Failed to compile source code
+2025-11-06 12:47:54 - INFO  MiniOBTest 1083 - {"message":"make: *** No targets specified and no makefile found.  Stop.\n\n\n\n\n"}

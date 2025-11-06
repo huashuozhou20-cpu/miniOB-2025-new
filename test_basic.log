@@ -1,0 +1,8 @@
+usage: miniob_test.py [-h] [--report-only] [--project-dir PROJECT_DIR]
+                      [--test-cases TEST_CASES] [--work-dir WORK_DIR]
+                      [--server-port SERVER_PORT] [--not-use-unix-socket]
+                      [--log LOG_FILE] [-d]
+                      [--compile-make-args COMPILE_MAKE_ARGS]
+                      [--compile-cmake-args COMPILE_CMAKE_ARGS]
+                      [--compile-rebuild]
+miniob_test.py: error: unrecognized arguments: --skip-compile

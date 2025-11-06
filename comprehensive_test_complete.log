@@ -1,0 +1,289 @@
+启动 observer (TCP)...
+
+测试连接...
+✅ 连接成功
+
+======================================================================
+测试: drop-table
+======================================================================
+  [1/2] CREATE TABLE test_drop(id INT)...
+    ✅ 成功
+  [2/2] DROP TABLE test_drop...
+    ✅ 成功
+
+======================================================================
+测试: update
+======================================================================
+  [1/4] CREATE TABLE test_update(id INT, name CHAR(10))...
+    ✅ 成功
+  [2/4] INSERT INTO test_update VALUES(1, 'test')...
+    ✅ 成功
+  [3/4] UPDATE test_update SET name='updated' WHERE id=1...
+    ✅ 成功
+  [4/4] DROP TABLE test_update...
+    ✅ 成功
+
+======================================================================
+测试: date
+======================================================================
+  [1/3] CREATE TABLE test_date(id INT, birthday DATE)...
+    ✅ 成功
+  [2/3] INSERT INTO test_date VALUES(1, '2022-10-10')...
+    ✅ 成功
+  [3/3] DROP TABLE test_date...
+    ✅ 成功
+
+======================================================================
+测试: expression
+======================================================================
+  [1/1] SELECT 1 + 2 * 3 AS result...
+    ✅ 成功
+
+======================================================================
+测试: function
+======================================================================
+  [1/2] SELECT LENGTH('hello') AS len...
+    ✅ 成功
+  [2/2] SELECT ROUND(3.14) AS rounded...
+    ✅ 成功
+
+======================================================================
+测试: join-tables
+======================================================================
+  [1/7] CREATE TABLE a(id INT, name CHAR)...
+    ✅ 成功
+  [2/7] CREATE TABLE b(id INT, num INT)...
+    ✅ 成功
+  [3/7] INSERT INTO a VALUES(1, 'x')...
+    ✅ 成功
+  [4/7] INSERT INTO b VALUES(1, 10)...
+    ✅ 成功
+  [5/7] SELECT * FROM a INNER JOIN b ON a.id=b.id...
+    ✅ 成功
+  [6/7] DROP TABLE a...
+    ✅ 成功
+  [7/7] DROP TABLE b...
+    ✅ 成功
+
+======================================================================
+测试: group-by
+======================================================================
+  [1/4] CREATE TABLE test_group(id INT, score INT)...
+    ✅ 成功
+  [2/4] INSERT INTO test_group VALUES(1, 80), (1, 90)...
+    ✅ 成功
+  [3/4] SELECT id, AVG(score) FROM test_group GROUP BY id...
+    ✅ 成功
+  [4/4] DROP TABLE test_group...
+    ✅ 成功
+
+======================================================================
+测试: order-by
+======================================================================
+  [1/4] CREATE TABLE test_order(id INT, score INT)...
+    ✅ 成功
+  [2/4] INSERT INTO test_order VALUES(1, 80), (2, 90)...
+    ✅ 成功
+  [3/4] SELECT * FROM test_order ORDER BY score DESC...
+    ✅ 成功
+  [4/4] DROP TABLE test_order...
+    ✅ 成功
+
+======================================================================
+测试: null
+======================================================================
+  [1/2] CREATE TABLE test_null(id INT NULL, name CHAR(10) NOT NULL)...
+    ✅ 成功
+  [2/2] DROP TABLE test_null...
+    ✅ 成功
+
+======================================================================
+测试: alias
+======================================================================
+  [1/3] CREATE TABLE test_alias(id INT, name CHAR(10))...
+    ✅ 成功
+  [2/3] SELECT id AS num FROM test_alias AS t...
+    ✅ 成功
+  [3/3] DROP TABLE test_alias...
+    ✅ 成功
+
+======================================================================
+测试: multi-index
+======================================================================
+  [1/3] CREATE TABLE test_multi(id INT, col1 INT, col2 INT)...
+    ✅ 成功
+  [2/3] CREATE INDEX i_multi ON test_multi(col1, col2)...
+    ✅ 成功
+  [3/3] DROP TABLE test_multi...
+    ✅ 成功
+
+======================================================================
+测试: unique
+======================================================================
+  [1/3] CREATE TABLE test_unique(id INT)...
+    ✅ 成功
+  [2/3] CREATE UNIQUE INDEX i_unique ON test_unique(id)...
+    ✅ 成功
+  [3/3] DROP TABLE test_unique...
+    ✅ 成功
+
+======================================================================
+测试: text
+======================================================================
+  [1/2] CREATE TABLE test_text(id INT, article TEXT)...
+    ✅ 成功
+  [2/2] DROP TABLE test_text...
+    ✅ 成功
+
+======================================================================
+测试: union
+======================================================================
+  [1/7] CREATE TABLE t1(id INT)...
+    ✅ 成功
+  [2/7] CREATE TABLE t2(id INT)...
+    ✅ 成功
+  [3/7] INSERT INTO t1 VALUES(1)...
+    ✅ 成功
+  [4/7] INSERT INTO t2 VALUES(1)...
+    ✅ 成功
+  [5/7] SELECT * FROM t1 UNION SELECT * FROM t2...
+    ✅ 成功
+  [6/7] DROP TABLE t1...
+    ✅ 成功
+  [7/7] DROP TABLE t2...
+    ✅ 成功
+
+======================================================================
+测试: vector-basic
+======================================================================
+  [1/7] CREATE TABLE test_vec(id INT, vec VECTOR(3))...
+    ✅ 成功
+  [2/7] INSERT INTO test_vec VALUES(1, STRING_TO_VECTOR('[1,2,3]'))...
+    ✅ 成功
+  [3/7] INSERT INTO test_vec VALUES(2, STRING_TO_VECTOR('[2,3,4]'))...
+    ✅ 成功
+  [4/7] SELECT DISTANCE(STRING_TO_VECTOR('[1,2,3]'), STRING_TO_VECTO...
+    ✅ 成功
+  [5/7] SELECT DISTANCE(STRING_TO_VECTOR('[1,2,3]'), STRING_TO_VECTO...
+    ✅ 成功
+  [6/7] SELECT id, VECTOR_TO_STRING(vec) AS vec_str FROM test_vec...
+    ✅ 成功
+  [7/7] DROP TABLE test_vec...
+    ✅ 成功
+
+======================================================================
+测试: vector-search
+======================================================================
+  [1/6] CREATE TABLE test_vec_search(id INT, vec VECTOR(3))...
+    ✅ 成功
+  [2/6] INSERT INTO test_vec_search VALUES(1, STRING_TO_VECTOR('[1,2...
+    ✅ 成功
+  [3/6] INSERT INTO test_vec_search VALUES(2, STRING_TO_VECTOR('[2,3...
+    ✅ 成功
+  [4/6] INSERT INTO test_vec_search VALUES(3, STRING_TO_VECTOR('[10,...
+    ✅ 成功
+  [5/6] SELECT id FROM test_vec_search ORDER BY DISTANCE(vec, STRING...
+    ✅ 成功
+  [6/6] DROP TABLE test_vec_search...
+    ✅ 成功
+
+======================================================================
+测试: alter
+======================================================================
+  [1/8] CREATE TABLE test_alter(id INT)...
+    ✅ 成功
+  [2/8] ALTER TABLE test_alter ADD COLUMN name CHAR(10)...
+    ✅ 成功
+  [3/8] ALTER TABLE test_alter ADD COLUMN age INT...
+    ✅ 成功
+  [4/8] INSERT INTO test_alter VALUES(1, 'test', 20)...
+    ✅ 成功
+  [5/8] ALTER TABLE test_alter DROP COLUMN age...
+    ✅ 成功
+  [6/8] ALTER TABLE test_alter CHANGE COLUMN name new_name CHAR(10)...
+    ✅ 成功
+  [7/8] ALTER TABLE test_alter RENAME TO test_alter2...
+    ✅ 成功
+  [8/8] DROP TABLE test_alter2...
+    ✅ 成功
+
+======================================================================
+测试: simple-sub-query
+======================================================================
+  [1/8] CREATE TABLE t1(id INT, name CHAR(10))...
+    ✅ 成功
+  [2/8] CREATE TABLE t2(id INT, name CHAR(10))...
+    ✅ 成功
+  [3/8] INSERT INTO t1 VALUES(1, 'A'), (2, 'B')...
+    ✅ 成功
+  [4/8] INSERT INTO t2 VALUES(1, 'X'), (3, 'Y')...
+    ✅ 成功
+  [5/8] SELECT * FROM t1 WHERE id IN (SELECT id FROM t2)...
+    ✅ 成功
+  [6/8] SELECT * FROM t1 WHERE id NOT IN (SELECT id FROM t2)...
+    ✅ 成功
+  [7/8] DROP TABLE t1...
+    ✅ 成功
+  [8/8] DROP TABLE t2...
+    ✅ 成功
+
+======================================================================
+测试: function-date_format
+======================================================================
+  [1/4] CREATE TABLE test_datefmt(id INT, birthday DATE)...
+    ✅ 成功
+  [2/4] INSERT INTO test_datefmt VALUES(1, '2022-10-10')...
+    ✅ 成功
+  [3/4] SELECT DATE_FORMAT(birthday, '%Y-%m-%d') FROM test_datefmt...
+    ✅ 成功
+  [4/4] DROP TABLE test_datefmt...
+    ✅ 成功
+
+======================================================================
+测试: alter
+======================================================================
+  [1/4] CREATE TABLE test_alter(id INT)...
+    ✅ 成功
+  [2/4] ALTER TABLE test_alter ADD COLUMN name CHAR(10)...
+    ✅ 成功
+  [3/4] ALTER TABLE test_alter DROP COLUMN name...
+    ✅ 成功
+  [4/4] DROP TABLE test_alter...
+    ✅ 成功
+
+======================================================================
+测试总结
+======================================================================
+✅ drop-table
+✅ update
+✅ date
+✅ expression
+✅ function
+✅ join-tables
+✅ group-by
+✅ order-by
+✅ null
+✅ alias
+✅ multi-index
+✅ unique
+✅ text
+✅ union
+✅ vector-basic
+✅ vector-search
+✅ alter
+✅ simple-sub-query
+✅ function-date_format
+✅ alter
+
+总计: 20
+通过: 20
+失败: 0
+Traceback (most recent call last):
+  File "/home/obuser/oceanbase-contest/test/miniob-2025-new/run_with_tcp.py", line 230, in <module>
+    observer.wait(timeout=5)
+  File "/usr/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['./build/bin/observer', '-p', '6789', '-P', 'mysql', '-t', 'mvcc', '-d', 'disk']' timed out after 5 seconds

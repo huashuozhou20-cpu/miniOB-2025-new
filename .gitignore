@@ -26,4 +26,14 @@ GRTAGS
 GPATH
 GTAGS
 docs/book
+# 在 .gitignore 中添加以下内容（编译生成的目录和文件）
+CMakeCache.txt
+CMakeFiles/
+bin/
+lib/
+Makefile
+cmake_install.cmake
+CTestTestfile.cmake
+deps/3rd/usr/  # jsoncpp 编译安装的产物
+deps/3rd/replxx/  # 未跟踪的子模块冗余文件（如果不需要）
 #*#
