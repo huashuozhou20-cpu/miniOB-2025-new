@@ -17,6 +17,9 @@ See the Mulan PSL v2 for more details. */
 
 #include <netinet/in.h>
 #include <unistd.h>
+#include <cstring>
+
+#define ignore_result(x) do { ssize_t _r = (x); (void)_r; } while(0)
 
 #include "common/ini_setting.h"
 #include "common/init.h"
@@ -85,7 +88,13 @@ void parse_parameter(int argc, char **argv)
 
 Server *init_server()
 {
+  const char *msg1 = "[DEBUG] init_server() called\n";
+  ignore_result(write(STDOUT_FILENO, msg1, strlen(msg1)));
+  ignore_result(write(STDERR_FILENO, msg1, strlen(msg1)));
   std::map<std::string, std::string> net_section = get_properties()->get(NET);
+  const char *msg2 = "[DEBUG] init_server() got net_section\n";
+  ignore_result(write(STDOUT_FILENO, msg2, strlen(msg2)));
+  ignore_result(write(STDERR_FILENO, msg2, strlen(msg2)));
 
   ProcessParam *process_param = the_process_param();
 
@@ -135,12 +144,18 @@ Server *init_server()
   }
   server_param.thread_handling = process_param->thread_handling_name();
 
+  const char *msg3 = "[DEBUG] init_server() creating server\n";
+  ignore_result(write(STDOUT_FILENO, msg3, strlen(msg3)));
+  ignore_result(write(STDERR_FILENO, msg3, strlen(msg3)));
   Server *server = nullptr;
   if (server_param.use_std_io) {
     server = new CliServer(server_param);
   } else {
     server = new NetServer(server_param);
   }
+  const char *msg4 = "[DEBUG] init_server() server created\n";
+  ignore_result(write(STDOUT_FILENO, msg4, strlen(msg4)));
+  ignore_result(write(STDERR_FILENO, msg4, strlen(msg4)));
 
   return server;
 }
@@ -192,7 +207,11 @@ int main(int argc, char **argv)
 
   printf("[DEBUG] About to call init()\n");
   fflush(stdout);
+  const char *msg_init_start = "[DEBUG] About to call init()\n";
+  ignore_result(write(STDOUT_FILENO, msg_init_start, strlen(msg_init_start)));
   rc = init(the_process_param());
+  const char *msg_init_end = "[DEBUG] init() returned\n";
+  ignore_result(write(STDOUT_FILENO, msg_init_end, strlen(msg_init_end)));
   printf("[DEBUG] init() returned with code: %d\n", rc);
   fflush(stdout);
   if (rc != STATUS_SUCCESS) {
@@ -205,7 +224,13 @@ int main(int argc, char **argv)
   cerr.flush();  // 强制刷新输出
   printf("[DEBUG] Initialization completed, starting server...\n");
   fflush(stdout);
+  const char *msg1 = "[DEBUG] About to call init_server()\n";
+  ignore_result(write(STDOUT_FILENO, msg1, strlen(msg1)));
+  ignore_result(write(STDERR_FILENO, msg1, strlen(msg1)));
   g_server = init_server();
+  const char *msg2 = "[DEBUG] init_server() returned\n";
+  ignore_result(write(STDOUT_FILENO, msg2, strlen(msg2)));
+  ignore_result(write(STDERR_FILENO, msg2, strlen(msg2)));
   if (g_server == nullptr) {
     cerr << "[ERROR] Failed to create server!" << endl;
     printf("[ERROR] Failed to create server!\n");
@@ -217,6 +242,9 @@ int main(int argc, char **argv)
   cerr.flush();  // 强制刷新输出
   printf("[DEBUG] Server created, calling serve()...\n");
   fflush(stdout);
+  const char *msg3 = "[DEBUG] About to call serve()\n";
+  ignore_result(write(STDOUT_FILENO, msg3, strlen(msg3)));
+  ignore_result(write(STDERR_FILENO, msg3, strlen(msg3)));
   g_server->serve();
 
   LOG_INFO("Server stopped");

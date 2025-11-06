@@ -17,10 +17,13 @@ See the Mulan PSL v2 for more details. */
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cstring>
 #include <vector>
 #include <filesystem>
 #include <regex>
 #include <system_error>
+
+#define ignore_result(x) do { ssize_t _r = (x); (void)_r; } while(0)
 
 #include "common/lang/string.h"
 #include "common/log/log.h"
@@ -120,7 +123,10 @@ RC Db::init(const char *name, const char *dbpath, const char *trx_kit_name, cons
   // 在实际生产数据库中，直接打开所有表，可能耗时会比较长
   rc = open_all_tables();
   if (OB_FAIL(rc)) {
-    LOG_WARN("failed to open all tables. dbpath=%s, rc=%s", dbpath, strrc(rc));
+    // 暂时注释掉 LOG_WARN，避免日志系统阻塞
+    // LOG_WARN("failed to open all tables. dbpath=%s, rc=%s", dbpath, strrc(rc));
+    printf("[WARN] failed to open all tables. dbpath=%s, rc=%s\n", dbpath, strrc(rc));
+    fflush(stdout);
     return rc;
   }
 
@@ -130,37 +136,12 @@ RC Db::init(const char *name, const char *dbpath, const char *trx_kit_name, cons
     return rc;
   }
 
-  printf("[DEBUG] Db::init: init_dblwr_buffer completed\n");
-  fflush(stdout);
-  const char *msg_dblwr = "[DEBUG] Db::init: init_dblwr_buffer completed\n";
-  ssize_t w_dblwr = write(STDOUT_FILENO, msg_dblwr, strlen(msg_dblwr));
-  (void)w_dblwr;
-
   // 尝试恢复数据库，重做redo日志
-  printf("[DEBUG] Db::init: About to call recover()\n");
-  fflush(stdout);
-  const char *msg_recover = "[DEBUG] Db::init: About to call recover()\n";
-  ssize_t w_recover = write(STDOUT_FILENO, msg_recover, strlen(msg_recover));
-  (void)w_recover;
-  
   rc = recover();
-  
-  printf("[DEBUG] Db::init: recover() returned\n");
-  fflush(stdout);
-  const char *msg_recover2 = "[DEBUG] Db::init: recover() returned\n";
-  ssize_t w_recover2 = write(STDOUT_FILENO, msg_recover2, strlen(msg_recover2));
-  (void)w_recover2;
-  
   if (OB_FAIL(rc)) {
     LOG_WARN("failed to recover db. dbpath=%s, rc=%s", dbpath, strrc(rc));
     return rc;
   }
-
-  printf("[DEBUG] Db::init: recover() completed, returning SUCCESS\n");
-  fflush(stdout);
-  const char *msg_recover3 = "[DEBUG] Db::init: recover() completed, returning SUCCESS\n";
-  ssize_t w_recover3 = write(STDOUT_FILENO, msg_recover3, strlen(msg_recover3));
-  (void)w_recover3;
 
   return rc;
 }
@@ -291,10 +272,12 @@ RC Db::open_all_tables()
       next_table_id_ = table->table_id() + 1;
     }
     opened_tables_[table->name()] = table;
-    LOG_INFO("Open table: %s, file: %s", table->name(), filename.c_str());
+    // 暂时注释掉 LOG_INFO，避免日志系统阻塞
+    // LOG_INFO("Open table: %s, file: %s", table->name(), filename.c_str());
   }
 
-  LOG_INFO("All table have been opened. num=%d", opened_tables_.size());
+  // 暂时注释掉 LOG_INFO，避免日志系统阻塞
+  // LOG_INFO("All table have been opened. num=%d", opened_tables_.size());
   return rc;
 }
 
