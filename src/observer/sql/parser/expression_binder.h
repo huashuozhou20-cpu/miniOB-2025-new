@@ -30,8 +30,18 @@ public:
 
   const std::vector<pair<BaseTable *, string>> &query_tables() const { return query_tables_; }
 
+  // 用于 ORDER BY 中解析字段别名
+  void set_select_expressions(const std::vector<std::unique_ptr<Expression>> *select_exprs) {
+    select_expressions_ = select_exprs;
+  }
+
+  const std::vector<std::unique_ptr<Expression>> *select_expressions() const {
+    return select_expressions_;
+  }
+
 private:
   std::vector<pair<BaseTable *, string>> query_tables_;
+  const std::vector<std::unique_ptr<Expression>> *select_expressions_ = nullptr;
 };
 
 /**

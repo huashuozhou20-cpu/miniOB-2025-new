@@ -270,29 +270,32 @@ char *substr(const char *s, int n1, int n2)
  */
 string double_to_str(double v)
 {
-  // 先进行一次更高精度(三位小数)的四舍五入，缓解二进制浮点的0.5邻域误差
-  double pre_rounded = std::round(v * 1000.0) / 1000.0;
-
-  // 再按两位小数执行“严格四舍五入(half-up)”，正负数都远离零
-  double scaled = pre_rounded * 100.0;
-  double rounded2;
+  // 使用更可靠的四舍五入方法：直接对两位小数进行四舍五入
+  // 先乘以100，然后加上0.5（正数）或减去0.5（负数）进行四舍五入
+  double scaled = v * 100.0;
+  long long rounded;
   if (scaled >= 0.0) {
-    rounded2 = std::floor(scaled + 0.5);
+    // 对于正数：加上0.5后向下取整，实现四舍五入
+    rounded = static_cast<long long>(std::floor(scaled + 0.5));
   } else {
-    rounded2 = std::ceil(scaled - 0.5);
+    // 对于负数：减去0.5后向上取整，实现四舍五入（远离零）
+    rounded = static_cast<long long>(std::ceil(scaled - 0.5));
   }
-  double final_val = rounded2 / 100.0;
+  double final_val = static_cast<double>(rounded) / 100.0;
 
   char buf[256];
-  // 此时再格式化为两位小数，仅作为显示，值已按我们规则舍入
+  // 使用标准的两位小数格式化
   snprintf(buf, sizeof(buf), "%.2f", final_val);
+  
+  // 移除末尾的0和小数点（如果小数部分全为0）
   size_t len = strlen(buf);
-  while (buf[len - 1] == '0') {
+  while (len > 0 && buf[len - 1] == '0') {
     len--;
   }
-  if (buf[len - 1] == '.') {
+  if (len > 0 && buf[len - 1] == '.') {
     len--;
   }
+  buf[len] = '\0';
 
   return string(buf, len);
 }

@@ -41,7 +41,7 @@ string FrameId::to_string() const
 intptr_t get_default_debug_xid()
 {
   // 使用线程ID作为xid，避免会话对象更替导致xid不一致
-  return reinterpret_cast<intptr_t>(reinterpret_cast<void *>(pthread_self()));
+    return reinterpret_cast<intptr_t>(reinterpret_cast<void *>(pthread_self()));
 }
 
 void Frame::write_latch() { write_latch(get_default_debug_xid()); }
@@ -86,7 +86,7 @@ void Frame::write_unlatch(intptr_t xid)
   if (write_locker_ != xid) {
     // 容错：若未记录owner或不一致，避免崩溃但打印警告，继续解锁以防止卡死
     LOG_WARN("frame unlock write while not the owner. write_locker=%lx, this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
-             write_locker_, this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+      write_locker_, this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
     write_recursive_count_ = 0;
     write_locker_ = 0;
     debug_lock_.unlock();
@@ -124,15 +124,14 @@ void Frame::read_latch(intptr_t xid)
 
   lock_.lock_shared();
 
-//   {
-// #ifdef DEBUG
-//     scoped_lock debug_lock(debug_lock_);
-//     ++read_lockers_[xid];
-//     TRACE("frame read lock success."
-//           "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
-//           this, pin_count_.load(), frame_id_.to_string().c_str(), xid, read_lockers_[xid], lbt());
-// #endif
-//   }
+  // 记录读锁持有者与重入计数，供解锁与诊断使用（不限于DEBUG构建）
+  {
+    scoped_lock debug_lock(debug_lock_);
+    ++read_lockers_[xid];
+    // TRACE("frame read lock success."
+    //       "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
+    //       this, pin_count_.load(), frame_id_.to_string().c_str(), xid, read_lockers_[xid], lbt());
+  }
 }
 
 bool Frame::try_read_latch()
@@ -152,16 +151,14 @@ bool Frame::try_read_latch()
   }
 
   bool ret = lock_.try_lock_shared();
-//   if (ret) {
-// #ifdef DEBUG
-//     debug_lock_.lock();
-//     ++read_lockers_[xid];
-//     TRACE("frame read lock success."
-//           "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
-//           this, pin_count_.load(), frame_id_.to_string().c_str(), xid, read_lockers_[xid], lbt());
-//     debug_lock_.unlock();
-// #endif
-//   }
+  if (ret) {
+    // 记录读锁持有者与重入计数，供解锁与诊断使用（不限于DEBUG构建）
+    scoped_lock debug_lock(debug_lock_);
+    ++read_lockers_[xid];
+    // TRACE("frame read lock success."
+    //       "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
+    //       this, pin_count_.load(), frame_id_.to_string().c_str(), xid, read_lockers_[xid], lbt());
+  }
 
   return ret;
 }
@@ -170,28 +167,31 @@ void Frame::read_unlatch() { read_unlatch(get_default_debug_xid()); }
 
 void Frame::read_unlatch(intptr_t xid)
 {
-  {
-    scoped_lock debug_lock(debug_lock_);
-    ASSERT(pin_count_.load() > 0,
-        "frame lock. read unlock failed while pin count is invalid."
-        "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
-        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
+  debug_lock_.lock();
+  ASSERT(pin_count_.load() > 0,
+      "frame lock. read unlock failed while pin count is invalid."
+      "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",
+      this, pin_count_.load(), frame_id_.to_string().c_str(), xid, lbt());
 
-#ifdef DEBUG
-    auto read_lock_iter  = read_lockers_.find(xid);
-    int  recursive_count = read_lock_iter != read_lockers_.end() ? read_lock_iter->second : 0;
-    ASSERT(recursive_count > 0,
-        "frame unlock while not holding read lock."
-        "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
-        this, pin_count_.load(), frame_id_.to_string().c_str(), xid, recursive_count, lbt());
-
-    if (1 == recursive_count) {
-      read_lockers_.erase(xid);
-    } else {
-      read_lockers_[xid] = recursive_count - 1;
-    }
-#endif
+  auto read_lock_iter  = read_lockers_.find(xid);
+  int  recursive_count = read_lock_iter != read_lockers_.end() ? read_lock_iter->second : 0;
+  
+  // 容错：若未持有读锁（recursive_count == 0），避免崩溃但打印警告，继续解锁以防止卡死
+  if (recursive_count == 0) {
+    LOG_WARN("frame unlock read while not holding read lock. this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
+             this, pin_count_.load(), frame_id_.to_string().c_str(), xid, recursive_count, lbt());
+    debug_lock_.unlock();
+    lock_.unlock_shared();
+    return;
   }
+
+  // 递减递归计数，如果为0则移除记录
+  if (1 == recursive_count) {
+    read_lockers_.erase(xid);
+  } else {
+    read_lockers_[xid] = recursive_count - 1;
+  }
+  debug_lock_.unlock();
 
   // TRACE("frame read unlock success."
   //       "this=%p, pin=%d, frameId=%s, xid=%lx, lbt=%s",

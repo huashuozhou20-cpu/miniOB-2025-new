@@ -500,12 +500,22 @@ RC ComparisonExpr::get_value(const Tuple &tuple, Value &value) const
       Value right_value;
 
       rc = left_->get_value(tuple, left_value);
+      // 对于需要单值的比较操作（=, >, <, >=, <=, !=），如果子查询返回多行，应该报错
+      if (rc == RC::MUTI_TUPLE) {
+        LOG_WARN("subquery returns more than one row for single-value comparison");
+        return RC::INVALID_ARGUMENT;
+      }
       if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
         LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
         return rc;
       }
 
       rc = right_->get_value(tuple, right_value);
+      // 对于需要单值的比较操作（=, >, <, >=, <=, !=），如果子查询返回多行，应该报错
+      if (rc == RC::MUTI_TUPLE) {
+        LOG_WARN("subquery returns more than one row for single-value comparison");
+        return RC::INVALID_ARGUMENT;
+      }
       if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
         LOG_WARN("failed to get value of right expression. rc=%s", strrc(rc));
         return rc;
@@ -1508,14 +1518,13 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
     return RC::SUCCESS;
   }
 
-  // Find actual string length (excluding padding)
-  int len = arg_value.length();
-  if (len > 0) {
-    // Remove trailing spaces
-    while (len > 0 && str[len - 1] == ' ') {
-      len--;
-    }
+  // 使用 get_string() 获取实际字符串，然后计算其真实长度（不包括末尾填充的空格）
+  string str_val = arg_value.get_string();
+  // 移除末尾空格
+  while (!str_val.empty() && str_val.back() == ' ') {
+    str_val.pop_back();
   }
+  int len = static_cast<int>(str_val.length());
 
   result = Value(len);
   return RC::SUCCESS;

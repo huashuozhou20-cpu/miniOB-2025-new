@@ -159,27 +159,77 @@ RC ExpressionBinder::bind_unbound_field_expression(
   const char *field_name = unbound_field_expr->field_name();
 
   pair<BaseTable *, string> pair_temp;
+  bool table_found = false;
   if (is_blank(table_name)) {
     if (context_.query_tables().size() != 1) {
+      // 多表情况下，如果没有表名前缀，先检查是否是 SELECT 列表中的别名
+      if (context_.select_expressions() != nullptr) {
+        const auto &select_exprs = *context_.select_expressions();
+        for (const auto &select_expr : select_exprs) {
+          const string &alias = select_expr->alias();
+          if (!alias.empty() && 0 == strcasecmp(alias.c_str(), field_name)) {
+            unique_ptr<Expression> copied_expr = select_expr->deep_copy();
+            if (copied_expr != nullptr) {
+              bound_expressions.emplace_back(std::move(copied_expr));
+              return RC::SUCCESS;
+            }
+          }
+        }
+      }
       LOG_INFO("cannot determine table for field: %s", field_name);
       return RC::SCHEMA_TABLE_NOT_EXIST;
     }
 
     pair_temp = context_.query_tables()[0];
+    table_found = true;
   } else {
     pair_temp = context_.find_table(table_name);
     if (nullptr == pair_temp.first) {
       LOG_INFO("no such table in from list: %s", table_name);
       return RC::SCHEMA_TABLE_NOT_EXIST;
     }
+    table_found = true;
   }
 
   if (0 == strcmp(field_name, "*")) {
     wildcard_fields(pair_temp, bound_expressions);
   } else {
-    const FieldMeta *field_meta = pair_temp.first->table_meta().field(field_name);
+    const FieldMeta *field_meta = nullptr;
+    if (table_found && pair_temp.first != nullptr) {
+      field_meta = pair_temp.first->table_meta().field(field_name);
+    }
+    
     if (nullptr == field_meta) {
-      LOG_INFO("no such field in table: %s.%s", table_name, field_name);
+      // 如果找不到表字段，检查是否是 SELECT 列表中的别名（用于 ORDER BY）
+      if (context_.select_expressions() != nullptr) {
+        const auto &select_exprs = *context_.select_expressions();
+        for (const auto &select_expr : select_exprs) {
+          const string &alias = select_expr->alias();
+          if (!alias.empty() && 0 == strcasecmp(alias.c_str(), field_name)) {
+            // 找到匹配的别名，使用深拷贝
+            unique_ptr<Expression> copied_expr = select_expr->deep_copy();
+            if (copied_expr != nullptr) {
+              bound_expressions.emplace_back(std::move(copied_expr));
+              return RC::SUCCESS;
+            }
+          }
+        }
+        // 也检查字段名（name）是否匹配（当别名为空时）
+        for (const auto &select_expr : select_exprs) {
+          const char *name = select_expr->name();
+          if (name != nullptr && 0 == strcasecmp(name, field_name)) {
+            // 如果别名不存在但字段名匹配，也使用深拷贝
+            if (select_expr->alias().empty()) {
+              unique_ptr<Expression> copied_expr = select_expr->deep_copy();
+              if (copied_expr != nullptr) {
+                bound_expressions.emplace_back(std::move(copied_expr));
+                return RC::SUCCESS;
+              }
+            }
+          }
+        }
+      }
+      LOG_INFO("no such field in table: %s.%s", table_name ? table_name : "", field_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
 

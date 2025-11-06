@@ -142,6 +142,9 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
       table_map.erase(table_alias);
   }
 
+  // 在绑定 ORDER BY 之前，设置 SELECT 列表的绑定表达式，以便解析字段别名
+  binder_context.set_select_expressions(&bound_expressions);
+
   vector<unique_ptr<Expression>> order_by_expressions;
   vector<bool> is_asc;
 

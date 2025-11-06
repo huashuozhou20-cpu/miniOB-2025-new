@@ -252,7 +252,8 @@ RC PlainCommunicator::write_tuple_schema(SqlResult *sql_result)
   for (int i = 0; i < cell_num; i++) {
     const TupleCellSpec &spec  = schema.cell_at(i);
     const char          *alias = spec.alias();
-    if (nullptr != alias || alias[0] != 0) {
+    // 修复：只有当别名不为空且不为空字符串时才显示
+    if (nullptr != alias && alias[0] != '\0') {
       if (0 != i) {
         const char *delim = " | ";
 
