@@ -4624,3 +4624,366 @@
 [2025-11-07 01:10:24.224950 pid:95647 tid:753ed267d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
 [2025-11-07 01:10:24.225009 pid:95647 tid:753ed267d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000004f0
 [2025-11-07 01:10:24.225384 pid:95647 tid:753ed267d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000004f0
+[2025-11-07 01:15:04.590784 pid:98542 tid:72a75b8f37c0 ctx:0 WARN: create_db@default_handler.cpp:137] >> Db already exists: sys
+[2025-11-07 01:15:04.591397 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_begin
+[2025-11-07 01:15:04.591464 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_end
+[2025-11-07 01:15:04.591556 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init@mvcc_trx.cpp:39] >> init mvcc trx kit done.
+[2025-11-07 01:15:04.592398 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.593048 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.593564 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.594043 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.594515 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.595030 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.595469 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.595898 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.596368 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.596830 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.597472 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.598179 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.598776 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.600200 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.600770 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.601803 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.602583 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.603559 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.604213 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.604706 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.604771 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init@mem_pool.h:191] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:04.604786 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:811] >> buffer pool manager init with memory size 16384000, page num: 2000, pool num: 20
+[2025-11-07 01:15:04.605127 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: load_pages@double_write_buffer.cpp:299] >> double write buffer load pages done. page num=0
+[2025-11-07 01:15:04.606322 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init@log_file.cpp:281] >> init log file manager success. directory=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog, log files=1
+[2025-11-07 01:15:04.606525 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: init_meta@db.cpp:373] >> Db meta file not exist. db=sys, file=miniob/db/sys/sys.db
+[2025-11-07 01:15:04.631955 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: open@log_file.cpp:42] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:04.632415 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: iterate@disk_log_handler.cpp:150] >> iterate clog files done. rc=SUCCESS
+[2025-11-07 01:15:04.632475 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: replay@disk_log_handler.cpp:116] >> replay clog files done. start lsn=0, max_lsn=0
+[2025-11-07 01:15:04.632888 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: start@disk_log_handler.cpp:59] >> log handler started
+[2025-11-07 01:15:04.632961 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: recover@db.cpp:364] >> Successfully recover db. db=sys checkpoint_lsn=0
+[2025-11-07 01:15:04.633334 pid:98542 tid:72a7567876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:190] >> log handler thread started
+[2025-11-07 01:15:04.633483 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: serve@server.cpp:260] >> NetServer::serve() called, thread_handling=
+[2025-11-07 01:15:04.633503 pid:98542 tid:72a7567876c0 ctx:0 INFO: open@log_file.cpp:170] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:04.633530 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: serve@server.cpp:268] >> Thread handler created successfully
+[2025-11-07 01:15:04.633534 pid:98542 tid:72a7567876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:210] >> open log file success. file=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log
+[2025-11-07 01:15:04.633574 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: serve@server.cpp:277] >> Thread handler started successfully
+[2025-11-07 01:15:04.633625 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: serve@server.cpp:280] >> Starting network server on port 6789
+[2025-11-07 01:15:04.633716 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: start_unix_socket_server@server.cpp:250] >> Listen on unix socket: /tmp/miniob_comprehensive_test/miniob.sock
+[2025-11-07 01:15:04.633755 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: start_unix_socket_server@server.cpp:253] >> Observer start success
+[2025-11-07 01:15:04.633774 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: serve@server.cpp:288] >> Network server started successfully
+[2025-11-07 01:15:05.126623 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.129290 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000004f0
+[2025-11-07 01:15:05.143823 pid:98542 tid:72a75547d6c0 ctx:0 WARN: operator()@one_thread_per_connection_thread_handler.cpp:102] >> poll error. fd = 9, revents = 17
+[2025-11-07 01:15:05.143964 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000004f0
+[2025-11-07 01:15:05.144328 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000004f0
+[2025-11-07 01:15:05.161216 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.161981 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000560
+[2025-11-07 01:15:05.170781 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.171506 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.171573 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000560
+[2025-11-07 01:15:05.171635 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000560
+[2025-11-07 01:15:05.182898 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.183375 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000005d0
+[2025-11-07 01:15:05.192495 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.193233 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.193325 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000005d0
+[2025-11-07 01:15:05.193462 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000005d0
+[2025-11-07 01:15:05.203771 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.204126 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000640
+[2025-11-07 01:15:05.213914 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.214881 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.214969 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000640
+[2025-11-07 01:15:05.215051 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000640
+[2025-11-07 01:15:05.225103 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.225525 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000006b0
+[2025-11-07 01:15:05.234243 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4998483, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.235076 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.235175 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000006b0
+[2025-11-07 01:15:05.235268 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000006b0
+[2025-11-07 01:15:05.245964 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.246625 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000720
+[2025-11-07 01:15:05.256286 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.257022 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.257088 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000720
+[2025-11-07 01:15:05.257149 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000720
+[2025-11-07 01:15:05.268552 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.268930 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000790
+[2025-11-07 01:15:05.277153 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.277875 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.277947 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000790
+[2025-11-07 01:15:05.278061 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000790
+[2025-11-07 01:15:05.290298 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.290660 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000800
+[2025-11-07 01:15:05.298613 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.299443 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.299568 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000800
+[2025-11-07 01:15:05.299660 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000800
+[2025-11-07 01:15:05.311857 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.312469 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000870
+[2025-11-07 01:15:05.321727 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.322523 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.322591 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000870
+[2025-11-07 01:15:05.322652 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000870
+[2025-11-07 01:15:05.334097 pid:98542 tid:72a75b8f37c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:05.334487 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000008e0
+[2025-11-07 01:15:05.344640 pid:98542 tid:72a75547d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4998483, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:05.345812 pid:98542 tid:72a75547d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:05.345883 pid:98542 tid:72a75547d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000008e0
+[2025-11-07 01:15:05.345953 pid:98542 tid:72a75547d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000008e0
+[2025-11-07 01:15:17.166150 pid:98829 tid:7c9dc8d417c0 ctx:0 WARN: create_db@default_handler.cpp:137] >> Db already exists: sys
+[2025-11-07 01:15:17.167047 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_begin
+[2025-11-07 01:15:17.167110 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_end
+[2025-11-07 01:15:17.167237 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init@mvcc_trx.cpp:39] >> init mvcc trx kit done.
+[2025-11-07 01:15:17.167833 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.168271 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.168721 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.169275 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.169773 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.170192 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.170655 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.171103 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.171729 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.173005 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.173625 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.174129 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.174599 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.175023 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.175468 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.175897 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.176317 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.176762 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.177160 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.177549 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.177595 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init@mem_pool.h:191] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:17.177610 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:811] >> buffer pool manager init with memory size 16384000, page num: 2000, pool num: 20
+[2025-11-07 01:15:17.177785 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: load_pages@double_write_buffer.cpp:299] >> double write buffer load pages done. page num=0
+[2025-11-07 01:15:17.178514 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init@log_file.cpp:281] >> init log file manager success. directory=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog, log files=1
+[2025-11-07 01:15:17.178725 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: init_meta@db.cpp:373] >> Db meta file not exist. db=sys, file=miniob/db/sys/sys.db
+[2025-11-07 01:15:17.196638 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: open@log_file.cpp:42] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:17.196791 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: iterate@disk_log_handler.cpp:150] >> iterate clog files done. rc=SUCCESS
+[2025-11-07 01:15:17.196830 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: replay@disk_log_handler.cpp:116] >> replay clog files done. start lsn=0, max_lsn=0
+[2025-11-07 01:15:17.197027 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: start@disk_log_handler.cpp:59] >> log handler started
+[2025-11-07 01:15:17.197083 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: recover@db.cpp:364] >> Successfully recover db. db=sys checkpoint_lsn=0
+[2025-11-07 01:15:17.197380 pid:98829 tid:7c9dc3b876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:190] >> log handler thread started
+[2025-11-07 01:15:17.197436 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: serve@server.cpp:260] >> NetServer::serve() called, thread_handling=
+[2025-11-07 01:15:17.197575 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: serve@server.cpp:268] >> Thread handler created successfully
+[2025-11-07 01:15:17.197570 pid:98829 tid:7c9dc3b876c0 ctx:0 INFO: open@log_file.cpp:170] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:17.197610 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: serve@server.cpp:277] >> Thread handler started successfully
+[2025-11-07 01:15:17.197632 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: serve@server.cpp:280] >> Starting network server on port 6789
+[2025-11-07 01:15:17.197611 pid:98829 tid:7c9dc3b876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:210] >> open log file success. file=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log
+[2025-11-07 01:15:17.197744 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: start_unix_socket_server@server.cpp:250] >> Listen on unix socket: /tmp/miniob_detailed_test/miniob.sock
+[2025-11-07 01:15:17.197785 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: start_unix_socket_server@server.cpp:253] >> Observer start success
+[2025-11-07 01:15:17.197805 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: serve@server.cpp:288] >> Network server started successfully
+[2025-11-07 01:15:20.177881 pid:98829 tid:7c9dc8d417c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:20.178529 pid:98829 tid:7c9dc287d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000004f0
+[2025-11-07 01:15:20.186819 pid:98829 tid:7c9dc287d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:20.187562 pid:98829 tid:7c9dc287d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:20.187604 pid:98829 tid:7c9dc287d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000004f0
+[2025-11-07 01:15:20.187742 pid:98829 tid:7c9dc287d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000004f0
+[2025-11-07 01:15:21.166563 pid:98906 tid:7106896f27c0 ctx:0 WARN: create_db@default_handler.cpp:137] >> Db already exists: sys
+[2025-11-07 01:15:21.167035 pid:98906 tid:7106896f27c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_begin
+[2025-11-07 01:15:21.167089 pid:98906 tid:7106896f27c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_end
+[2025-11-07 01:15:21.167254 pid:98906 tid:7106896f27c0 ctx:0 INFO: init@mvcc_trx.cpp:39] >> init mvcc trx kit done.
+[2025-11-07 01:15:21.167886 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.168430 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.168867 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.169639 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.170319 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.170964 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.171511 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.172008 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.172595 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.173131 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.173602 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.174107 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.174627 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.175101 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.175531 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.176002 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.176538 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.177177 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.177711 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.178223 pid:98906 tid:7106896f27c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.178288 pid:98906 tid:7106896f27c0 ctx:0 INFO: init@mem_pool.h:191] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:21.178303 pid:98906 tid:7106896f27c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:811] >> buffer pool manager init with memory size 16384000, page num: 2000, pool num: 20
+[2025-11-07 01:15:21.178513 pid:98906 tid:7106896f27c0 ctx:0 INFO: load_pages@double_write_buffer.cpp:299] >> double write buffer load pages done. page num=0
+[2025-11-07 01:15:21.179215 pid:98906 tid:7106896f27c0 ctx:0 INFO: init@log_file.cpp:281] >> init log file manager success. directory=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog, log files=1
+[2025-11-07 01:15:21.179384 pid:98906 tid:7106896f27c0 ctx:0 INFO: init_meta@db.cpp:373] >> Db meta file not exist. db=sys, file=miniob/db/sys/sys.db
+[2025-11-07 01:15:21.187719 pid:98906 tid:7106896f27c0 ctx:0 INFO: open@log_file.cpp:42] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:21.187900 pid:98906 tid:7106896f27c0 ctx:0 INFO: iterate@disk_log_handler.cpp:150] >> iterate clog files done. rc=SUCCESS
+[2025-11-07 01:15:21.187928 pid:98906 tid:7106896f27c0 ctx:0 INFO: replay@disk_log_handler.cpp:116] >> replay clog files done. start lsn=0, max_lsn=0
+[2025-11-07 01:15:21.188148 pid:98906 tid:7106896f27c0 ctx:0 INFO: start@disk_log_handler.cpp:59] >> log handler started
+[2025-11-07 01:15:21.188205 pid:98906 tid:7106896f27c0 ctx:0 INFO: recover@db.cpp:364] >> Successfully recover db. db=sys checkpoint_lsn=0
+[2025-11-07 01:15:21.188497 pid:98906 tid:7106845876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:190] >> log handler thread started
+[2025-11-07 01:15:21.188617 pid:98906 tid:7106896f27c0 ctx:0 INFO: serve@server.cpp:260] >> NetServer::serve() called, thread_handling=
+[2025-11-07 01:15:21.188666 pid:98906 tid:7106845876c0 ctx:0 INFO: open@log_file.cpp:170] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:21.188672 pid:98906 tid:7106896f27c0 ctx:0 INFO: serve@server.cpp:268] >> Thread handler created successfully
+[2025-11-07 01:15:21.188719 pid:98906 tid:7106896f27c0 ctx:0 INFO: serve@server.cpp:277] >> Thread handler started successfully
+[2025-11-07 01:15:21.188698 pid:98906 tid:7106845876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:210] >> open log file success. file=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log
+[2025-11-07 01:15:21.188772 pid:98906 tid:7106896f27c0 ctx:0 INFO: serve@server.cpp:280] >> Starting network server on port 6789
+[2025-11-07 01:15:21.188867 pid:98906 tid:7106896f27c0 ctx:0 INFO: start_unix_socket_server@server.cpp:250] >> Listen on unix socket: /tmp/miniob_test2/miniob.sock
+[2025-11-07 01:15:21.188985 pid:98906 tid:7106896f27c0 ctx:0 INFO: start_unix_socket_server@server.cpp:253] >> Observer start success
+[2025-11-07 01:15:21.189007 pid:98906 tid:7106896f27c0 ctx:0 INFO: serve@server.cpp:288] >> Network server started successfully
+[2025-11-07 01:15:24.165147 pid:98906 tid:7106896f27c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:24.165781 pid:98906 tid:71068327d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000004f0
+[2025-11-07 01:15:24.174841 pid:98906 tid:71068327d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:24.175535 pid:98906 tid:71068327d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:24.175591 pid:98906 tid:71068327d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000004f0
+[2025-11-07 01:15:24.175737 pid:98906 tid:71068327d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000004f0
+[2025-11-07 01:15:24.186519 pid:98906 tid:7106896f27c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:24.187080 pid:98906 tid:71068327d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000560
+[2025-11-07 01:15:24.195476 pid:98906 tid:71068327d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:24.196294 pid:98906 tid:71068327d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:24.196490 pid:98906 tid:71068327d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000560
+[2025-11-07 01:15:24.196620 pid:98906 tid:71068327d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000560
+[2025-11-07 01:15:51.196510 pid:99156 tid:7fd852d467c0 ctx:0 WARN: create_db@default_handler.cpp:137] >> Db already exists: sys
+[2025-11-07 01:15:51.196996 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_begin
+[2025-11-07 01:15:51.197074 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init@field_meta.cpp:73] >> Init a field with name=__trx_xid_end
+[2025-11-07 01:15:51.197158 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init@mvcc_trx.cpp:39] >> init mvcc trx kit done.
+[2025-11-07 01:15:51.197669 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:128, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.198134 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:256, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.199062 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:384, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.200891 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:512, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.201852 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:640, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.202602 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:768, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.203663 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:896, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.204181 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1024, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.204632 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1152, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.205237 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1280, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.205839 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1408, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.206576 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1536, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.207103 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1664, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.207529 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1792, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.207933 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:1920, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.208326 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2048, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.208751 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2176, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.209166 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2304, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.209558 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2432, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.209955 pid:99156 tid:7fd852d467c0 ctx:0 INFO: extend@mem_pool.h:244] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.210008 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init@mem_pool.h:191] >> Extend one pool, this->size:2560, item_num_per_pool:128, this->name:BufPool.
+[2025-11-07 01:15:51.210024 pid:99156 tid:7fd852d467c0 ctx:0 INFO: BufferPoolManager@disk_buffer_pool.cpp:811] >> buffer pool manager init with memory size 16384000, page num: 2000, pool num: 20
+[2025-11-07 01:15:51.210214 pid:99156 tid:7fd852d467c0 ctx:0 INFO: load_pages@double_write_buffer.cpp:299] >> double write buffer load pages done. page num=0
+[2025-11-07 01:15:51.211163 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init@log_file.cpp:281] >> init log file manager success. directory=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog, log files=1
+[2025-11-07 01:15:51.211365 pid:99156 tid:7fd852d467c0 ctx:0 INFO: init_meta@db.cpp:373] >> Db meta file not exist. db=sys, file=miniob/db/sys/sys.db
+[2025-11-07 01:15:51.227084 pid:99156 tid:7fd852d467c0 ctx:0 INFO: open@log_file.cpp:42] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:51.227383 pid:99156 tid:7fd852d467c0 ctx:0 INFO: iterate@disk_log_handler.cpp:150] >> iterate clog files done. rc=SUCCESS
+[2025-11-07 01:15:51.227421 pid:99156 tid:7fd852d467c0 ctx:0 INFO: replay@disk_log_handler.cpp:116] >> replay clog files done. start lsn=0, max_lsn=0
+[2025-11-07 01:15:51.227613 pid:99156 tid:7fd852d467c0 ctx:0 INFO: start@disk_log_handler.cpp:59] >> log handler started
+[2025-11-07 01:15:51.227671 pid:99156 tid:7fd852d467c0 ctx:0 INFO: recover@db.cpp:364] >> Successfully recover db. db=sys checkpoint_lsn=0
+[2025-11-07 01:15:51.228009 pid:99156 tid:7fd84db876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:190] >> log handler thread started
+[2025-11-07 01:15:51.228027 pid:99156 tid:7fd852d467c0 ctx:0 INFO: serve@server.cpp:260] >> NetServer::serve() called, thread_handling=
+[2025-11-07 01:15:51.228191 pid:99156 tid:7fd852d467c0 ctx:0 INFO: serve@server.cpp:268] >> Thread handler created successfully
+[2025-11-07 01:15:51.228193 pid:99156 tid:7fd84db876c0 ctx:0 INFO: open@log_file.cpp:170] >> open file success. filename=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log, fd=7
+[2025-11-07 01:15:51.228253 pid:99156 tid:7fd852d467c0 ctx:0 INFO: serve@server.cpp:277] >> Thread handler started successfully
+[2025-11-07 01:15:51.228291 pid:99156 tid:7fd84db876c0 ctx:0 INFO: thread_func@disk_log_handler.cpp:210] >> open log file success. file=/home/obuser/oceanbase-contest/test/miniob-2025-new/miniob/db/sys/clog/clog_0.log
+[2025-11-07 01:15:51.228316 pid:99156 tid:7fd852d467c0 ctx:0 INFO: serve@server.cpp:280] >> Starting network server on port 6789
+[2025-11-07 01:15:51.228466 pid:99156 tid:7fd852d467c0 ctx:0 INFO: start_unix_socket_server@server.cpp:250] >> Listen on unix socket: /tmp/miniob_final_test/miniob.sock
+[2025-11-07 01:15:51.228505 pid:99156 tid:7fd852d467c0 ctx:0 INFO: start_unix_socket_server@server.cpp:253] >> Observer start success
+[2025-11-07 01:15:51.228525 pid:99156 tid:7fd852d467c0 ctx:0 INFO: serve@server.cpp:288] >> Network server started successfully
+[2025-11-07 01:15:54.215785 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.216560 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000004f0
+[2025-11-07 01:15:54.221758 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: operator()@one_thread_per_connection_thread_handler.cpp:102] >> poll error. fd = 9, revents = 17
+[2025-11-07 01:15:54.221853 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000004f0
+[2025-11-07 01:15:54.222002 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000004f0
+[2025-11-07 01:15:54.239506 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.239942 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000560
+[2025-11-07 01:15:54.248875 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.249748 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.249879 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000560
+[2025-11-07 01:15:54.250012 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000560
+[2025-11-07 01:15:54.261371 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.261945 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000005d0
+[2025-11-07 01:15:54.270891 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.271715 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.271784 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000005d0
+[2025-11-07 01:15:54.271846 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000005d0
+[2025-11-07 01:15:54.283562 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.284012 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000640
+[2025-11-07 01:15:54.293186 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.294117 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.294185 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000640
+[2025-11-07 01:15:54.294252 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000640
+[2025-11-07 01:15:54.307007 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.307385 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000006b0
+[2025-11-07 01:15:54.316708 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4998483, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.317601 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.317711 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000006b0
+[2025-11-07 01:15:54.317791 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000006b0
+[2025-11-07 01:15:54.329166 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.329730 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000720
+[2025-11-07 01:15:54.338408 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.339386 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.339460 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000720
+[2025-11-07 01:15:54.339522 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000720
+[2025-11-07 01:15:54.350902 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.351394 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000790
+[2025-11-07 01:15:54.359414 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.360047 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.360114 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000790
+[2025-11-07 01:15:54.360182 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000790
+[2025-11-07 01:15:54.371816 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.372218 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000800
+[2025-11-07 01:15:54.380914 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.381901 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.381980 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000800
+[2025-11-07 01:15:54.382058 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000800
+[2025-11-07 01:15:54.392549 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.392960 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000870
+[2025-11-07 01:15:54.401016 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.401794 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.401870 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000870
+[2025-11-07 01:15:54.401952 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000870
+[2025-11-07 01:15:54.414765 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.415211 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000008e0
+[2025-11-07 01:15:54.424496 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.425259 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.425317 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000008e0
+[2025-11-07 01:15:54.425377 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000008e0
+[2025-11-07 01:15:54.437402 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.437788 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000950
+[2025-11-07 01:15:54.446412 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4998483, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.447397 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.447472 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000950
+[2025-11-07 01:15:54.447571 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000950
+[2025-11-07 01:15:54.458118 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.458484 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x5070000009c0
+[2025-11-07 01:15:54.467055 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.467810 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.467880 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x5070000009c0
+[2025-11-07 01:15:54.467953 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x5070000009c0
+[2025-11-07 01:15:54.479037 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.479750 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000a30
+[2025-11-07 01:15:54.488163 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=4543043, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.488882 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.488999 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000a30
+[2025-11-07 01:15:54.489078 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000a30
+[2025-11-07 01:15:54.500582 pid:99156 tid:7fd852d467c0 ctx:0 INFO: accept@server.cpp:131] >> Accepted connection from 0.0.0.0:0
+
+[2025-11-07 01:15:54.501114 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:80] >> worker thread start. communicator = 0x507000000aa0
+[2025-11-07 01:15:54.510211 pid:99156 tid:7fd84c87d6c0 ctx:0 WARN: read_event@mysql_communicator.cpp:635] >> failed to read packet payload. length=5459529, addr=0.0.0.0:0, error=Success
+[2025-11-07 01:15:54.511340 pid:99156 tid:7fd84c87d6c0 ctx:0 ERROR: operator()@one_thread_per_connection_thread_handler.cpp:108] >> handle error. rc = IOERR_READ
+[2025-11-07 01:15:54.511428 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: operator()@one_thread_per_connection_thread_handler.cpp:113] >> worker thread stop. communicator = 0x507000000aa0
+[2025-11-07 01:15:54.511698 pid:99156 tid:7fd84c87d6c0 ctx:0 INFO: close_connection@one_thread_per_connection_thread_handler.cpp:164] >> close connection. communicator = 0x507000000aa0
