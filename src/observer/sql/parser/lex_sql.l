@@ -139,6 +139,7 @@ SELECT                                  RETURN_TOKEN(SELECT);
 SET                                     RETURN_TOKEN(SET);
 SHOW                                    RETURN_TOKEN(SHOW);
 STRING_T                                RETURN_TOKEN(STRING_T);
+CHAR                                    RETURN_TOKEN(STRING_T);
 STORAGE                                 RETURN_TOKEN(STORAGE);
 SYNC                                    RETURN_TOKEN(SYNC);
 TABLE                                   RETURN_TOKEN(TABLE);
