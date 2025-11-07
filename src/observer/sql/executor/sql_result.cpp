@@ -60,7 +60,7 @@ RC SqlResult::close()
     } else {
       RC rc2 = session_->current_trx()->rollback();
       if (rc2 != RC::SUCCESS) {
-        LOG_PANIC("rollback failed. rc=%s", strrc(rc2));
+        LOG_ERROR("rollback failed. rc=%s", strrc(rc2));
       }
     }
   }
