@@ -148,8 +148,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     default: break;
   }
 
-  LOG_PANIC("Never should print this.");
-  return cmp_result;  // should not go here
+  LOG_ERROR("Invalid compare op encountered: %d", static_cast<int>(comp_op_));
+  return false;  // should not go here
 }
 
 CompositeConditionFilter::~CompositeConditionFilter()
