@@ -110,13 +110,33 @@ RC FloatType::set_value_from_str(Value &val, const string &data) const
 
 RC FloatType::to_string(const Value &val, string &result) const
 {
-  // Round to 2 decimal places
-  float rounded = roundf(val.value_.float_value_ * 100.0f) / 100.0f;
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "%.2f", rounded);
-  result = buffer;
+  float value = val.value_.float_value_;
   
-  // 确保输出是2位小数格式（不删除尾随零）
-  // 例如：4 -> 4.00, 97.2 -> 97.20, 184.488 -> 184.49
+  // 先四舍五入到2位小数
+  float rounded = roundf(value * 100.0f) / 100.0f;
+  
+  // 检查是否是整数
+  if (fabs(rounded - roundf(rounded)) < 1e-5) {
+    // 是整数，输出整数格式
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%.0f", rounded);
+    result = buffer;
+  } else {
+    // 不是整数，检查小数位数
+    // 先尝试1位小数
+    float rounded1 = roundf(value * 10.0f) / 10.0f;
+    if (fabs(value - rounded1) < 1e-5) {
+      // 只有1位小数，输出1位小数
+      char buffer[64];
+      snprintf(buffer, sizeof(buffer), "%.1f", rounded1);
+      result = buffer;
+    } else {
+      // 有2位或更多小数，输出2位小数
+      char buffer[64];
+      snprintf(buffer, sizeof(buffer), "%.2f", rounded);
+      result = buffer;
+    }
+  }
+  
   return RC::SUCCESS;
 }
