@@ -668,6 +668,7 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to create scanner while creating index. table=%s, index=%s, rc=%s",
              name(), index_name, strrc(rc));
+    delete index;
     return rc;
   }
 
@@ -677,6 +678,8 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to insert record into index while creating index. table=%s, index=%s, rc=%s",
                name(), index_name, strrc(rc));
+      scanner.close_scan();
+      delete index;
       return rc;
     }
   }
@@ -685,6 +688,8 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
   } else {
     LOG_WARN("failed to insert record into index while creating index. table=%s, index=%s, rc=%s",
              name(), index_name, strrc(rc));
+    scanner.close_scan();
+    delete index;
     return rc;
   }
   scanner.close_scan();
@@ -697,6 +702,9 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
   rc = new_table_meta.add_index(new_index_meta);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
+    // 清理索引
+    indexes_.pop_back();
+    delete index;
     return rc;
   }
 
@@ -708,10 +716,17 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
   fs.open(tmp_file, ios_base::out | ios_base::binary | ios_base::trunc);
   if (!fs.is_open()) {
     LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
+    // 清理索引
+    indexes_.pop_back();
+    delete index;
     return RC::IOERR_OPEN;  // 创建索引中途出错，要做还原操作
   }
   if (new_table_meta.serialize(fs) < 0) {
     LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
+    fs.close();
+    // 清理索引
+    indexes_.pop_back();
+    delete index;
     return RC::IOERR_WRITE;
   }
   fs.close();
@@ -724,6 +739,9 @@ RC Table::create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &fi
     LOG_ERROR("Failed to rename tmp meta file (%s) to normal meta file (%s) while creating index (%s) on table (%s). "
               "system error=%d:%s",
               tmp_file.c_str(), meta_file.c_str(), index_name, name(), errno, strerror(errno));
+    // 清理索引
+    indexes_.pop_back();
+    delete index;
     return RC::IOERR_WRITE;
   }
 

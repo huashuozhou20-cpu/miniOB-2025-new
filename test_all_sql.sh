@@ -41,7 +41,7 @@ test_sql() {
 }
 
 echo "开始全面功能测试..."
-echo ""
+    echo ""
 
 # 测试1: NULL/NOT NULL
 test_sql "1. NULL/NOT NULL" "CREATE TABLE test_null(id int, name char(10) NULL, age int NOT NULL);
@@ -101,7 +101,7 @@ test_sql "9. TOKENIZE函数" "CREATE TABLE test_tokenize(id int, text char(100))
 INSERT INTO test_tokenize VALUES(1, 'hello world');
 SELECT TOKENIZE(text, 'jieba') FROM test_tokenize;"
 
-echo ""
+    echo ""
 echo "============================================================"
 echo "所有测试完成！"
 echo "============================================================"
