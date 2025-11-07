@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/insert_physical_operator.h"
 #include "sql/stmt/insert_stmt.h"
+#include "sql/expr/expression.h"
 #include "storage/table/table.h"
 #include "storage/table/view.h"
 #include "storage/trx/trx.h"
@@ -70,6 +71,11 @@ RC InsertPhysicalOperator::insert_view(Trx *trx)
   std::unordered_map<const BaseTable*, std::vector<size_t>> table_columns;
   vector<size_t> col_ids(map_exprs.size());
   for (size_t i = 0; i < map_exprs.size(); i++) {
+    // 如果 allow_write 为 true，所有表达式都应该是 FieldExpr
+    if (map_exprs[i]->type() != ExprType::FIELD) {
+      LOG_ERROR("view %s is not allow to insert: expression %zu is not a field", view->name(), i);
+      return RC::SCHEMA_FIELD_MISSING;
+    }
     auto field = static_cast<FieldExpr*>(map_exprs[i].get());
 
     // 查找view中的列在原始表中的位置
@@ -80,6 +86,10 @@ RC InsertPhysicalOperator::insert_view(Trx *trx)
     }
     const int sys_field_num = table->table_meta().sys_field_num();
     int field_idx = table->table_meta().find_field_idx_by_name(field->field_name());
+    if (field_idx < 0) {
+      LOG_ERROR("field %s not found in table %s", field->field_name(), table->name());
+      return RC::SCHEMA_FIELD_MISSING;
+    }
     col_ids[i] = field_idx - sys_field_num;
     
     auto iter = table_columns.find(field->table());
