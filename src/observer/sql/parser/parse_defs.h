@@ -263,7 +263,8 @@ struct AlterTableSqlNode
   enum class AlterType {
     ADD_COLUMN,      ///< 添加列
     DROP_COLUMN,     ///< 删除列
-    RENAME_COLUMN,   ///< 修改列名
+    RENAME_COLUMN,   ///< 修改列名（RENAME COLUMN）
+    CHANGE_COLUMN,   ///< 修改列名（CHANGE COLUMN）
     RENAME_TABLE,    ///< 重命名表
   };
   AlterType alter_type;

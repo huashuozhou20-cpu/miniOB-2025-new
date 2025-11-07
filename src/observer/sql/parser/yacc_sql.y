@@ -166,6 +166,11 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
         UNIQUE
         UNION
         ALTER
+        ADD
+        CHANGE
+        RENAME
+        TO
+        COLUMN
         L2_DISTANCE
         COSINE_DISTANCE
         INNER_PRODUCT
@@ -390,47 +395,60 @@ desc_table_stmt:
     ;
 
 alter_table_stmt:
-    ALTER TABLE ID ADD COLUMN attr_def
+    ALTER TABLE ID ADD_KW COLUMN_KW attr_def
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::ADD_COLUMN;
-      alter_table.attr_info = *$5;
+      alter_table.attr_info = *$6;
       free($3);
-      delete $5;
+      delete $6;
     }
-    | ALTER TABLE ID DROP COLUMN ID
+    | ALTER TABLE ID DROP_KW COLUMN_KW ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::DROP_COLUMN;
-      alter_table.old_name = $5;
+      alter_table.old_name = $6;
       free($3);
-      free($5);
+      free($6);
     }
-    | ALTER TABLE ID RENAME COLUMN ID TO ID
+    | ALTER TABLE ID RENAME_KW COLUMN_KW ID TO_KW ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_COLUMN;
-      alter_table.old_name = $5;
-      alter_table.new_name = $7;
+      alter_table.old_name = $6;
+      alter_table.new_name = $8;
       free($3);
-      free($5);
-      free($7);
+      free($6);
+      free($8);
     }
-    | ALTER TABLE ID RENAME TO ID
+    | ALTER TABLE ID RENAME_KW TO_KW ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
       alter_table.relation_name = $3;
       alter_table.alter_type = AlterTableSqlNode::AlterType::RENAME_TABLE;
-      alter_table.new_name = $5;
+      alter_table.new_name = $6;
       free($3);
-      free($5);
+      free($6);
+    }
+    | ALTER TABLE ID CHANGE_KW COLUMN_KW ID attr_def
+    {
+      $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
+      AlterTableSqlNode &alter_table = $$->alter_table;
+      alter_table.relation_name = $3;
+      alter_table.alter_type = AlterTableSqlNode::AlterType::CHANGE_COLUMN;
+      alter_table.old_name = $6;
+      alter_table.attr_info = *$7;
+      alter_table.new_name = alter_table.attr_info.name;
+      free($3);
+      free($6);
+      delete $7;
     }
     ;
 

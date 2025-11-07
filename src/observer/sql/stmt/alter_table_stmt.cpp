@@ -79,6 +79,23 @@ RC AlterTableStmt::create(Db *db, AlterTableSqlNode &alter_sql, Stmt *&stmt)
       }
       break;
     }
+    case AlterTableSqlNode::AlterType::CHANGE_COLUMN: {
+      // 检查旧列是否存在
+      const FieldMeta *old_field = table->table_meta().field(alter_sql.old_name.c_str());
+      if (old_field == nullptr) {
+        LOG_WARN("column does not exist. table=%s, column=%s", table_name, alter_sql.old_name.c_str());
+        return RC::SCHEMA_FIELD_NOT_EXIST;
+      }
+      // 检查新列名是否已存在（且不是旧列名）
+      if (alter_sql.attr_info.name != alter_sql.old_name) {
+        const FieldMeta *new_field = table->table_meta().field(alter_sql.attr_info.name.c_str());
+        if (new_field != nullptr) {
+          LOG_WARN("column already exists. table=%s, column=%s", table_name, alter_sql.attr_info.name.c_str());
+          return RC::SCHEMA_TABLE_EXIST;
+        }
+      }
+      break;
+    }
     case AlterTableSqlNode::AlterType::RENAME_TABLE: {
       // 检查新表名是否已存在
       Table *new_table = db->find_table(alter_sql.new_name.c_str());

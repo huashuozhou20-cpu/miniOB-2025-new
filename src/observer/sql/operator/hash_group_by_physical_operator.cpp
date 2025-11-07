@@ -14,9 +14,29 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "sql/operator/hash_group_by_physical_operator.h"
+#include <unordered_map>
 
 using namespace std;
 using namespace common;
+// build a stable composite key for a tuple of values
+static inline string build_group_key(const Tuple &tuple)
+{
+  string key;
+  const int n = tuple.cell_num();
+  key.reserve(n * 8);
+  for (int i = 0; i < n; i++) {
+    Value v;
+    if (tuple.cell_at(i, v) != RC::SUCCESS) {
+      continue;
+    }
+    key.push_back('\x1e'); // unit separator
+    key += std::to_string(static_cast<int>(v.attr_type()));
+    key.push_back(':');
+    key += v.to_string();
+  }
+  return key;
+}
+
 
 HashGroupByPhysicalOperator::HashGroupByPhysicalOperator(
     vector<unique_ptr<Expression>> &&group_by_exprs, vector<Expression *> &&expressions)
@@ -170,19 +190,15 @@ RC HashGroupByPhysicalOperator::find_group(const Tuple &child_tuple, GroupType *
     return rc;
   }
 
-  // 找到对应的group
-  for (GroupType &group : groups_) {
-    int compare_result = 0;
-    rc                 = group_by_evaluated_tuple.compare(get<0>(group), compare_result);
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to compare group by values. rc=%s", strrc(rc));
-      return rc;
-    }
-
-    if (compare_result == 0) {
-      found_group = &group;
-      break;
-    }
+  // 找到对应的group（使用key索引以支持多字段稳定分组）
+  static unordered_map<string, size_t> group_index; // scoped to operator instance implicitly by TU; reset on open/close
+  if (groups_.empty()) {
+    group_index.clear();
+  }
+  const string key = build_group_key(group_by_evaluated_tuple);
+  auto it = group_index.find(key);
+  if (it != group_index.end()) {
+    found_group = &groups_[it->second];
   }
 
   // 如果没有找到对应的group，创建一个新的group
@@ -202,6 +218,7 @@ RC HashGroupByPhysicalOperator::find_group(const Tuple &child_tuple, GroupType *
     groups_.emplace_back(std::move(group_by_evaluated_tuple), 
                          GroupValueType(std::move(aggregator_list), std::move(composite_tuple)));
     found_group = &groups_.back();
+    group_index.emplace(key, groups_.size() - 1);
   }
 
   return rc;

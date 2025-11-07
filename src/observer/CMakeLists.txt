@@ -19,13 +19,25 @@ if (NOT TARGET Libevent::core)
 
   # 头文件
   find_path(LIBEVENT_INCLUDE_DIR event2/event.h
-    HINTS ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include /usr/include /usr/local/include
+    HINTS 
+      ${PROJECT_SOURCE_DIR}/deps/3rd/libevent/include  # 本地编译的头文件路径
+      ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include 
+      /usr/include 
+      /usr/local/include
   )
   # 库：至少需要 core + pthreads
   find_library(LIBEVENT_CORE NAMES event_core
-    HINTS ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib /usr/lib /usr/local/lib)
+    HINTS 
+      ${PROJECT_SOURCE_DIR}/deps/3rd/libevent/build/lib  # 本地编译的库文件路径
+      ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib 
+      /usr/lib 
+      /usr/local/lib)
   find_library(LIBEVENT_PTHREADS NAMES event_pthreads
-    HINTS ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib /usr/lib /usr/local/lib)
+    HINTS 
+      ${PROJECT_SOURCE_DIR}/deps/3rd/libevent/build/lib  # 本地编译的库文件路径
+      ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib 
+      /usr/lib 
+      /usr/local/lib)
 
   if (NOT LIBEVENT_INCLUDE_DIR OR NOT LIBEVENT_CORE OR NOT LIBEVENT_PTHREADS)
     message(FATAL_ERROR "Libevent not found. Set CMAKE_PREFIX_PATH to deps/3rd/usr or install libevent-dev")
@@ -46,11 +58,19 @@ endif()
 
 # -------- JsonCpp：优先用 vendored 静态库，找不到再退回原写法 --------
 find_library(JSONCPP_LIB NAMES jsoncpp libjsoncpp.a
-  HINTS ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib /usr/lib /usr/local/lib
+  HINTS 
+    ${PROJECT_SOURCE_DIR}/deps/3rd/jsoncpp/build/lib  # 本地编译的库文件路径
+    ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib 
+    /usr/lib 
+    /usr/local/lib
 )
 if(NOT JSONCPP_LIB)
-  # 兜底：保持你原有硬编码（如果系统能解析）
-  set(JSONCPP_LIB libjsoncpp.a)
+  # 兜底：尝试直接使用本地编译的库
+  if(EXISTS ${PROJECT_SOURCE_DIR}/deps/3rd/jsoncpp/build/lib/libjsoncpp.a)
+    set(JSONCPP_LIB ${PROJECT_SOURCE_DIR}/deps/3rd/jsoncpp/build/lib/libjsoncpp.a)
+  else()
+    set(JSONCPP_LIB libjsoncpp.a)
+  endif()
 endif()
 
 # -------- 源文件收集 --------
@@ -74,10 +94,12 @@ MESSAGE("Archive directory:" ${LIBRARY_OUTPUT_PATH})
 ADD_LIBRARY(observer_static STATIC ${LIB_SRC})
 # === JsonCpp 头文件路径修复（同时兼容两种目录结构） ===
 target_include_directories(observer_static PRIVATE
+  ${PROJECT_SOURCE_DIR}/deps/3rd/jsoncpp/include       # jsoncpp 本地编译的头文件路径
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include           # 可能是 include/json/json.h
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include/jsoncpp   # 也可能是 include/jsoncpp/json/json.h
   ${PROJECT_SOURCE_DIR}/deps/3rd/usr/local/include      # 也可能是 usr/local/include/json/json.h
   /usr/include/jsoncpp                                 # 如果系统装了 libjsoncpp-dev
+  /usr/local/include                                   # 如果安装到 /usr/local/include
 )
 INCLUDE (readline)
 MINIOB_FIND_READLINE()

@@ -179,6 +179,44 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       break;
     }
     
+    case AlterTableSqlNode::AlterType::CHANGE_COLUMN: {
+      // CHANGE COLUMN: 修改列名（类似 RENAME COLUMN，但新名称在 attr_info 中）
+      const FieldMeta *old_field = new_table_meta.field(old_name.c_str());
+      if (old_field == nullptr) {
+        LOG_ERROR("Column does not exist. table=%s, column=%s", name(), old_name.c_str());
+        return RC::SCHEMA_FIELD_NOT_EXIST;
+      }
+      
+      // 检查新列名是否已存在（且不是旧列名）
+      if (attr_info.name != old_name) {
+        const FieldMeta *existing_field = new_table_meta.field(attr_info.name.c_str());
+        if (existing_field != nullptr) {
+          LOG_ERROR("Column already exists. table=%s, column=%s", name(), attr_info.name.c_str());
+          return RC::SCHEMA_TABLE_EXIST;
+        }
+      }
+      
+      // 创建新字段（更新名称，类型不变）
+      int field_id = new_table_meta.field_id(old_name.c_str());
+      FieldMeta new_field(attr_info.name.c_str(), old_field->type(), old_field->offset(),
+                         old_field->len(), old_field->visible(), 
+                         old_field->field_id(), old_field->nullable());
+      new_table_meta.fields_[field_id] = new_field;
+      
+      // 更新索引元数据中的字段名
+      for (IndexMeta &index : new_table_meta.indexes_) {
+        std::vector<std::string> &index_fields = const_cast<std::vector<std::string> &>(index.field());
+        for (std::string &index_field : index_fields) {
+          if (index_field == old_name) {
+            index_field = attr_info.name;
+          }
+        }
+      }
+      
+      LOG_INFO("Changing column %s to %s in table %s", old_name.c_str(), attr_info.name.c_str(), name());
+      break;
+    }
+    
     case AlterTableSqlNode::AlterType::RENAME_TABLE: {
       // 重命名表
       new_table_meta.name_ = new_name;
@@ -222,19 +260,41 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
   
   // 如果是重命名表，还需要更新数据库中的表名
   if (static_cast<AlterTableSqlNode::AlterType>(alter_type) == AlterTableSqlNode::AlterType::RENAME_TABLE) {
-    // 更新数据库中的表名映射
-    std::string old_table_name = name();
-    BaseTable *table = db_->find_base_table(old_table_name.c_str());
-    if (table == nullptr) {
-      LOG_ERROR("Table not found in database. table=%s", old_table_name.c_str());
-      return RC::SCHEMA_TABLE_NOT_EXIST;
+    // 同步重命名元数据文件、数据文件与文本文件
+    const std::string old_table_name = name();
+    const std::string new_table_name = new_name;
+
+    const std::string old_meta_path = table_meta_file(base_dir_.c_str(), old_table_name.c_str());
+    const std::string new_meta_path = table_meta_file(base_dir_.c_str(), new_table_name.c_str());
+    if (old_meta_path != new_meta_path) {
+      if (::rename(old_meta_path.c_str(), new_meta_path.c_str()) != 0) {
+        LOG_ERROR("Failed to rename meta file %s to %s: %s", old_meta_path.c_str(), new_meta_path.c_str(), strerror(errno));
+        return RC::IOERR_WRITE;
+      }
     }
-    
-    // 从数据库的表中移除旧名称，添加新名称
-    // 注意：这里需要直接操作数据库的内部表映射，但由于Db类没有提供rename_table方法，
-    // 我们需要在alter_table完成后更新base_dir_和相关的文件名
-    // 实际上，重命名表主要影响的是元数据文件，表的数据文件可以保持不变
-    // 但为了完整性，我们只更新元数据文件中的表名
+
+    const std::string old_data_path = table_data_file(base_dir_.c_str(), old_table_name.c_str());
+    const std::string new_data_path = table_data_file(base_dir_.c_str(), new_table_name.c_str());
+    if (old_data_path != new_data_path) {
+      // best-effort: if data file exists, rename too
+      if (::access(old_data_path.c_str(), F_OK) == 0) {
+        if (::rename(old_data_path.c_str(), new_data_path.c_str()) != 0) {
+          LOG_ERROR("Failed to rename data file %s to %s: %s", old_data_path.c_str(), new_data_path.c_str(), strerror(errno));
+          return RC::IOERR_WRITE;
+        }
+      }
+    }
+
+    const std::string old_text_path = table_text_file(base_dir_.c_str(), old_table_name.c_str());
+    const std::string new_text_path = table_text_file(base_dir_.c_str(), new_table_name.c_str());
+    if (old_text_path != new_text_path) {
+      if (::access(old_text_path.c_str(), F_OK) == 0) {
+        if (::rename(old_text_path.c_str(), new_text_path.c_str()) != 0) {
+          LOG_ERROR("Failed to rename text file %s to %s: %s", old_text_path.c_str(), new_text_path.c_str(), strerror(errno));
+          return RC::IOERR_WRITE;
+        }
+      }
+    }
   }
   
   // 更新内存中的元数据
