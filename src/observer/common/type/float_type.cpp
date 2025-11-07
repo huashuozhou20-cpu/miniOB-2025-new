@@ -112,12 +112,11 @@ RC FloatType::to_string(const Value &val, string &result) const
 {
   // Round to 2 decimal places
   float rounded = roundf(val.value_.float_value_ * 100.0f) / 100.0f;
-  stringstream ss;
-  ss.precision(2);
-  ss << std::fixed << rounded;
-  result = ss.str();
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "%.2f", rounded);
+  result = buffer;
   
   // 确保输出是2位小数格式（不删除尾随零）
-  // 例如：184.488 -> 184.49, 260.026 -> 260.03, 186.723 -> 186.72
+  // 例如：4 -> 4.00, 97.2 -> 97.20, 184.488 -> 184.49
   return RC::SUCCESS;
 }

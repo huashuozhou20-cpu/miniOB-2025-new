@@ -160,11 +160,14 @@ RC UnionPhysicalOperator::fetch_all_tuples()
     } else {
       // UNION：需要去重，使用 tuple_equal 进行比较
       bool is_duplicate = false;
+      // 创建临时的 ValueTuple 用于比较
+      ValueTuple current_tuple;
+      current_tuple.set_values(values);
       for (const auto &existing_values : all_values_) {
         // 创建临时的 ValueTuple 进行比较
         ValueTuple temp_tuple;
         temp_tuple.set_values(existing_values);
-        if (tuple_equal(*tuple, temp_tuple)) {
+        if (tuple_equal(current_tuple, temp_tuple)) {
           is_duplicate = true;
           break;
         }
@@ -206,11 +209,14 @@ RC UnionPhysicalOperator::fetch_all_tuples()
     } else {
       // UNION：需要去重，使用 tuple_equal 进行比较
       bool is_duplicate = false;
+      // 创建临时的 ValueTuple 用于比较
+      ValueTuple current_tuple;
+      current_tuple.set_values(values);
       for (const auto &existing_values : all_values_) {
         // 创建临时的 ValueTuple 进行比较
         ValueTuple temp_tuple;
         temp_tuple.set_values(existing_values);
-        if (tuple_equal(*tuple, temp_tuple)) {
+        if (tuple_equal(current_tuple, temp_tuple)) {
           is_duplicate = true;
           break;
         }
