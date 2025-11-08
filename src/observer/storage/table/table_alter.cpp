@@ -110,14 +110,37 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       Record record;
       const FieldMeta *new_field_meta = table_meta_.field(attr_info.name.c_str());
       
+      // 计算 NULL bitmap 的大小
+      int old_null_len = (old_table_meta.field_num() + 7) / 8;
+      int new_null_len = (new_table_meta.field_num() + 7) / 8;
+      
       while (OB_SUCC(rc = scanner.next(record))) {
         // 扩展记录大小
         char *old_data = const_cast<char *>(record.data());
         char *new_data = (char *)malloc(new_record_size);
         memset(new_data, 0, new_record_size);
         
-        // 复制旧数据
-        memcpy(new_data, old_data, old_record_size);
+        // 复制旧数据（包括 NULL bitmap）
+        // 但是，如果 NULL bitmap 大小改变了，需要特殊处理
+        if (old_null_len == new_null_len) {
+          // NULL bitmap 大小没有改变，直接复制
+          memcpy(new_data, old_data, old_record_size);
+        } else {
+          // NULL bitmap 大小改变了，需要分别处理
+          // 1. 复制旧的 NULL bitmap（只复制旧的大小）
+          memcpy(new_data, old_data, old_null_len);
+          // 2. 扩展 NULL bitmap（新字节已经通过 memset 初始化为 0）
+          // 3. 复制旧数据字段（跳过 NULL bitmap）
+          // 旧数据字段从 old_null_len 开始，到 old_record_size 结束
+          // 新数据字段从 new_null_len 开始
+          int old_data_offset = old_null_len;
+          int new_data_offset = new_null_len;
+          int data_size = old_record_size - old_null_len;
+          if (data_size > 0) {
+            memcpy(new_data + new_data_offset, old_data + old_data_offset, data_size);
+          }
+          // 新列的数据位置已经通过 memset 初始化为 0，不需要额外处理
+        }
         
         // 设置新列为 NULL
         if (new_field_meta != nullptr) {
