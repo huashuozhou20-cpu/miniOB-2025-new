@@ -172,6 +172,13 @@ RC NestedLoopJoinPhysicalOperator::filter_join_condition(bool &result)
     return rc;
   }
 
+  // 确保正确处理 boolean 值
+  // 如果 value 是 NULL 类型，应该返回 false
+  if (value.attr_type() == AttrType::NULLS) {
+    result = false;
+    return RC::SUCCESS;
+  }
+
   result = value.get_boolean();
   return RC::SUCCESS;
 }

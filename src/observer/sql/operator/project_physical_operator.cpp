@@ -91,14 +91,23 @@ Tuple *ProjectPhysicalOperator::current_tuple()
 RC ProjectPhysicalOperator::tuple_schema(TupleSchema &schema) const
 {
   for (const unique_ptr<Expression> &expression : expressions_) {
+    if (expression == nullptr) {
+      continue;
+    }
     const string& alias = expression->alias();
     if(show_table_name_ && expression->type() == ExprType::FIELD){
       FieldExpr* field_expr = static_cast<FieldExpr*>(expression.get());
+      if (field_expr == nullptr) {
+        schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+        continue;
+      }
       const string& table_alias = field_expr->table_alias();
 
       schema.append_cell(table_alias.empty() ? field_expr->table_name() : table_alias.c_str(),
         alias.empty() ? expression->name() : alias.c_str());
-    } else schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+    } else {
+      schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+    }
   }
 
   return RC::SUCCESS;

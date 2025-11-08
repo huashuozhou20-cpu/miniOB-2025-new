@@ -129,7 +129,9 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
         } else {
           // NULL bitmap 大小改变了，需要分别处理
           // 1. 复制旧的 NULL bitmap（只复制旧的大小）
-          memcpy(new_data, old_data, old_null_len);
+          if (old_null_len > 0) {
+            memcpy(new_data, old_data, old_null_len);
+          }
           // 2. 扩展 NULL bitmap（新字节已经通过 memset 初始化为 0）
           // 3. 复制旧数据字段（跳过 NULL bitmap）
           // 旧数据字段从 old_null_len 开始，到 old_record_size 结束
@@ -137,7 +139,7 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
           int old_data_offset = old_null_len;
           int new_data_offset = new_null_len;
           int data_size = old_record_size - old_null_len;
-          if (data_size > 0) {
+          if (data_size > 0 && old_data_offset < old_record_size && new_data_offset < new_record_size) {
             memcpy(new_data + new_data_offset, old_data + old_data_offset, data_size);
           }
           // 新列的数据位置已经通过 memset 初始化为 0，不需要额外处理

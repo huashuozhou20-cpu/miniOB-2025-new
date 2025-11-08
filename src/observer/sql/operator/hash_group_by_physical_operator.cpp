@@ -185,9 +185,19 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     }
     
     // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
-    if (composite_value_tuple.get_tuple_size() > 1) {
+    // 注意：get_tuple_size() 返回的是所有子 tuple 的 get_tuple_size() 之和，而不是 tuple 的数量
+    // 根据代码逻辑，composite_value_tuple 应该包含两个 tuple：
+    // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
+    // - 最后一个 tuple：聚合值（在 evaluate 中添加）
+    // 我们可以通过检查 cell_num() 来判断是否有多个 tuple
+    // 如果 composite_value_tuple 的 cell_num() 大于 group_by_values 的 cell_num()，说明有聚合值
+    int group_by_cell_num = group_by_values.cell_num();
+    int composite_cell_num = composite_value_tuple.cell_num();
+    if (composite_cell_num > group_by_cell_num) {
+      // 有聚合值，使用 tuple_at(1)
       result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
-    } else if (composite_value_tuple.get_tuple_size() == 1) {
+    } else if (composite_cell_num > 0) {
+      // 只有一个 tuple，使用 tuple_at(0)
       result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(0))));
     }
     
