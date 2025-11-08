@@ -245,12 +245,121 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
       JoinLogicalOperator *join_oper = new JoinLogicalOperator;
       
       // 设置 JOIN 条件：提取涉及当前两个表的条件
-      if (table_idx == 1 && !join_conditions.empty()) {
-        // 对于第一个 JOIN，使用所有 JOIN 条件
-        if (join_conditions.size() == 1) {
-          join_oper->set_join_condition(std::move(join_conditions[0]));
+      // 为每个 JOIN 提取相应的条件
+      std::vector<unique_ptr<Expression>> current_join_conditions;
+      std::set<std::string> left_tables_set;
+      std::set<std::string> right_tables_set;
+      
+      // 收集左表涉及的所有表（包括之前的 JOIN 结果）
+      if (table_idx == 1) {
+        // 第一个 JOIN，左表是第一个表
+        left_tables_set.insert(tables[0].first->name());
+        if (!tables[0].second.empty()) {
+          left_tables_set.insert(tables[0].second);
+        }
+      } else {
+        // 后续 JOIN，左表是之前的 JOIN 结果，需要收集所有之前的表
+        for (size_t i = 0; i < table_idx; i++) {
+          left_tables_set.insert(tables[i].first->name());
+          if (!tables[i].second.empty()) {
+            left_tables_set.insert(tables[i].second);
+          }
+        }
+      }
+      
+      // 右表是当前表
+      right_tables_set.insert(table->name());
+      if (!alias.empty()) {
+        right_tables_set.insert(alias);
+      }
+      
+      // 提取涉及当前两个表的 JOIN 条件
+      for (auto it = join_conditions.begin(); it != join_conditions.end();) {
+        if (*it == nullptr) {
+          ++it;
+          continue;
+        }
+        
+        // 检查条件是否涉及当前两个表
+        std::set<std::string> cond_left_tables;
+        std::set<std::string> cond_right_tables;
+        
+        auto collect_tables_from_expr = [&](Expression *e, std::set<std::string> &tbls) {
+          if (e->type() == ExprType::FIELD) {
+            FieldExpr *field_expr = static_cast<FieldExpr*>(e);
+            const BaseTable *tbl = field_expr->table();
+            if (tbl != nullptr) {
+              tbls.insert(tbl->name());
+              const std::string &tbl_alias = field_expr->table_alias();
+              if (!tbl_alias.empty()) {
+                tbls.insert(tbl_alias);
+              }
+            }
+          } else {
+            ExpressionIterator::iterate_child_expr(*e, [&](std::unique_ptr<Expression> &child) {
+              if (child->type() == ExprType::FIELD) {
+                FieldExpr *field_expr = static_cast<FieldExpr*>(child.get());
+                const BaseTable *tbl = field_expr->table();
+                if (tbl != nullptr) {
+                  tbls.insert(tbl->name());
+                  const std::string &tbl_alias = field_expr->table_alias();
+                  if (!tbl_alias.empty()) {
+                    tbls.insert(tbl_alias);
+                  }
+                }
+              }
+              return RC::SUCCESS;
+            });
+          }
+          return RC::SUCCESS;
+        };
+        
+        if ((*it)->type() == ExprType::COMPARISON) {
+          ComparisonExpr *cmp_expr = static_cast<ComparisonExpr*>((*it).get());
+          collect_tables_from_expr(cmp_expr->left().get(), cond_left_tables);
+          collect_tables_from_expr(cmp_expr->right().get(), cond_right_tables);
+          
+          // 检查条件是否涉及当前两个表
+          bool left_in_left = false, left_in_right = false;
+          bool right_in_left = false, right_in_right = false;
+          
+          for (const auto &t : cond_left_tables) {
+            if (left_tables_set.find(t) != left_tables_set.end()) {
+              left_in_left = true;
+            }
+            if (right_tables_set.find(t) != right_tables_set.end()) {
+              left_in_right = true;
+            }
+          }
+          
+          for (const auto &t : cond_right_tables) {
+            if (left_tables_set.find(t) != left_tables_set.end()) {
+              right_in_left = true;
+            }
+            if (right_tables_set.find(t) != right_tables_set.end()) {
+              right_in_right = true;
+            }
+          }
+          
+          // 如果条件涉及当前两个表（一个在左表，一个在右表），则应用此条件
+          if ((left_in_left && left_in_right) || (right_in_left && right_in_right) ||
+              (left_in_left && right_in_right) || (right_in_left && left_in_right)) {
+            // 条件涉及当前两个表，应用此条件
+            current_join_conditions.emplace_back(std::move(*it));
+            it = join_conditions.erase(it);
+            continue;
+          }
+        }
+        
+        ++it;
+      }
+      
+      // 设置 JOIN 条件
+      if (!current_join_conditions.empty()) {
+        if (current_join_conditions.size() == 1) {
+          join_oper->set_join_condition(std::move(current_join_conditions[0]));
         } else {
-          unique_ptr<ConjunctionExpr> conjunction_expr(new ConjunctionExpr(ConjunctionExpr::Type::AND, join_conditions));
+          unique_ptr<ConjunctionExpr> conjunction_expr(new ConjunctionExpr(ConjunctionExpr::Type::AND, current_join_conditions));
           join_oper->set_join_condition(std::move(conjunction_expr));
         }
       }

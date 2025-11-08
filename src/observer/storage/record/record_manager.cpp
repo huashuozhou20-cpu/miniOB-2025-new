@@ -403,6 +403,12 @@ RC RowRecordPageHandler::update_record(const RID &rid, const char *data)
 
 RC RowRecordPageHandler::get_record(const RID &rid, Record &record)
 {
+  // 添加空指针检查
+  if (frame_ == nullptr || page_header_ == nullptr) {
+    LOG_ERROR("Invalid frame or page_header, frame=%p, page_header=%p", frame_, page_header_);
+    return RC::INTERNAL;
+  }
+
   if (rid.slot_num >= page_header_->record_capacity) {
     LOG_ERROR("Invalid slot_num %d, exceed page's record capacity, frame=%s, page_header=%s",
               rid.slot_num, frame_->to_string().c_str(), page_header_->to_string().c_str());
@@ -415,8 +421,22 @@ RC RowRecordPageHandler::get_record(const RID &rid, Record &record)
     return RC::RECORD_NOT_EXIST;
   }
 
+  // 添加边界检查，确保 record_data 指针有效
+  char *record_data = get_record_data(rid.slot_num);
+  if (record_data == nullptr) {
+    LOG_ERROR("Invalid record_data pointer, slot_num=%d, page_num=%d", rid.slot_num, frame_->page_num());
+    return RC::INTERNAL;
+  }
+
+  // 检查 record_real_size 是否有效
+  if (page_header_->record_real_size <= 0 || page_header_->record_real_size > page_header_->record_size) {
+    LOG_ERROR("Invalid record_real_size %d, record_size=%d, slot_num=%d, page_num=%d",
+              page_header_->record_real_size, page_header_->record_size, rid.slot_num, frame_->page_num());
+    return RC::INTERNAL;
+  }
+
   record.set_rid(rid);
-  record.set_data(get_record_data(rid.slot_num), page_header_->record_real_size);
+  record.set_data(record_data, page_header_->record_real_size);
   return RC::SUCCESS;
 }
 

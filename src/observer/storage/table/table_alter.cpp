@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/common/meta_util.h"
 #include "sql/parser/parse_defs.h"
+#include "storage/record/record_manager.h"
 #include <fstream>
 #include <cstring>
 #include <unistd.h>
@@ -85,6 +86,79 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       new_table_meta.record_size_ += new_field.len();
       
       LOG_INFO("Adding column %s to table %s", attr_info.name.c_str(), name());
+      
+      // 更新所有现有记录,将新列设置为 NULL
+      // 先保存旧的元数据和记录大小
+      TableMeta old_table_meta(table_meta_);
+      int old_record_size = table_meta_.record_size();
+      int new_record_size = new_table_meta.record_size();
+      
+      // 更新内存中的元数据,以便后续操作使用新元数据
+      table_meta_.swap(new_table_meta);
+      
+      // 扫描所有记录并更新
+      RecordFileScanner scanner;
+      rc = get_record_scanner(scanner, trx, ReadWriteMode::READ_WRITE);
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to create scanner while adding column. table=%s, column=%s, rc=%s",
+                 name(), attr_info.name.c_str(), strrc(rc));
+        // 恢复旧元数据
+        table_meta_.swap(old_table_meta);
+        return rc;
+      }
+      
+      Record record;
+      const FieldMeta *new_field_meta = table_meta_.field(attr_info.name.c_str());
+      
+      while (OB_SUCC(rc = scanner.next(record))) {
+        // 扩展记录大小
+        char *old_data = const_cast<char *>(record.data());
+        char *new_data = (char *)malloc(new_record_size);
+        memset(new_data, 0, new_record_size);
+        
+        // 复制旧数据
+        memcpy(new_data, old_data, old_record_size);
+        
+        // 设置新列为 NULL
+        if (new_field_meta != nullptr) {
+          new_field_meta->set_field_null(new_data, true);
+        }
+        
+        // 创建新记录
+        Record new_record;
+        new_record.set_data_owner(new_data, new_record_size);
+        new_record.set_rid(record.rid());
+        
+        // 更新记录
+        rc = record_handler_->update_record(new_record.data(), new_record.rid());
+        if (rc != RC::SUCCESS) {
+          LOG_WARN("failed to update record while adding column. table=%s, column=%s, rc=%s",
+                   name(), attr_info.name.c_str(), strrc(rc));
+          scanner.close_scan();
+          // 恢复旧元数据
+          table_meta_.swap(old_table_meta);
+          return rc;
+        }
+      }
+      
+      if (RC::RECORD_EOF == rc) {
+        rc = RC::SUCCESS;
+      } else {
+        LOG_WARN("failed to update records while adding column. table=%s, column=%s, rc=%s",
+                 name(), attr_info.name.c_str(), strrc(rc));
+        scanner.close_scan();
+        // 恢复旧元数据
+        table_meta_.swap(old_table_meta);
+        return rc;
+      }
+      scanner.close_scan();
+      
+      // 恢复旧元数据,以便后续保存新元数据
+      table_meta_.swap(old_table_meta);
+      new_table_meta = table_meta_;
+      new_table_meta.fields_.push_back(new_field);
+      new_table_meta.record_size_ = new_record_size;
+      
       break;
     }
     

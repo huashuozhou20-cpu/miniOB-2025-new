@@ -169,12 +169,39 @@ RC HashGroupByPhysicalOperator::close()
 Tuple *HashGroupByPhysicalOperator::current_tuple()
 {
   if (current_group_ != groups_.end()) {
+    // GroupType = std::tuple<ValueListTuple, GroupValueType>
+    // 第一个元素是 GROUP BY 列的值，第二个元素是聚合值
+    ValueListTuple &group_by_values = get<0>(*current_group_);
     GroupValueType &group_value = get<1>(*current_group_);
-    return &get<1>(group_value);
+    CompositeTuple &composite_value_tuple = get<1>(group_value);
+    
+    // 创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
+    static CompositeTuple result_tuple;
+    result_tuple = CompositeTuple();
+    
+    // 添加 GROUP BY 列的值
+    if (group_by_values.cell_num() > 0) {
+      result_tuple.add_tuple(make_unique<ValueListTuple>(group_by_values));
+    }
+    
+    // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
+    // 根据 evaluate 函数，聚合值被添加到 composite_value_tuple 的末尾
+    // 根据 find_group 和 evaluate 函数，composite_value_tuple 应该包含：
+    // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
+    // - 最后一个 tuple：聚合值（在 evaluate 中添加）
+    // 所以我们可以直接使用索引 1（如果有两个 tuple）
+    if (composite_value_tuple.cell_num() > 0) {
+      // 直接使用索引 1，因为根据代码，composite_value_tuple 应该包含两个 tuple
+      // 如果只有一个 tuple，使用索引 0
+      // 但是，根据代码，composite_value_tuple 应该包含两个 tuple
+      // 所以我们可以直接使用索引 1
+      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
+    }
+    
+    return &result_tuple;
   }
   return nullptr;
 }
-
 RC HashGroupByPhysicalOperator::find_group(const Tuple &child_tuple, GroupType *&found_group)
 {
   found_group = nullptr;
