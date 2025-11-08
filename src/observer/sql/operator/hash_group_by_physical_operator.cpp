@@ -185,6 +185,15 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     }
     
     // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
+    if (composite_value_tuple.get_tuple_size() > 1) {
+      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
+    } else if (composite_value_tuple.get_tuple_size() == 1) {
+      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(0))));
+    }
+    
+    return &result_tuple;
+    
+    // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
     // 根据 evaluate 函数，聚合值被添加到 composite_value_tuple 的末尾
     // 根据 find_group 和 evaluate 函数，composite_value_tuple 应该包含：
     // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
