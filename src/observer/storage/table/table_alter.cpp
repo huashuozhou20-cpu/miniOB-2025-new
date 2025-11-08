@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/meta_util.h"
 #include "sql/parser/parse_defs.h"
 #include "storage/record/record_manager.h"
+#include "common/lang/bitmap.h"
 #include <fstream>
 #include <cstring>
 #include <unistd.h>
@@ -147,7 +148,13 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
         
         // 设置新列为 NULL
         if (new_field_meta != nullptr) {
+          // 确保新列的 NULL 位正确设置
           new_field_meta->set_field_null(new_data, true);
+          // 验证新列的 NULL 位是否设置成功
+          common::Bitmap map(new_data, table_meta_.field_num());
+          if (!map.get_bit(new_field_meta->field_id())) {
+            LOG_WARN("failed to set new column to NULL. table=%s, column=%s", name(), attr_info.name.c_str());
+          }
         }
         
         // 创建新记录

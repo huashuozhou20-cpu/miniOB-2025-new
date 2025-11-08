@@ -294,11 +294,12 @@ bool OrderByPhysicalOperator::cmp(const vector<Value>& a_vals, const vector<Valu
         }
         else if(b_val.attr_type() == AttrType::NULLS)return !is_asc;
 
-        int cmp = a_val.compare(b_val);
-        if(cmp == 0)continue;
-        else if(is_asc)return cmp < 0;
-        return cmp > 0;
+        int cmp_result = a_val.compare(b_val);
+        if(cmp_result == 0)continue;
+        else if(is_asc)return cmp_result < 0;
+        return cmp_result > 0;
     }
+    // 所有排序键都相等，返回 false 表示相等（保持稳定排序）
     return false;
 }
 
