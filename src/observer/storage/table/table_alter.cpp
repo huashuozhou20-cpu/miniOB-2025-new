@@ -108,11 +108,12 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       }
       
       Record record;
+      // 注意：此时 table_meta_ 已经是新元数据了
       const FieldMeta *new_field_meta = table_meta_.field(attr_info.name.c_str());
       
-      // 计算 NULL bitmap 的大小
+      // 计算 NULL bitmap 的大小（使用旧元数据和新元数据）
       int old_null_len = (old_table_meta.field_num() + 7) / 8;
-      int new_null_len = (new_table_meta.field_num() + 7) / 8;
+      int new_null_len = (table_meta_.field_num() + 7) / 8;
       
       while (OB_SUCC(rc = scanner.next(record))) {
         // 扩展记录大小
