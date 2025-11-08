@@ -270,20 +270,13 @@ char *substr(const char *s, int n1, int n2)
 string double_to_str(double v)
 {
   char buf[256];
-  // 使用更高的精度来避免精度丢失
-  // 使用 %.10g 格式，它会自动选择最合适的表示方式
-  snprintf(buf, sizeof(buf), "%.10g", v);
+  snprintf(buf, sizeof(buf), "%.2f", v);
   size_t len = strlen(buf);
-  
-  // 如果结果是整数，不需要小数点
-  // 否则，移除尾部的零
-  if (strchr(buf, '.') != nullptr) {
-    while (len > 0 && buf[len - 1] == '0') {
-      len--;
-    }
-    if (len > 0 && buf[len - 1] == '.') {
-      len--;
-    }
+  while (buf[len - 1] == '0') {
+    len--;
+  }
+  if (buf[len - 1] == '.') {
+    len--;
   }
 
   return string(buf, len);
