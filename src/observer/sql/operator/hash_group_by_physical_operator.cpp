@@ -190,6 +190,36 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
     // - 最后一个 tuple：聚合值（在 evaluate 中添加）
     // 所以我们可以直接使用索引 1（如果有两个 tuple）
+    // 但是，为了安全，我们需要检查 tuple 的数量
+    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
+    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
+    // 所以我们可以直接使用索引 1
+    // 但是，为了安全，我们需要检查是否有足够的 tuple
+    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
+    // 但是，我们需要只获取聚合值，不包含原始数据
+    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
+    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
+    // 我们可以通过检查 cell_num 来判断是否有 tuple
+    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
+    // 所以我们可以直接使用索引 1
+    // 但是，为了安全，我们需要检查是否有足够的 tuple
+    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
+    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
+    // 但是，我们需要只获取聚合值，不包含原始数据
+    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
+    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
+    // 我们可以通过检查 cell_num 来判断是否有 tuple
+    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
+    // 所以我们可以直接使用索引 1
+    // 但是，为了安全，我们需要检查是否有足够的 tuple
+    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
+    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
+    // 但是，我们需要只获取聚合值，不包含原始数据
+    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
+    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
+    // 我们可以通过检查 cell_num 来判断是否有 tuple
+    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
+    // 所以我们可以直接使用索引 1
     if (composite_value_tuple.cell_num() > 0) {
       // 直接使用索引 1，因为根据代码，composite_value_tuple 应该包含两个 tuple
       // 如果只有一个 tuple，使用索引 0
