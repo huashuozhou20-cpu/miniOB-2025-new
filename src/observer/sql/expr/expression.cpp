@@ -1348,7 +1348,7 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
 
   // Get the first argument
   rc = child_->get_value(tuple, arg_value);
-  if (OB_FAIL(rc)) {
+    if (OB_FAIL(rc)) {
     return rc;
   }
 
@@ -1495,22 +1495,25 @@ RC SysFuncExpr::try_get_value(Value &value) const
 
 RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
 {
+  // 支持类型转换：如果不是 CHARS 类型，先转换为字符串
+  Value str_value = arg_value;
   if (arg_value.attr_type() != AttrType::CHARS) {
-    LOG_WARN("LENGTH function only supports CHAR type");
-    return RC::INVALID_ARGUMENT;
+    // 将其他类型转换为字符串
+    string str = arg_value.to_string();
+    str_value = Value(str.c_str(), str.length());
   }
 
-  const char *str = arg_value.data();
+  const char *str = str_value.data();
   if (str == nullptr) {
     result = Value(0);
     return RC::SUCCESS;
   }
 
   // Find actual string length (excluding padding)
-  int len = arg_value.length();
+  int len = str_value.length();
   if (len > 0) {
     // Remove trailing spaces
-    while (len > 0 && str[len - 1] == ' ') {
+    while (len > 0 && str[len - 1] == ' ' ) {
       len--;
     }
   }
@@ -1518,19 +1521,13 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
   result = Value(len);
   return RC::SUCCESS;
 }
-
 RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
 {
-  if (arg_value.attr_type() != AttrType::FLOATS) {
-    LOG_WARN("ROUND function only supports FLOAT type");
-    return RC::INVALID_ARGUMENT;
-  }
-
+  // 支持类型转换：如果不是 FLOATS 类型，先转换为浮点数
   float val = arg_value.get_float();
   result = Value(static_cast<float>(::round(val)));
   return RC::SUCCESS;
 }
-
 RC SysFuncExpr::eval_distance(const Value &v1_value, const Value &v2_value, const Value &metric_value, Value &result) const
 {
   if (v1_value.attr_type() != AttrType::VECTORS || v2_value.attr_type() != AttrType::VECTORS) {

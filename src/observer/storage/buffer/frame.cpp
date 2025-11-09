@@ -76,13 +76,14 @@ void Frame::write_latch(intptr_t xid)
 
   lock_.lock();
 
-// #ifdef DEBUG
-//   write_locker_ = xid;
-//   ++write_recursive_count_;
-//   TRACE("frame write lock success."
-//         "this=%p, pin=%d, frameId=%s, write locker=%lx(recursive=%d), xid=%lx, lbt=%s",
-//         this, pin_count_.load(), frame_id_.to_string().c_str(), write_locker_, write_recursive_count_, xid, lbt());
-// #endif
+  lock_.lock();
+
+  // 设置 write_locker_ 和 write_recursive_count_，用于调试和断言检查
+  {
+    scoped_lock debug_lock(debug_lock_);
+    write_locker_ = xid;
+    ++write_recursive_count_;
+  }
 }
 
 void Frame::write_unlatch() { write_unlatch(get_default_debug_xid()); }
@@ -131,15 +132,13 @@ void Frame::read_latch(intptr_t xid)
   }
 
   lock_.lock_shared();
+  lock_.lock_shared();
 
-//   {
-// #ifdef DEBUG
-//     scoped_lock debug_lock(debug_lock_);
-//     ++read_lockers_[xid];
-//     TRACE("frame read lock success."
-//           "this=%p, pin=%d, frameId=%s, xid=%lx, recursive=%d, lbt=%s",
-//           this, pin_count_.load(), frame_id_.to_string().c_str(), xid, read_lockers_[xid], lbt());
-// #endif
+  // 设置 read_lockers_，用于调试和断言检查
+  {
+    scoped_lock debug_lock(debug_lock_);
+    ++read_lockers_[xid];
+  }
 //   }
 }
 

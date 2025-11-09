@@ -93,6 +93,8 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       TableMeta old_table_meta(table_meta_);
       int old_record_size = table_meta_.record_size();
       int new_record_size = new_table_meta.record_size();
+      // 保存新元数据的副本，因为后续会交换
+      TableMeta saved_new_table_meta(new_table_meta);
       
       // 更新内存中的元数据,以便后续操作使用新元数据
       table_meta_.swap(new_table_meta);
@@ -186,12 +188,9 @@ RC Table::alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info
       }
       scanner.close_scan();
       
-      // 恢复旧元数据,以便后续保存新元数据
+      // 恢复旧元数据到 table_meta_，并恢复新元数据到 new_table_meta
       table_meta_.swap(old_table_meta);
-      new_table_meta = table_meta_;
-      new_table_meta.fields_.push_back(new_field);
-      new_table_meta.record_size_ = new_record_size;
-      
+      new_table_meta = saved_new_table_meta;
       break;
     }
     
