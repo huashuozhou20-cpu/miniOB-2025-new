@@ -83,6 +83,15 @@ RC OrderByPhysicalOperator::next()
 RC OrderByPhysicalOperator::close()
 {
     LOG_INFO("close order by operator");
+    
+    // Close child operator if it exists
+    if (!children_.empty()) {
+        std::unique_ptr<PhysicalOperator> &child = children_[0];
+        if (child != nullptr) {
+            child->close();
+        }
+    }
+    
     // Cleanup temporary files
     if (!external_sort_file_.empty()) {
         cleanup_temp_files({external_sort_file_});
@@ -90,6 +99,12 @@ RC OrderByPhysicalOperator::close()
     }
     cleanup_temp_files(temp_files_);
     temp_files_.clear();
+    
+    // Clear all data structures to free memory
+    value_list_.clear();
+    order_values_.clear();
+    ids_.clear();
+    
     return RC::SUCCESS;
 }
 
@@ -124,8 +139,11 @@ RC OrderByPhysicalOperator::next(Tuple *upper_tuple)
 
 Tuple *OrderByPhysicalOperator::current_tuple()
 {
-  if (current_id_ != value_list_.size()) {
-    return &value_list_[ids_[current_id_]];
+  if (current_id_ < value_list_.size() && current_id_ < ids_.size()) {
+    size_t idx = ids_[current_id_];
+    if (idx < value_list_.size()) {
+      return &value_list_[idx];
+    }
   }
   return nullptr;
 }
@@ -151,6 +169,13 @@ RC OrderByPhysicalOperator::fetch_next()
 RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
 {
     RC rc = RC::SUCCESS;
+    
+    // Boundary check: ensure child operator exists
+    if (children_.empty() || children_[0] == nullptr) {
+        LOG_WARN("quick_sort: no child operator");
+        return RC::INTERNAL;
+    }
+    
     std::unique_ptr<PhysicalOperator> &child = children_[0];
     Tuple* tuple = nullptr;
     size_t count = 0;
@@ -197,13 +222,25 @@ RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
         auto& values = order_values_[id];
         values.resize(order_by_.size());
         for(size_t i = 0; i < order_by_.size(); i++){
-            order_by_[i]->get_value(value_list_[id], values[i]);
+            // Boundary check: ensure order_by_ index is valid
+            if (i < order_by_.size() && order_by_[i] != nullptr) {
+                order_by_[i]->get_value(value_list_[id], values[i]);
+            } else {
+                LOG_WARN("Invalid order_by_ index: i=%zu, order_by_.size()=%zu", i, order_by_.size());
+                values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+            }
         }
         ids_[id] = id;
     }
 
     // Use stable_sort to maintain relative order of equal elements
     stable_sort(ids_.begin(), ids_.end(), [&](const size_t &a, const size_t &b){
+        // Boundary check: ensure indices are valid
+        if (a >= order_values_.size() || b >= order_values_.size()) {
+            LOG_WARN("Invalid index in stable_sort: a=%zu, b=%zu, order_values_.size()=%zu", 
+                     a, b, order_values_.size());
+            return a < b;  // Fallback comparison
+        }
         return cmp(order_values_[a], order_values_[b]);
     });
 
@@ -213,12 +250,25 @@ RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
 RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
 {
     RC rc = RC::SUCCESS;
+    
+    // Boundary check: ensure child operator exists
+    if (children_.empty() || children_[0] == nullptr) {
+        LOG_WARN("limit_sort: no child operator");
+        return RC::INTERNAL;
+    }
+    
     std::unique_ptr<PhysicalOperator> &child = children_[0];
     Tuple* tuple = nullptr;
     order_values_.reserve(limit_);
     value_list_.reserve(limit_);
 
     auto cmp_ = [&](size_t &a, size_t &b){
+        // Boundary check: ensure indices are valid
+        if (a >= order_values_.size() || b >= order_values_.size()) {
+            LOG_WARN("Invalid index in limit_sort cmp: a=%zu, b=%zu, order_values_.size()=%zu", 
+                     a, b, order_values_.size());
+            return a < b;  // Fallback comparison
+        }
         return cmp(order_values_[a], order_values_[b]);
     };
     priority_queue<size_t, vector<size_t>, decltype(cmp_)> pq(cmp_);
@@ -241,7 +291,13 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
         {
             vector<Value> values(order_by_.size());
             for(size_t i = 0; i < order_by_.size(); i++){
-                order_by_[i]->get_value(value_list, values[i]);
+                // Boundary check: ensure order_by_ index is valid
+                if (i < order_by_.size() && order_by_[i] != nullptr) {
+                    order_by_[i]->get_value(value_list, values[i]);
+                } else {
+                    LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
+                    values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+                }
             }
             value_list_.emplace_back(std::move(value_list));
             order_values_.emplace_back(std::move(values));
@@ -249,14 +305,26 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
         } else {
             vector<Value> values(order_by_.size());
             for(size_t i = 0; i < order_by_.size(); i++){
-                order_by_[i]->get_value(value_list, values[i]);
+                // Boundary check: ensure order_by_ index is valid
+                if (i < order_by_.size() && order_by_[i] != nullptr) {
+                    order_by_[i]->get_value(value_list, values[i]);
+                } else {
+                    LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
+                    values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+                }
             }
-            if(cmp(values, order_values_[pq.top()])){
-                size_t id = pq.top();
-                pq.pop();
-                order_values_[id].swap(values);
-                pq.emplace(id);
-                value_list_[id] = move(value_list);
+            if (!pq.empty()) {
+                size_t top_id = pq.top();
+                // Boundary check: ensure top_id is valid
+                if (top_id < order_values_.size() && cmp(values, order_values_[top_id])){
+                    size_t id = top_id;
+                    pq.pop();
+                    if (id < order_values_.size() && id < value_list_.size()) {
+                        order_values_[id].swap(values);
+                        pq.emplace(id);
+                        value_list_[id] = move(value_list);
+                    }
+                }
             }
         }
             
@@ -284,10 +352,23 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
 
 bool OrderByPhysicalOperator::cmp(const vector<Value>& a_vals, const vector<Value>& b_vals)
 {
+    // Boundary check: ensure vectors have correct size
+    if (a_vals.size() != order_by_.size() || b_vals.size() != order_by_.size()) {
+        LOG_WARN("cmp: vector size mismatch. a_vals.size()=%zu, b_vals.size()=%zu, order_by_.size()=%zu",
+                 a_vals.size(), b_vals.size(), order_by_.size());
+        return a_vals.size() < b_vals.size();  // Fallback comparison
+    }
+    
+    if (is_asc_.size() != order_by_.size()) {
+        LOG_WARN("cmp: is_asc_ size mismatch. is_asc_.size()=%zu, order_by_.size()=%zu",
+                 is_asc_.size(), order_by_.size());
+        return false;  // Fallback
+    }
+    
     for(size_t id = 0; id < order_by_.size(); id++){
         bool is_asc = is_asc_[id];
-        auto& a_val = a_vals[id];
-        auto& b_val = b_vals[id];
+        const auto& a_val = a_vals[id];
+        const auto& b_val = b_vals[id];
 
         if(a_val.attr_type() == AttrType::NULLS)
         {
@@ -310,6 +391,13 @@ bool OrderByPhysicalOperator::cmp(const vector<Value>& a_vals, const vector<Valu
 RC OrderByPhysicalOperator::external_sort(Tuple *upper_tuple)
 {
     RC rc = RC::SUCCESS;
+    
+    // Boundary check: ensure child operator exists
+    if (children_.empty() || children_[0] == nullptr) {
+        LOG_WARN("external_sort: no child operator");
+        return RC::INTERNAL;
+    }
+    
     std::unique_ptr<PhysicalOperator> &child = children_[0];
     Tuple* tuple = nullptr;
     
@@ -349,7 +437,13 @@ RC OrderByPhysicalOperator::external_sort(Tuple *upper_tuple)
         
         vector<Value> values(order_by_.size());
         for(size_t i = 0; i < order_by_.size(); i++){
-            order_by_[i]->get_value(value_list, values[i]);
+            // Boundary check: ensure order_by_ index is valid
+            if (i < order_by_.size() && order_by_[i] != nullptr) {
+                order_by_[i]->get_value(value_list, values[i]);
+            } else {
+                LOG_WARN("Invalid order_by_ index in external_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
+                values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+            }
         }
         
         chunk.push_back(std::move(value_list));

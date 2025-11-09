@@ -253,15 +253,21 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
       // 收集左表涉及的所有表（包括之前的 JOIN 结果）
       if (table_idx == 1) {
         // 第一个 JOIN，左表是第一个表
-        left_tables_set.insert(tables[0].first->name());
+        // Boundary check: ensure table pointer is valid
+        if (tables[0].first != nullptr) {
+          left_tables_set.insert(tables[0].first->name());
+        }
         if (!tables[0].second.empty()) {
           left_tables_set.insert(tables[0].second);
         }
       } else {
         // 后续 JOIN，左表是之前的 JOIN 结果，需要收集所有之前的表
         for (size_t i = 0; i < table_idx; i++) {
-          left_tables_set.insert(tables[i].first->name());
-          if (!tables[i].second.empty()) {
+          // Boundary check: ensure table pointer is valid
+          if (i < tables.size() && tables[i].first != nullptr) {
+            left_tables_set.insert(tables[i].first->name());
+          }
+          if (i < tables.size() && !tables[i].second.empty()) {
             left_tables_set.insert(tables[i].second);
           }
         }
@@ -801,11 +807,26 @@ RC LogicalPlanGenerator::create_vector_plan(SelectStmt *select_stmt, unique_ptr<
 {
   auto &tables = select_stmt->tables();
   auto& order_by = select_stmt->order_by();
+  auto& is_asc = select_stmt->is_asc();
 
-  if(tables.size() != 1 || order_by.size() != 1 || !select_stmt->is_asc()[0])
+  // Boundary check: ensure all arrays have correct size
+  if(tables.size() != 1 || order_by.size() != 1 || is_asc.size() != 1 || !is_asc[0])
     return RC::INVALID_ARGUMENT;
 
+  // Boundary check: ensure table pointer is valid
+  if (tables[0].first == nullptr) {
+    LOG_WARN("create_vector_plan: table pointer is null");
+    return RC::INVALID_ARGUMENT;
+  }
+
   Table *table = static_cast<Table*>(tables[0].first);
+  
+  // Boundary check: ensure order_expr is valid
+  if (order_by[0] == nullptr) {
+    LOG_WARN("create_vector_plan: order_expr is null");
+    return RC::INVALID_ARGUMENT;
+  }
+  
   Expression *order_expr = order_by[0].get();
   
   VectorOperationExpr::Type operation_type;

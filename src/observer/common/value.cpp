@@ -200,10 +200,25 @@ void Value::set_vector(const char *data)
   attr_type_        = AttrType::VECTORS;
   value_.vector_value_ = new vector<float>;
   own_data_ = true;
+  
+  // Boundary check: ensure data is not nullptr
+  if (data == nullptr) {
+    LOG_WARN("set_vector called with nullptr data");
+    length_ = 0;
+    return;
+  }
+  
   stringstream ss(data);
   string temp;
   while(getline(ss, temp, ',')){
-    value_.vector_value_->emplace_back(stof(temp));
+    if (!temp.empty()) {
+      try {
+        value_.vector_value_->emplace_back(stof(temp));
+      } catch (...) {
+        LOG_WARN("Failed to parse vector element: %s", temp.c_str());
+        // Continue parsing other elements
+      }
+    }
   }
   length_ = value_.vector_value_->size() * sizeof(float);
 }
@@ -212,12 +227,32 @@ void Value::set_vector(const char *data, int len)
 {
   reset();
   attr_type_        = AttrType::VECTORS;
+  
+  // Boundary check: ensure data is not nullptr and len is valid
+  if (data == nullptr) {
+    LOG_WARN("set_vector called with nullptr data");
+    value_.vector_value_ = new vector<float>;
+    own_data_ = true;
+    length_ = 0;
+    return;
+  }
+  
+  if (len <= 0 || len % sizeof(float) != 0) {
+    LOG_WARN("set_vector called with invalid length: %d (must be positive and multiple of %zu)", 
+             len, sizeof(float));
+    value_.vector_value_ = new vector<float>;
+    own_data_ = true;
+    length_ = 0;
+    return;
+  }
+  
   length_ = len;
-  len /= sizeof(float);
-  value_.vector_value_ = new vector<float>(len);
+  int vector_size = len / sizeof(float);
+  value_.vector_value_ = new vector<float>(vector_size);
   own_data_ = true;
  
-  for(int id = 0; id < len; id++){
+  // Boundary check: ensure we don't access beyond data bounds
+  for(int id = 0; id < vector_size; id++){
     value_.vector_value_->at(id) = *((float*)data + id);
   }
 }
@@ -316,7 +351,8 @@ void Value::set_vector(vector<float>&& embedding)
   attr_type_ = AttrType::VECTORS;
   own_data_ = true;
   length_ = embedding.size() * sizeof(float);
-  value_.vector_value_ = &embedding;
+  // Move the data to a new vector to avoid dangling pointer
+  value_.vector_value_ = new vector<float>(std::move(embedding));
 }
 
 void Value::set_vector(const vector<float>* embedding)

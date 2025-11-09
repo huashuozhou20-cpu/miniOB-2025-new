@@ -94,6 +94,18 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
 %parse-param { ParsedSqlResult * sql_result }
 %parse-param { void * scanner }
 
+// Custom destructor to free strdup-allocated strings
+%code provides {
+  static void yydestruct_string(const char *yymsg, yysymbol_kind_t yykind, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, const char * sql_string, ParsedSqlResult * sql_result, void * scanner) {
+    if (yykind == YYSYMBOL_ID_KEY || yykind == YYSYMBOL_SSS || yykind == YYSYMBOL_DATE_VALUE) {
+      if (yyvaluep && yyvaluep->string) {
+        free(yyvaluep->string);
+        yyvaluep->string = nullptr;
+      }
+    }
+  }
+}
+
 //标识tokens
 %token  SEMICOLON
         BY
@@ -216,6 +228,9 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
 %token <string> ID_KEY
 %token <string> SSS
 %token <string> DATE_VALUE
+
+// Free memory allocated by strdup in lexer
+%destructor { free($$); } <string>
 
 
 //非终结符
