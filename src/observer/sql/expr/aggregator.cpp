@@ -87,15 +87,18 @@ RC MinAggregator::evaluate(Value& result, bool have_groub_by)
 
 RC AvgAggregator::accumulate(const Value &value)
 {
-  if (value_.attr_type() == AttrType::UNDEFINED) {
-    value_ = Value((float)0.0);
-    countnum = Value((int)0);
-  }
   if(value.attr_type() == AttrType::NULLS)return RC::SUCCESS;
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
-        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+  if (value_.attr_type() == AttrType::UNDEFINED) {
+    // AvgAggregator always uses FLOATS type for accumulation
+    // Value::avg will handle type conversion from INTS to FLOATS
+    value_ = Value((float)0.0);
+    value_.set_type(AttrType::FLOATS);
+    countnum = Value((int)0);
+  }
   
+  // Value::avg handles type conversion internally, so we don't need strict type matching
+  // It will convert INTS to FLOATS automatically
   Value::avg(value, value_, countnum);
   return RC::SUCCESS;
 }

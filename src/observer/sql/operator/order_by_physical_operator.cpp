@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include <random>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 #include "sql/operator/order_by_physical_operator.h"
 #include "common/log/log.h"
@@ -201,7 +202,8 @@ RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
         ids_[id] = id;
     }
 
-    sort(ids_.begin(), ids_.end(), [&](size_t &a, size_t &b){
+    // Use stable_sort to maintain relative order of equal elements
+    stable_sort(ids_.begin(), ids_.end(), [&](const size_t &a, const size_t &b){
         return cmp(order_values_[a], order_values_[b]);
     });
 
@@ -290,16 +292,18 @@ bool OrderByPhysicalOperator::cmp(const vector<Value>& a_vals, const vector<Valu
         if(a_val.attr_type() == AttrType::NULLS)
         {
             if(b_val.attr_type() == AttrType::NULLS)continue;
-            return is_asc;
+            return is_asc;  // NULL values come first in ASC, last in DESC
         }
         else if(b_val.attr_type() == AttrType::NULLS)return !is_asc;
 
         int cmp_result = a_val.compare(b_val);
-        if(cmp_result == 0)continue;
-        else if(is_asc)return cmp_result < 0;
-        return cmp_result > 0;
+        if(cmp_result == 0)continue;  // Equal, check next sort key
+        // For ASC: return true if a < b, false if a > b
+        // For DESC: return true if a > b, false if a < b
+        if(is_asc)return cmp_result < 0;
+        else return cmp_result > 0;
     }
-    // 所有排序键都相等，返回 false 表示相等（保持稳定排序）
+    // 所有排序键都相等，返回 false 表示 a 不小于 b（保持稳定排序）
     return false;
 }
 
@@ -355,8 +359,8 @@ RC OrderByPhysicalOperator::external_sort(Tuple *upper_tuple)
         
         // When chunk is full, sort and write to file
         if (chunk.size() >= CHUNK_SIZE) {
-            // Sort the chunk
-            sort(chunk_ids.begin(), chunk_ids.end(), [&](size_t a, size_t b){
+            // Sort the chunk (use stable_sort to maintain relative order)
+            stable_sort(chunk_ids.begin(), chunk_ids.end(), [&](const size_t &a, const size_t &b){
                 return cmp(chunk_values[a], chunk_values[b]);
             });
             
@@ -386,7 +390,7 @@ RC OrderByPhysicalOperator::external_sort(Tuple *upper_tuple)
     
     // Write remaining data as last chunk
     if (!chunk.empty()) {
-        sort(chunk_ids.begin(), chunk_ids.end(), [&](size_t a, size_t b){
+        stable_sort(chunk_ids.begin(), chunk_ids.end(), [&](const size_t &a, const size_t &b){
             return cmp(chunk_values[a], chunk_values[b]);
         });
         
