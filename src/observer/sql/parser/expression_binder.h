@@ -24,7 +24,7 @@ public:
   BinderContext() = default;
   virtual ~BinderContext() = default;
 
-  void add_table(BaseTable *table, string& alias) { query_tables_.push_back({table, alias}); }
+  void add_table(BaseTable *table, const string& alias) { query_tables_.push_back({table, alias}); }
 
   pair<BaseTable*, string> find_table(const char *table_name) const;
 

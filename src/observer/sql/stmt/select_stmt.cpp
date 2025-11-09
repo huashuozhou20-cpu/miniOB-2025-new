@@ -49,7 +49,11 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
  
   for (size_t i = 0; i < select_sql.relations.size(); i++) {
     const char *table_name = select_sql.relations[i].c_str();
-    string& table_alias = select_sql.alias[i];
+    // Boundary check: ensure alias index is valid
+    string table_alias;
+    if (i < select_sql.alias.size()) {
+      table_alias = select_sql.alias[i];
+    }
     if (nullptr == table_name) {
       LOG_WARN("invalid argument. relation name is null. index=%d", i);
       return RC::INVALID_ARGUMENT;
@@ -137,9 +141,12 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
     if(table_map.count(table_name) && table_map.at(table_name).second == size){
       table_map.erase(table_name);
     }
-    string& table_alias = select_sql.alias[i];
-    if(!table_alias.empty())
-      table_map.erase(table_alias);
+    // Boundary check: ensure alias index is valid
+    if (i < select_sql.alias.size()) {
+      const string& table_alias = select_sql.alias[i];
+      if(!table_alias.empty())
+        table_map.erase(table_alias);
+    }
   }
 
   vector<unique_ptr<Expression>> order_by_expressions;

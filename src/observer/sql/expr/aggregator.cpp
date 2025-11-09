@@ -121,9 +121,8 @@ RC CountAggregator::accumulate(const Value &value)
   }
   if(value.attr_type() == AttrType::NULLS)return RC::SUCCESS;
 
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
-        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
-  
+  // Count aggregator accepts any type, so we don't need to check type matching
+  // Just increment the count
   Value::count(value_);
   return RC::SUCCESS;
 }

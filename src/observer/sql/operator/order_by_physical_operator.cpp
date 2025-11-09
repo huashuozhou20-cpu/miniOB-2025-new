@@ -262,14 +262,21 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
     order_values_.reserve(limit_);
     value_list_.reserve(limit_);
 
-    auto cmp_ = [&](size_t &a, size_t &b){
+    // For priority_queue, we need to reverse the comparison logic
+    // priority_queue uses "less" comparator: returns true if first arg should be after second arg
+    // For ASC: we want min-heap (smallest on top), so we need to reverse cmp
+    // For DESC: we want max-heap (largest on top), so we use cmp directly
+    // Since cmp returns true if a < b (a should come before b), we need to reverse it for min-heap
+    auto cmp_ = [&](const size_t &a, const size_t &b){
         // Boundary check: ensure indices are valid
         if (a >= order_values_.size() || b >= order_values_.size()) {
             LOG_WARN("Invalid index in limit_sort cmp: a=%zu, b=%zu, order_values_.size()=%zu", 
                      a, b, order_values_.size());
-            return a < b;  // Fallback comparison
+            return a > b;  // Fallback comparison (reversed for min-heap)
         }
-        return cmp(order_values_[a], order_values_[b]);
+        // Reverse the comparison: if cmp(a, b) returns true (a < b), we want a to be after b in heap
+        // So we return !cmp(a, b) which means a > b, making it a min-heap
+        return !cmp(order_values_[a], order_values_[b]);
     };
     priority_queue<size_t, vector<size_t>, decltype(cmp_)> pq(cmp_);
     
@@ -316,6 +323,8 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
             if (!pq.empty()) {
                 size_t top_id = pq.top();
                 // Boundary check: ensure top_id is valid
+                // For min-heap, top() returns the smallest element
+                // We want to replace it if the new element is smaller (cmp returns true)
                 if (top_id < order_values_.size() && cmp(values, order_values_[top_id])){
                     size_t id = top_id;
                     pq.pop();
