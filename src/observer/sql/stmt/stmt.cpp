@@ -12,14 +12,19 @@ See the Mulan PSL v2 for more details. */
 // Created by Wangyunlai on 2022/5/22.
 //
 
+#include <unordered_set>
+
 #include "sql/stmt/stmt.h"
 #include "common/log/log.h"
-#include "sql/stmt/analyze_table_stmt.h"
 #include "sql/stmt/calc_stmt.h"
 #include "sql/stmt/create_index_stmt.h"
 #include "sql/stmt/create_table_stmt.h"
+#include "sql/stmt/create_view_stmt.h"
 #include "sql/stmt/delete_stmt.h"
+#include "sql/stmt/drop_table_stmt.h"
+#include "sql/stmt/drop_index_stmt.h"
 #include "sql/stmt/desc_table_stmt.h"
+#include "sql/stmt/alter_table_stmt.h"
 #include "sql/stmt/exit_stmt.h"
 #include "sql/stmt/explain_stmt.h"
 #include "sql/stmt/help_stmt.h"
@@ -28,8 +33,10 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/set_variable_stmt.h"
 #include "sql/stmt/show_tables_stmt.h"
+#include "sql/stmt/show_index_stmt.h"
 #include "sql/stmt/trx_begin_stmt.h"
 #include "sql/stmt/trx_end_stmt.h"
+#include "sql/stmt/update_stmt.h"
 
 bool stmt_type_ddl(StmtType type)
 {
@@ -37,7 +44,8 @@ bool stmt_type_ddl(StmtType type)
     case StmtType::CREATE_TABLE:
     case StmtType::DROP_TABLE:
     case StmtType::DROP_INDEX:
-    case StmtType::CREATE_INDEX: {
+    case StmtType::CREATE_INDEX:
+    case StmtType::ALTER_TABLE: {
       return true;
     }
     default: {
@@ -45,7 +53,9 @@ bool stmt_type_ddl(StmtType type)
     }
   }
 }
-RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
+RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt, 
+  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  tables_t& table_map, int fa)
 {
   stmt = nullptr;
 
@@ -53,31 +63,47 @@ RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
     case SCF_INSERT: {
       return InsertStmt::create(db, sql_node.insertion, stmt);
     }
+    case SCF_UPDATE: {
+      return UpdateStmt::create(db, sql_node.update, stmt, depends, select_exprs, table_map, fa);
+    }
     case SCF_DELETE: {
-      return DeleteStmt::create(db, sql_node.deletion, stmt);
+      return DeleteStmt::create(db, sql_node.deletion, stmt, depends, select_exprs, table_map, fa);
     }
     case SCF_SELECT: {
-      return SelectStmt::create(db, sql_node.selection, stmt);
+      return SelectStmt::create(db, sql_node.selection, stmt, depends, select_exprs, table_map, fa);
     }
 
     case SCF_EXPLAIN: {
-      return ExplainStmt::create(db, sql_node.explain, stmt);
+      return ExplainStmt::create(db, sql_node.explain, stmt, depends, select_exprs, table_map, fa);
     }
 
     case SCF_CREATE_INDEX: {
       return CreateIndexStmt::create(db, sql_node.create_index, stmt);
     }
 
-    case SCF_CREATE_TABLE: {
-      return CreateTableStmt::create(db, sql_node.create_table, stmt);
+    case SCF_CREATE_VIEW: {
+      return CreateViewStmt::create(db, sql_node.create_view, stmt, sql_node.selection, depends, select_exprs, table_map, fa);
     }
 
+    case SCF_CREATE_TABLE: {
+      return CreateTableStmt::create(db, sql_node.create_table, sql_node.selection, stmt, depends, select_exprs, table_map, fa);
+    }
+
+    case SCF_DROP_TABLE: {
+      return DropTableStmt::create(db, sql_node.drop_table, stmt);
+    }
+    case SCF_DROP_INDEX: {
+      return DropIndexStmt::create(db, sql_node.drop_index, stmt);
+    }
+    case SCF_SHOW_INDEX: {
+      return ShowIndexStmt::create(db, sql_node.show_index, stmt);
+    }
     case SCF_DESC_TABLE: {
       return DescTableStmt::create(db, sql_node.desc_table, stmt);
     }
 
-    case SCF_ANALYZE_TABLE: { 
-      return AnalyzeTableStmt::create(db, sql_node.analyze_table, stmt);
+    case SCF_ALTER_TABLE: {
+      return AlterTableStmt::create(db, sql_node.alter_table, stmt);
     }
 
     case SCF_HELP: {

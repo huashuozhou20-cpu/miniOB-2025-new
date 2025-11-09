@@ -14,14 +14,16 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/sys/rc.h"
+#include <memory>
+#include <vector>
+
+#include "common/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
 
 class FieldMeta;
 class FilterStmt;
 class Db;
-class Table;
 
 /**
  * @brief 表示select语句
@@ -36,18 +38,34 @@ public:
   StmtType type() const override { return StmtType::SELECT; }
 
 public:
-  static RC create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt);
+  static RC create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt, 
+    vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    tables_t& table_map, int fa = -1);
 
 public:
-  const vector<Table *> &tables() const { return tables_; }
-  FilterStmt            *filter_stmt() const { return filter_stmt_; }
+  const std::vector<std::pair<BaseTable *, std::string>> &tables() const { return tables_; }
+  FilterStmt                 *filter_stmt() const { return filter_stmt_; }
 
-  vector<unique_ptr<Expression>> &query_expressions() { return query_expressions_; }
-  vector<unique_ptr<Expression>> &group_by() { return group_by_; }
+  std::vector<std::unique_ptr<Expression>> &query_expressions() { return query_expressions_; }
+  std::vector<std::unique_ptr<Expression>> &group_by() { return group_by_; }
+  std::vector<std::unique_ptr<Expression>> &order_by() { return order_by_; }
+  std::vector<std::unique_ptr<Expression>> &having_list() { return having_list_; }
+  std::vector<bool>                        &is_asc() { return is_asc_; }
+  bool                                      and_or() { return and_or_; }
+  int                                       limit() { return limit_; }
+  SelectStmt                               *union_stmt() const { return union_stmt_; }
+  bool                                      union_all() const { return union_all_; }
 
 private:
-  vector<unique_ptr<Expression>> query_expressions_;
-  vector<Table *>                tables_;
-  FilterStmt                    *filter_stmt_ = nullptr;
-  vector<unique_ptr<Expression>> group_by_;
+  std::vector<std::unique_ptr<Expression>> query_expressions_;
+  std::vector<std::pair<BaseTable *, std::string>>        tables_;
+  FilterStmt                              *filter_stmt_ = nullptr;
+  std::vector<std::unique_ptr<Expression>> group_by_;
+  std::vector<std::unique_ptr<Expression>> order_by_;
+  std::vector<std::unique_ptr<Expression>> having_list_;
+  bool                                     and_or_ = false;
+  std::vector<bool>                        is_asc_; // 升序为true
+  int                                      limit_ = -1;
+  SelectStmt                               *union_stmt_ = nullptr;  ///< UNION 的另一个 SELECT 语句
+  bool                                     union_all_ = false;      ///< 是否是 UNION ALL（不去重）
 };

@@ -44,6 +44,7 @@ public:
   virtual ~VacuousTrx() = default;
 
   RC insert_record(Table *table, Record &record) override;
+  RC update_record(Table *table, Record &record, std::vector<const FieldMeta *> &fields, std::vector<Value> &values) override;
   RC delete_record(Table *table, Record &record) override;
   RC update_record(Table *table, Record &old_record, Record &new_record) override { return RC::UNIMPLEMENTED; }
   RC visit_record(Table *table, Record &record, ReadWriteMode mode) override;

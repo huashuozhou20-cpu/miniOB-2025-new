@@ -20,9 +20,10 @@ using namespace std;
 
 RC TableScanPhysicalOperator::open(Trx *trx)
 {
+  LOG_INFO("open table scan operator");
   RC rc = table_->get_record_scanner(record_scanner_, trx, mode_);
   if (rc == RC::SUCCESS) {
-    tuple_.set_schema(table_, table_->table_meta().field_metas());
+    tuple_.set_schema(table_, table_->table_meta().field_metas(), alias_);
   }
   trx_ = trx;
   return rc;
@@ -33,7 +34,7 @@ RC TableScanPhysicalOperator::next()
   RC rc = RC::SUCCESS;
 
   bool filter_result = false;
-  while (OB_SUCC(rc = record_scanner_->next(current_record_))) {
+  while (OB_SUCC(rc = record_scanner_.next(current_record_))) {
     LOG_TRACE("got a record. rid=%s", current_record_.rid().to_string().c_str());
     
     tuple_.set_record(&current_record_);
@@ -53,19 +54,37 @@ RC TableScanPhysicalOperator::next()
   return rc;
 }
 
-RC TableScanPhysicalOperator::close() {
+RC TableScanPhysicalOperator::next(Tuple *upper_tuple)
+{
   RC rc = RC::SUCCESS;
-  if (record_scanner_ != nullptr) {
-    rc = record_scanner_->close_scan();
+  JoinedTuple join_tuple;
+  join_tuple.set_left(upper_tuple);
+
+  bool filter_result = false;
+  while (OB_SUCC(rc = record_scanner_.next(current_record_))) {
+    LOG_TRACE("got a record. rid=%s", current_record_.rid().to_string().c_str());
+    
+    tuple_.set_record(&current_record_);
+    
+    join_tuple.set_right(&tuple_);
+
+    rc = filter(join_tuple, filter_result);
     if (rc != RC::SUCCESS) {
-      LOG_WARN("failed to close record scanner");
+      LOG_TRACE("record filtered failed=%s", strrc(rc));
+      return rc;
     }
-    delete record_scanner_;
-    record_scanner_ = nullptr;
+
+    if (filter_result) {
+      sql_debug("get a tuple: %s", tuple_.to_string().c_str());
+      break;
+    } else {
+      sql_debug("a tuple is filtered: %s", tuple_.to_string().c_str());
+    }
   }
   return rc;
-
 }
+
+RC TableScanPhysicalOperator::close() { LOG_INFO("close table scan operator"); return record_scanner_.close_scan(); }
 
 Tuple *TableScanPhysicalOperator::current_tuple()
 {
@@ -80,7 +99,7 @@ void TableScanPhysicalOperator::set_predicates(vector<unique_ptr<Expression>> &&
   predicates_ = std::move(exprs);
 }
 
-RC TableScanPhysicalOperator::filter(RowTuple &tuple, bool &result)
+RC TableScanPhysicalOperator::filter(Tuple &tuple, bool &result)
 {
   RC    rc = RC::SUCCESS;
   Value value;

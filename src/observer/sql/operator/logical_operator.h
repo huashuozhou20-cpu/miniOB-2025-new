@@ -32,14 +32,21 @@ See the Mulan PSL v2 for more details. */
 enum class LogicalOperatorType
 {
   CALC,
+  VECTOR_INDEX_GET,
   TABLE_GET,   ///< 从表中获取数据
+  VIEW_GET,    ///< 从视图中获取数据
   PREDICATE,   ///< 过滤，就是谓词
   PROJECTION,  ///< 投影，就是select
   JOIN,        ///< 连接
   INSERT,      ///< 插入
+  UPDATE,      ///< 更新
   DELETE,      ///< 删除，删除可能会有子查询
   EXPLAIN,     ///< 查看执行计划
+  ORDER_BY,    ///< 排序
+  CREATE_TABLE, ///< create-table-select
+  LIMIT,
   GROUP_BY,    ///< 分组
+  UNION,       ///< UNION 操作
 };
 
 /**

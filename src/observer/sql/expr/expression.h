@@ -14,15 +14,24 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/lang/string.h"
-#include "common/lang/memory.h"
-#include "common/lang/unordered_set.h"
+#include <memory>
+#include <string>
+#include <regex>
+#include <unordered_set>
+#include <vector>
 #include "common/value.h"
 #include "storage/field/field.h"
 #include "sql/expr/aggregator.h"
 #include "storage/common/chunk.h"
+#include "sql/parser/expression_binder.h"
 
 class Tuple;
+class Stmt;
+class LogicalOperator;
+class PhysicalOperator;
+class Session;
+class ParsedSqlNode;
+class SqlResult;
 
 /**
  * @defgroup Expression
@@ -39,6 +48,7 @@ enum class ExprType
   STAR,                 ///< 星号，表示所有字段
   UNBOUND_FIELD,        ///< 未绑定的字段，需要在resolver阶段解析为FieldExpr
   UNBOUND_AGGREGATION,  ///< 未绑定的聚合函数，需要在resolver阶段解析为AggregateExpr
+  UNBOUND_SYSFUNC,      ///< 未绑定的系统函数，需要在resolver阶段解析为SysFuncExpr
 
   FIELD,        ///< 字段。在实际执行时，根据行数据内容提取对应字段的值
   VALUE,        ///< 常量值
@@ -47,6 +57,10 @@ enum class ExprType
   CONJUNCTION,  ///< 多个表达式使用同一种关系(AND或OR)来联结
   ARITHMETIC,   ///< 算术运算
   AGGREGATION,  ///< 聚合运算
+  VECTOROPERATION,  ///<向量运算操作
+  SELECT,        ///< 子查询
+  VALUE_LIST,
+  SYSFUNC        ///< 系统函数
 };
 
 /**
@@ -69,6 +83,9 @@ public:
 
   virtual ~Expression() = default;
 
+  RC recursion(std::unique_ptr<Expression>& expr, 
+    const std::function<RC(std::unique_ptr<Expression>&)>& func);
+
   /**
    * @brief 复制表达式
    */
@@ -82,6 +99,8 @@ public:
    * @brief 根据具体的tuple，来计算当前表达式的值。tuple有可能是一个具体某个表的行数据
    */
   virtual RC get_value(const Tuple &tuple, Value &value) const = 0;
+
+  virtual RC get_value_set(const Tuple &tuple, vector<Value> &value_list) const {return RC::UNIMPLEMENTED;}
 
   /**
    * @brief 在没有实际运行的情况下，也就是无法获取tuple的情况下，尝试获取表达式的值
@@ -118,6 +137,12 @@ public:
   virtual void        set_name(string name) { name_ = name; }
 
   /**
+   * @brief 表达式的别名
+   */
+  virtual const string   &alias() const { return alias_; }
+  virtual void        set_alias(std::string alias) { alias_ = alias; }
+
+  /**
    * @brief 表达式在下层算子返回的 chunk 中的位置
    */
   virtual int  pos() const { return pos_; }
@@ -127,6 +152,8 @@ public:
    * @brief 用于 ComparisonExpr 获得比较结果 `select`。
    */
   virtual RC eval(Chunk &chunk, vector<uint8_t> &select) { return RC::UNIMPLEMENTED; }
+
+  virtual unique_ptr<Expression> deep_copy(){ return nullptr; };
 
 protected:
   /**
@@ -138,7 +165,8 @@ protected:
   int pos_ = -1;
 
 private:
-  string name_;
+  std::string name_;
+  std::string alias_;
 };
 
 class StarExpr : public Expression
@@ -180,6 +208,12 @@ public:
   const char *table_name() const { return table_name_.c_str(); }
   const char *field_name() const { return field_name_.c_str(); }
 
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new UnboundFieldExpr(table_name_, field_name_));
+  }
+
+
 private:
   string table_name_;
   string field_name_;
@@ -193,7 +227,7 @@ class FieldExpr : public Expression
 {
 public:
   FieldExpr() = default;
-  FieldExpr(const Table *table, const FieldMeta *field) : field_(table, field) {}
+  FieldExpr(const BaseTable *table, const FieldMeta *field) : field_(table, field) {}
   FieldExpr(const Field &field) : field_(field) {}
 
   virtual ~FieldExpr() = default;
@@ -210,15 +244,27 @@ public:
 
   const Field &field() const { return field_; }
 
+  void        set_table_alias(const char * table_alias) { table_alias_ = table_alias; }
   const char *table_name() const { return field_.table_name(); }
+  const BaseTable   *table() const { return field_.table(); }
   const char *field_name() const { return field_.field_name(); }
+  const string     &table_alias() const { return table_alias_; }
 
   RC get_column(Chunk &chunk, Column &column) override;
 
   RC get_value(const Tuple &tuple, Value &value) const override;
 
+  unique_ptr<Expression> deep_copy() override
+  {
+    unique_ptr<Expression> ret(new FieldExpr(field_));
+    if(!table_alias_.empty())
+      static_cast<FieldExpr*>(ret.get())->set_table_alias(table_alias_.c_str());
+    return ret;
+  }
+
 private:
   Field field_;
+  std::string table_alias_;
 };
 
 /**
@@ -244,6 +290,14 @@ public:
     value = value_;
     return RC::SUCCESS;
   }
+  
+  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override
+  {
+    Value value;
+    get_value(value);
+    value_list.emplace_back(std::move(value));
+    return RC::SUCCESS;
+  }
 
   ExprType type() const override { return ExprType::VALUE; }
   AttrType value_type() const override { return value_.attr_type(); }
@@ -251,6 +305,11 @@ public:
 
   void         get_value(Value &value) const { value = value_; }
   const Value &get_value() const { return value_; }
+
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new ValueExpr(value_));
+  }
 
 private:
   Value value_;
@@ -272,12 +331,18 @@ public:
 
   RC get_value(const Tuple &tuple, Value &value) const override;
   RC get_column(Chunk &chunk, Column &column) override;
+  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
 
   RC try_get_value(Value &value) const override;
 
   AttrType value_type() const override { return cast_type_; }
 
   unique_ptr<Expression> &child() { return child_; }
+
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new CastExpr(child_->deep_copy(), cast_type_));
+  }
 
 private:
   RC cast(const Value &value, Value &cast_value) const;
@@ -328,13 +393,28 @@ public:
    */
   RC compare_value(const Value &left, const Value &right, bool &value) const;
 
+  RC like_value(const Tuple &tuple, bool &result) const;
+
+  RC value_exists(const Tuple &tuple, bool &result) const;
+
+  RC value_in(const Tuple &tuple, bool &result) const;
+  RC value_not_in(const Tuple &tuple, bool &result) const;
+
+  RC value_is_null(const Tuple &tuple, bool &result) const;
+
   template <typename T>
   RC compare_column(const Column &left, const Column &right, vector<uint8_t> &result) const;
 
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new ComparisonExpr(comp_, left_->deep_copy(), right_->deep_copy()));
+  }
+
 private:
-  CompOp                 comp_;
-  unique_ptr<Expression> left_;
-  unique_ptr<Expression> right_;
+  CompOp                      comp_;
+  std::unique_ptr<Expression> left_;
+  std::unique_ptr<Expression> right_;
+  std::regex                  pattern;
 };
 
 /**
@@ -425,6 +505,11 @@ public:
   unique_ptr<Expression> &left() { return left_; }
   unique_ptr<Expression> &right() { return right_; }
 
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new ArithmeticExpr(arithmetic_type_, left_->deep_copy(), right_->deep_copy()));
+  }
+
 private:
   RC calc_value(const Value &left_value, const Value &right_value, Value &value) const;
 
@@ -437,6 +522,47 @@ private:
   Type                   arithmetic_type_;
   unique_ptr<Expression> left_;
   unique_ptr<Expression> right_;
+};
+
+/**
+ * @brief 向量运算表达式
+ * @ingroup Expression
+ */
+class VectorOperationExpr : public Expression
+{
+public:
+  enum class Type
+  {
+    L2_DISTANCE,
+    COSINE_DISTANCE,
+    INNER_PRODUCT,
+  };
+public:
+  VectorOperationExpr(Type type, Expression *left, Expression *right);
+  VectorOperationExpr(Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right);
+  virtual ~VectorOperationExpr() = default;
+
+  bool     equal(const Expression &other) const override;
+  ExprType type() const override { return ExprType::VECTOROPERATION; }
+
+  AttrType value_type() const override;
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+
+  RC try_get_value(Value &value) const override;
+
+  Type operation_type() const { return operation_type_; }
+
+  std::unique_ptr<Expression> &left() { return left_; }
+  std::unique_ptr<Expression> &right() { return right_; }
+
+private:
+  RC calc_value(const Value &left_value, const Value &right_value, Value &value) const;
+  
+private:
+  Type                        operation_type_;
+  std::unique_ptr<Expression> left_;
+  std::unique_ptr<Expression> right_;
 };
 
 class UnboundAggregateExpr : public Expression
@@ -459,6 +585,11 @@ public:
 
   RC       get_value(const Tuple &tuple, Value &value) const override { return RC::INTERNAL; }
   AttrType value_type() const override { return child_->value_type(); }
+
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new UnboundAggregateExpr(aggregate_name_.c_str(), child_->deep_copy().release()));
+  }
 
 private:
   string                 aggregate_name_;
@@ -521,10 +652,194 @@ public:
 
   unique_ptr<Aggregator> create_aggregator() const;
 
+  unique_ptr<Expression> deep_copy() override
+  {
+    return unique_ptr<Expression>(new AggregateExpr(aggregate_type_, child_->deep_copy()));
+  }
+
 public:
   static RC type_from_string(const char *type_str, Type &type);
 
 private:
-  Type                   aggregate_type_;
-  unique_ptr<Expression> child_;
+  Type                        aggregate_type_;
+  std::unique_ptr<Expression> child_;
+};
+
+/**
+ * @brief 子查询表达式
+ * @ingroup Expression
+ */
+class SelectExpr : public Expression
+{
+public:
+  using tables_t = std::unordered_map<std::string, std::pair<BaseTable*, size_t>>;
+
+  SelectExpr() = default;
+  SelectExpr(ParsedSqlNode* sql_node);
+
+  virtual ~SelectExpr();
+
+  ExprType type() const override { return ExprType::SELECT; }
+  AttrType value_type() const override { return value_type_;}
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
+  RC try_get_value(Value &value) const { 
+    if(values_ != nullptr){
+      if(values_->size() == 0 || values_->at(0).size() == 0){
+        value.set_null();
+        return RC::SUCCESS;
+      }
+      if(values_->size() > 1 || values_->at(0).size() > 1)
+        return RC::MUTI_TUPLE;
+      value = values_->at(0)[0];
+      return RC::SUCCESS;
+    }
+    return RC::UNIMPLEMENTED;
+  }
+
+  RC pretreatment();
+
+  RC logical_generate();
+  RC physical_generate();
+  RC create_stmt(Db *db, vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    tables_t& table_map, int fa);
+
+  RC next_tuple(Tuple *&tuple, Tuple *upper_tuple = nullptr) const;
+
+  void set_trx(Trx *trx) { trx_ = trx; };
+
+private:
+  AttrType value_type_ = AttrType::UNDEFINED;
+  Stmt*     stmt_ = nullptr;
+
+  unique_ptr<LogicalOperator> logical_operator_;
+  unique_ptr<PhysicalOperator> physical_operator_;
+  unique_ptr<vector<vector<Value>>> values_;
+  ParsedSqlNode*  sql_node_ = nullptr;
+  Trx*      trx_ = nullptr;
+};
+
+class ValueListExpr : public Expression
+{
+public:
+  ValueListExpr() = default;
+  explicit ValueListExpr(std::vector<unique_ptr<Expression>>& exprs) {
+    exprs_.swap(exprs);
+  }
+
+  virtual ~ValueListExpr() = default;
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+  RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
+
+  ExprType type() const override { return ExprType::VALUE_LIST; }
+  AttrType value_type() const override { return exprs_[0]->value_type(); }
+
+private:
+   std::vector<std::unique_ptr<Expression>> exprs_;
+};
+
+/**
+ * @brief 未绑定的系统函数表达式
+ * @ingroup Expression
+ */
+class UnboundSysFuncExpr : public Expression
+{
+public:
+  UnboundSysFuncExpr(const char *func_name, Expression *child);
+  UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child);
+  UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child, Expression *third_child);
+  virtual ~UnboundSysFuncExpr() = default;
+
+  ExprType type() const override { return ExprType::UNBOUND_SYSFUNC; }
+
+  const char *func_name() const { return func_name_.c_str(); }
+
+  std::unique_ptr<Expression> &child() { return child_; }
+  std::unique_ptr<Expression> &second_child() { return second_child_; }
+  std::unique_ptr<Expression> &third_child() { return third_child_; }
+
+  RC       get_value(const Tuple &tuple, Value &value) const override { return RC::INTERNAL; }
+  AttrType value_type() const override { return child_ ? child_->value_type() : AttrType::UNDEFINED; }
+
+  unique_ptr<Expression> deep_copy() override;
+
+private:
+  std::string                 func_name_;
+  std::unique_ptr<Expression> child_;
+  std::unique_ptr<Expression> second_child_;  // for DATE_FORMAT format string
+  std::unique_ptr<Expression> third_child_;   // for DISTANCE metric string
+};
+
+/**
+ * @brief 系统函数表达式
+ * @ingroup Expression
+ */
+class SysFuncExpr : public Expression
+{
+public:
+  enum class Type
+  {
+    LENGTH,
+    ROUND,
+    DATE_FORMAT,
+    DISTANCE,
+    VECTOR_TO_STRING,
+    STRING_TO_VECTOR,
+    TOKENIZE,
+    MATCH_AGAINST,
+  };
+
+public:
+  SysFuncExpr(Type type, Expression *child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child);
+  SysFuncExpr(Type type, Expression *child, Expression *second_child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child);
+  SysFuncExpr(Type type, Expression *child, Expression *second_child, Expression *third_child);
+  SysFuncExpr(Type type, std::unique_ptr<Expression> child, std::unique_ptr<Expression> second_child, std::unique_ptr<Expression> third_child);
+  virtual ~SysFuncExpr() = default;
+
+  bool equal(const Expression &other) const override;
+
+  ExprType type() const override { return ExprType::SYSFUNC; }
+
+  AttrType value_type() const override;
+  int      value_length() const override;
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+  RC try_get_value(Value &value) const override;
+
+  Type sysfunc_type() const { return sysfunc_type_; }
+
+  std::unique_ptr<Expression> &child() { return child_; }
+  const std::unique_ptr<Expression> &child() const { return child_; }
+  std::unique_ptr<Expression> &second_child() { return second_child_; }
+  const std::unique_ptr<Expression> &second_child() const { return second_child_; }
+  std::unique_ptr<Expression> &third_child() { return third_child_; }
+  const std::unique_ptr<Expression> &third_child() const { return third_child_; }
+
+  unique_ptr<Expression> deep_copy() override;
+
+public:
+  static RC type_from_string(const char *type_str, Type &type);
+
+private:
+  RC eval_length(const Value &arg_value, Value &result) const;
+  RC eval_round(const Value &arg_value, Value &result) const;
+  RC eval_date_format(const Value &date_value, const Value &format_value, Value &result) const;
+  RC eval_distance(const Value &v1_value, const Value &v2_value, const Value &metric_value, Value &result) const;
+  RC eval_vector_to_string(const Value &arg_value, Value &result) const;
+  RC eval_string_to_vector(const Value &arg_value, Value &result) const;
+  RC eval_tokenize(const Value &text_value, const Value &parser_value, Value &result) const;
+  RC eval_match_against(const Value &field_value, const Value &query_value, Value &result, const Tuple &tuple) const;
+  
+  // Helper for jieba tokenization
+  std::vector<std::string> tokenize_jieba(const std::string &text) const;
+
+private:
+  Type                        sysfunc_type_;
+  std::unique_ptr<Expression> child_;
+  std::unique_ptr<Expression> second_child_;  // for DATE_FORMAT format string
+  std::unique_ptr<Expression> third_child_;   // for DISTANCE metric string
 };

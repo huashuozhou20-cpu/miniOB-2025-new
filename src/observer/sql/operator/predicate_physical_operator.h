@@ -36,8 +36,10 @@ public:
   RC open(Trx *trx) override;
   RC next() override;
   RC close() override;
+  RC next(Tuple *upper_tuple) override;
 
   Tuple *current_tuple() override;
+  Tuple *current_raw_tuple() override;
 
   RC tuple_schema(TupleSchema &schema) const override;
 

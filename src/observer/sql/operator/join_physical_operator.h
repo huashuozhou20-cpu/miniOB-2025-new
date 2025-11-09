@@ -16,10 +16,11 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/physical_operator.h"
 #include "sql/parser/parse.h"
+#include "sql/expr/expression.h"
 
 /**
  * @brief 最简单的两表（称为左表、右表）join算子
- * @details 依次遍历左表的每一行，然后关联右表的每一行
+ * @details 依次遍历左表的每一行，然后关联右表的每一行，并应用 JOIN 条件进行过滤
  * @ingroup PhysicalOperator
  */
 class NestedLoopJoinPhysicalOperator : public PhysicalOperator
@@ -35,9 +36,16 @@ public:
   RC     close() override;
   Tuple *current_tuple() override;
 
+  /**
+   * @brief 设置 JOIN 条件
+   * @param join_condition JOIN 条件表达式
+   */
+  void set_join_condition(std::unique_ptr<Expression> join_condition);
+
 private:
   RC left_next();   //! 左表遍历下一条数据
   RC right_next();  //! 右表遍历下一条数据，如果上一轮结束了就重新开始新的一轮
+  RC filter_join_condition(bool &result);  //! 使用 JOIN 条件过滤当前连接的 tuple，result 为 true 表示满足条件
 
 private:
   Trx *trx_ = nullptr;
@@ -50,4 +58,5 @@ private:
   JoinedTuple       joined_tuple_;         //! 当前关联的左右两个tuple
   bool              round_done_   = true;  //! 右表遍历的一轮是否结束
   bool              right_closed_ = true;  //! 右表算子是否已经关闭
+  std::unique_ptr<Expression> join_condition_;  //! JOIN 条件表达式
 };

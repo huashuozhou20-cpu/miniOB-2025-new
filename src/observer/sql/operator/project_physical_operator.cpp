@@ -19,8 +19,8 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
-ProjectPhysicalOperator::ProjectPhysicalOperator(vector<unique_ptr<Expression>> &&expressions)
-  : expressions_(std::move(expressions)), tuple_(expressions_)
+ProjectPhysicalOperator::ProjectPhysicalOperator(vector<unique_ptr<Expression>> &&expressions, bool show_table_name)
+  : expressions_(std::move(expressions)), tuple_(expressions_), show_table_name_(show_table_name)
 {
 }
 
@@ -45,7 +45,33 @@ RC ProjectPhysicalOperator::next()
   if (children_.empty()) {
     return RC::RECORD_EOF;
   }
-  return children_[0]->next();
+  RC rc = children_[0]->next();
+  if(rc == RC::NULL_RECORD){
+    for (const unique_ptr<Expression> &expression : expressions_) {
+      if(expression->type() != ExprType::AGGREGATION){
+        return RC::RECORD_EOF;
+      }
+    }
+    rc = RC::SUCCESS;
+  }
+  return rc;
+}
+
+RC ProjectPhysicalOperator::next(Tuple *upper_tuple)
+{
+  if (children_.empty()) {
+    return RC::RECORD_EOF;
+  }
+  RC rc = children_[0]->next(upper_tuple);
+  if(rc == RC::NULL_RECORD){
+    for (const unique_ptr<Expression> &expression : expressions_) {
+      if(expression->type() != ExprType::AGGREGATION){
+        return rc;
+      }
+    }
+    rc = RC::SUCCESS;
+  }
+  return rc;
 }
 
 RC ProjectPhysicalOperator::close()
@@ -53,6 +79,7 @@ RC ProjectPhysicalOperator::close()
   if (!children_.empty()) {
     children_[0]->close();
   }
+  //LOG_INFO("close project operator");
   return RC::SUCCESS;
 }
 Tuple *ProjectPhysicalOperator::current_tuple()
@@ -64,7 +91,29 @@ Tuple *ProjectPhysicalOperator::current_tuple()
 RC ProjectPhysicalOperator::tuple_schema(TupleSchema &schema) const
 {
   for (const unique_ptr<Expression> &expression : expressions_) {
-    schema.append_cell(expression->name());
+    if (expression == nullptr) {
+      continue;
+    }
+    const string& alias = expression->alias();
+    if(show_table_name_ && expression->type() == ExprType::FIELD){
+      FieldExpr* field_expr = static_cast<FieldExpr*>(expression.get());
+      if (field_expr == nullptr) {
+        schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+        continue;
+      }
+      const string& table_alias = field_expr->table_alias();
+
+      schema.append_cell(table_alias.empty() ? field_expr->table_name() : table_alias.c_str(),
+        alias.empty() ? expression->name() : alias.c_str());
+    } else {
+      schema.append_cell(alias.empty() ? expression->name() : alias.c_str());
+    }
   }
+
   return RC::SUCCESS;
+}
+
+Tuple *ProjectPhysicalOperator::current_raw_tuple() 
+{
+  return children_[0]->current_raw_tuple();
 }

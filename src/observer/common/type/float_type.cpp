@@ -17,6 +17,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/value.h"
 #include "storage/common/column.h"
 
+#include <cmath>
+
 int FloatType::compare(const Value &left, const Value &right) const
 {
   ASSERT(left.attr_type() == AttrType::FLOATS, "left type is not float");
@@ -53,9 +55,7 @@ RC FloatType::multiply(const Value &left, const Value &right, Value &result) con
 RC FloatType::divide(const Value &left, const Value &right, Value &result) const
 {
   if (right.get_float() > -EPSILON && right.get_float() < EPSILON) {
-    // NOTE:
-    // 设置为浮点数最大值是不正确的。通常的做法是设置为NULL，但是当前的miniob没有NULL概念，所以这里设置为浮点数最大值。
-    result.set_float(numeric_limits<float>::max());
+    result.set_null();
   } else {
     result.set_float(left.get_float() / right.get_float());
   }
@@ -66,6 +66,30 @@ RC FloatType::negative(const Value &val, Value &result) const
 {
   result.set_float(-val.get_float());
   return RC::SUCCESS;
+}
+
+RC FloatType::cast_to(const Value &val, AttrType type, Value &result) const
+{
+  switch (type) {
+    case AttrType::INTS: {
+      result.set_int(round(val.get_float()));
+    }break;
+    case AttrType::CHARS: {
+      stringstream ss;
+      ss << abs(val.get_float());  
+      result.set_string(ss.str().c_str());
+    }break;
+    default: return RC::UNIMPLEMENTED;
+  }
+  return RC::SUCCESS;
+}
+
+int FloatType::cast_cost(AttrType type)
+{
+  if (type == AttrType::FLOATS)return 0;
+  if (type == AttrType::INTS)return 100;
+  if (type == AttrType::CHARS)return 100;
+  return INT32_MAX;
 }
 
 RC FloatType::set_value_from_str(Value &val, const string &data) const

@@ -14,10 +14,18 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-#include "common/sys/rc.h"
+#include <unordered_map>
+
+#include "common/rc.h"
 #include "sql/parser/parse_defs.h"
 
 class Db;
+class FieldMeta;
+class Table;
+class SelectExpr;
+class BaseTable;
+
+using tables_t = std::unordered_map<std::string, std::pair<BaseTable *, size_t>>;
 
 /**
  * @brief Statement SQL语句解析后通过Resolver转换成Stmt
@@ -29,28 +37,30 @@ class Db;
  * @brief Statement的类型
  *
  */
-#define DEFINE_ENUM()             \
-  DEFINE_ENUM_ITEM(CALC)          \
-  DEFINE_ENUM_ITEM(SELECT)        \
-  DEFINE_ENUM_ITEM(INSERT)        \
-  DEFINE_ENUM_ITEM(UPDATE)        \
-  DEFINE_ENUM_ITEM(DELETE)        \
-  DEFINE_ENUM_ITEM(CREATE_TABLE)  \
-  DEFINE_ENUM_ITEM(DROP_TABLE)    \
-  DEFINE_ENUM_ITEM(ANALYZE_TABLE) \
-  DEFINE_ENUM_ITEM(CREATE_INDEX)  \
-  DEFINE_ENUM_ITEM(DROP_INDEX)    \
-  DEFINE_ENUM_ITEM(SYNC)          \
-  DEFINE_ENUM_ITEM(SHOW_TABLES)   \
-  DEFINE_ENUM_ITEM(DESC_TABLE)    \
-  DEFINE_ENUM_ITEM(BEGIN)         \
-  DEFINE_ENUM_ITEM(COMMIT)        \
-  DEFINE_ENUM_ITEM(ROLLBACK)      \
-  DEFINE_ENUM_ITEM(LOAD_DATA)     \
-  DEFINE_ENUM_ITEM(HELP)          \
-  DEFINE_ENUM_ITEM(EXIT)          \
-  DEFINE_ENUM_ITEM(EXPLAIN)       \
-  DEFINE_ENUM_ITEM(PREDICATE)     \
+#define DEFINE_ENUM()            \
+  DEFINE_ENUM_ITEM(CALC)         \
+  DEFINE_ENUM_ITEM(SELECT)       \
+  DEFINE_ENUM_ITEM(INSERT)       \
+  DEFINE_ENUM_ITEM(UPDATE)       \
+  DEFINE_ENUM_ITEM(DELETE)       \
+  DEFINE_ENUM_ITEM(CREATE_TABLE) \
+  DEFINE_ENUM_ITEM(CREATE_VIEW)  \
+  DEFINE_ENUM_ITEM(DROP_TABLE)   \
+  DEFINE_ENUM_ITEM(CREATE_INDEX) \
+  DEFINE_ENUM_ITEM(DROP_INDEX)   \
+  DEFINE_ENUM_ITEM(SYNC)         \
+  DEFINE_ENUM_ITEM(SHOW_TABLES)  \
+  DEFINE_ENUM_ITEM(SHOW_INDEX)   \
+  DEFINE_ENUM_ITEM(DESC_TABLE)   \
+  DEFINE_ENUM_ITEM(ALTER_TABLE)  \
+  DEFINE_ENUM_ITEM(BEGIN)        \
+  DEFINE_ENUM_ITEM(COMMIT)       \
+  DEFINE_ENUM_ITEM(ROLLBACK)     \
+  DEFINE_ENUM_ITEM(LOAD_DATA)    \
+  DEFINE_ENUM_ITEM(HELP)         \
+  DEFINE_ENUM_ITEM(EXIT)         \
+  DEFINE_ENUM_ITEM(EXPLAIN)      \
+  DEFINE_ENUM_ITEM(PREDICATE)    \
   DEFINE_ENUM_ITEM(SET_VARIABLE)
 
 enum class StmtType
@@ -88,7 +98,9 @@ public:
   virtual StmtType type() const = 0;
 
 public:
-  static RC create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt);
+  static RC create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt, 
+    vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+    tables_t& table_map, int fa = -1);
 
 private:
 };

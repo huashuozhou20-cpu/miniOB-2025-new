@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "sql/operator/group_by_physical_operator.h"
+#include "sql/expr/expression_tuple.h"
 
 /**
  * @brief 没有 group by 表达式的 group by 物理算子
@@ -23,19 +24,23 @@ See the Mulan PSL v2 for more details. */
 class ScalarGroupByPhysicalOperator : public GroupByPhysicalOperator
 {
 public:
-  ScalarGroupByPhysicalOperator(vector<Expression *> &&expressions);
+  ScalarGroupByPhysicalOperator(std::vector<Expression *> &&expressions);
   virtual ~ScalarGroupByPhysicalOperator() = default;
 
   PhysicalOperatorType type() const override { return PhysicalOperatorType::SCALAR_GROUP_BY; }
-  OpType               get_op_type() const override { return OpType::SCALARGROUPBY; }
 
   RC open(Trx *trx) override;
   RC next() override;
+  RC next(Tuple *upper_tuple) override;
   RC close() override;
 
   Tuple *current_tuple() override;
 
 private:
-  unique_ptr<GroupValueType> group_value_;
-  bool                       emitted_ = false;  /// 标识是否已经输出过
+  RC collect(ExpressionTuple<Expression *> &group_value_expression_tuple, ValueListTuple &group_by_evaluated_tuple);
+
+private:
+  std::unique_ptr<GroupValueType> group_value_;
+  bool                            emitted_ = false;  /// 标识是否已经输出过
+  bool                             have_value = false;
 };

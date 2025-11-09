@@ -14,10 +14,13 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <string>
+#include <vector>
+#include <span>
+
 #include "common/lang/serializable.h"
-#include "common/sys/rc.h"
+#include "common/rc.h"
 #include "common/types.h"
-#include "common/lang/span.h"
 #include "storage/field/field_meta.h"
 #include "storage/index/index_meta.h"
 
@@ -28,6 +31,8 @@ See the Mulan PSL v2 for more details. */
 class TableMeta : public common::Serializable
 {
 public:
+  friend class Table;
+
   TableMeta()          = default;
   virtual ~TableMeta() = default;
 
@@ -35,23 +40,27 @@ public:
 
   void swap(TableMeta &other) noexcept;
 
-  RC init(int32_t table_id, const char *name, const vector<FieldMeta> *trx_fields,
-      span<const AttrInfoSqlNode> attributes, const vector<string> &primary_keys, StorageFormat storage_format,
-      StorageEngine storage_engine);
+  RC init(int32_t table_id, const char *name, const std::vector<FieldMeta> *trx_fields,
+      std::span<const AttrInfoSqlNode> attributes, StorageFormat storage_format = StorageFormat::ROW_FORMAT);
 
   RC add_index(const IndexMeta &index);
+  RC remove_index(const char *index_name);
 
 public:
   int32_t             table_id() const { return table_id_; }
   const char         *name() const;
   const FieldMeta    *trx_field() const;
+  const FieldMeta    *null_field() const;
   const FieldMeta    *field(int index) const;
   const FieldMeta    *field(const char *name) const;
+  int                 field_id(const char *name) const;
   const FieldMeta    *find_field_by_offset(int offset) const;
-  auto                field_metas() const -> const vector<FieldMeta>                *{ return &fields_; }
-  auto                trx_fields() const -> span<const FieldMeta>;
+  const IndexMeta    *find_index_by_fields(std::vector<const char *> fields) const;
+  const int           find_field_idx_by_name(const char *field_name) const;
+  auto                field_metas() const -> const std::vector<FieldMeta>* { return &fields_; }
+
+  auto                trx_fields() const -> std::span<const FieldMeta>;
   const StorageFormat storage_format() const { return storage_format_; }
-  const StorageEngine storage_engine() const { return storage_engine_; }
 
   int field_num() const;  // sys field included
   int sys_field_num() const;
@@ -61,26 +70,22 @@ public:
   const IndexMeta *index(int i) const;
   int              index_num() const;
 
-  const vector<string> &primary_keys() const { return primary_keys_; }
-
   int record_size() const;
 
 public:
-  int  serialize(ostream &os) const override;
-  int  deserialize(istream &is) override;
+  int  serialize(std::ostream &os) const override;
+  int  deserialize(std::istream &is) override;
   int  get_serial_size() const override;
-  void to_string(string &output) const override;
-  void desc(ostream &os) const;
+  void to_string(std::string &output) const override;
+  void desc(std::ostream &os) const;
 
 protected:
-  int32_t           table_id_ = -1;
-  string            name_;
-  vector<FieldMeta> trx_fields_;
-  vector<FieldMeta> fields_;  // 包含sys_fields
-  vector<IndexMeta> indexes_;
-  vector<string>    primary_keys_;
-  StorageFormat     storage_format_;
-  StorageEngine     storage_engine_;
+  int32_t                table_id_ = -1;
+  std::string            name_;
+  std::vector<FieldMeta> trx_fields_;
+  std::vector<FieldMeta> fields_;  // 包含sys_fields:_null + trx_fields_
+  std::vector<IndexMeta> indexes_;
+  StorageFormat          storage_format_;
 
   int record_size_ = 0;
 };

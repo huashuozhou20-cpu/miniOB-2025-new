@@ -17,28 +17,34 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/ranges.h"
 #include "sql/parser/expression_binder.h"
 #include "sql/expr/expression_iterator.h"
+#include "expression_binder.h"
+#include "storage/table/view.h"
 
 using namespace common;
 
-Table *BinderContext::find_table(const char *table_name) const
+pair<BaseTable*, string> BinderContext::find_table(const char *table_name) const
 {
-  auto pred = [table_name](Table *table) { return 0 == strcasecmp(table_name, table->name()); };
+  auto pred = [table_name](pair<BaseTable*, string> pair_temp) { return 0 == strcasecmp(table_name, pair_temp.first->name())
+    || 0 == strcasecmp(table_name, pair_temp.second.c_str()); };
   auto iter = ranges::find_if(query_tables_, pred);
   if (iter == query_tables_.end()) {
-    return nullptr;
+    return make_pair<BaseTable*, string>(nullptr, "");
   }
   return *iter;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static void wildcard_fields(Table *table, vector<unique_ptr<Expression>> &expressions)
+static void wildcard_fields(pair<BaseTable *, string>& pair_temp, vector<unique_ptr<Expression>> &expressions)
 {
-  const TableMeta &table_meta = table->table_meta();
+  const TableMeta &table_meta = pair_temp.first->table_meta();
   const int        field_num  = table_meta.field_num();
+
   for (int i = table_meta.sys_field_num(); i < field_num; i++) {
-    Field      field(table, table_meta.field(i));
+    Field      field(pair_temp.first, table_meta.field(i));
     FieldExpr *field_expr = new FieldExpr(field);
     field_expr->set_name(field.field_name());
+    if(!pair_temp.second.empty())
+      field_expr->set_table_alias(pair_temp.second.c_str());
     expressions.emplace_back(field_expr);
   }
 }
@@ -60,6 +66,10 @@ RC ExpressionBinder::bind_expression(unique_ptr<Expression> &expr, vector<unique
 
     case ExprType::UNBOUND_AGGREGATION: {
       return bind_aggregate_expression(expr, bound_expressions);
+    } break;
+
+    case ExprType::UNBOUND_SYSFUNC: {
+      return bind_sysfunc_expression(expr, bound_expressions);
     } break;
 
     case ExprType::FIELD: {
@@ -86,6 +96,9 @@ RC ExpressionBinder::bind_expression(unique_ptr<Expression> &expr, vector<unique
       return bind_arithmetic_expression(expr, bound_expressions);
     } break;
 
+    case ExprType::VECTOROPERATION:{
+      return bind_operation_expression(expr, bound_expressions);
+    }break;
     case ExprType::AGGREGATION: {
       ASSERT(false, "shouldn't be here");
     } break;
@@ -107,24 +120,25 @@ RC ExpressionBinder::bind_star_expression(
 
   auto star_expr = static_cast<StarExpr *>(expr.get());
 
-  vector<Table *> tables_to_wildcard;
+  vector<pair<BaseTable *, string>> tables_to_wildcard;
 
   const char *table_name = star_expr->table_name();
   if (!is_blank(table_name) && 0 != strcmp(table_name, "*")) {
-    Table *table = context_.find_table(table_name);
-    if (nullptr == table) {
+    string alias;
+    auto pair_temp = context_.find_table(table_name);
+    if (nullptr == pair_temp.first) {
       LOG_INFO("no such table in from list: %s", table_name);
       return RC::SCHEMA_TABLE_NOT_EXIST;
     }
 
-    tables_to_wildcard.push_back(table);
+    tables_to_wildcard.emplace_back(pair_temp);
   } else {
-    const vector<Table *> &all_tables = context_.query_tables();
+    auto &all_tables = context_.query_tables();
     tables_to_wildcard.insert(tables_to_wildcard.end(), all_tables.begin(), all_tables.end());
   }
 
-  for (Table *table : tables_to_wildcard) {
-    wildcard_fields(table, bound_expressions);
+  for (auto &pair_temp : tables_to_wildcard) {
+    wildcard_fields(pair_temp, bound_expressions);
   }
 
   return RC::SUCCESS;
@@ -142,33 +156,36 @@ RC ExpressionBinder::bind_unbound_field_expression(
   const char *table_name = unbound_field_expr->table_name();
   const char *field_name = unbound_field_expr->field_name();
 
-  Table *table = nullptr;
+  pair<BaseTable *, string> pair_temp;
   if (is_blank(table_name)) {
     if (context_.query_tables().size() != 1) {
       LOG_INFO("cannot determine table for field: %s", field_name);
       return RC::SCHEMA_TABLE_NOT_EXIST;
     }
 
-    table = context_.query_tables()[0];
+    pair_temp = context_.query_tables()[0];
   } else {
-    table = context_.find_table(table_name);
-    if (nullptr == table) {
+    pair_temp = context_.find_table(table_name);
+    if (nullptr == pair_temp.first) {
       LOG_INFO("no such table in from list: %s", table_name);
       return RC::SCHEMA_TABLE_NOT_EXIST;
     }
   }
 
   if (0 == strcmp(field_name, "*")) {
-    wildcard_fields(table, bound_expressions);
+    wildcard_fields(pair_temp, bound_expressions);
   } else {
-    const FieldMeta *field_meta = table->table_meta().field(field_name);
+    const FieldMeta *field_meta = pair_temp.first->table_meta().field(field_name);
     if (nullptr == field_meta) {
       LOG_INFO("no such field in table: %s.%s", table_name, field_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
 
-    Field      field(table, field_meta);
+    Field      field(pair_temp.first, field_meta);
     FieldExpr *field_expr = new FieldExpr(field);
+    field_expr->set_alias(expr->alias());
+    if(!pair_temp.second.empty())
+      field_expr->set_table_alias(pair_temp.second.c_str());
     field_expr->set_name(field_name);
     bound_expressions.emplace_back(field_expr);
   }
@@ -335,21 +352,73 @@ RC ExpressionBinder::bind_arithmetic_expression(
   }
 
   child_bound_expressions.clear();
-  rc = bind_expression(right_expr, child_bound_expressions);
+  
+  if(right_expr){
+    rc = bind_expression(right_expr, child_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (child_bound_expressions.size() != 1) {
+      LOG_WARN("invalid right children number of comparison expression: %d", child_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    } 
+
+    unique_ptr<Expression> &right = child_bound_expressions[0];
+    if (right.get() != right_expr.get()) {
+      right_expr.reset(right.release());
+    }
+  }
+  bound_expressions.emplace_back(std::move(expr));
+  return RC::SUCCESS;
+}
+
+RC ExpressionBinder::bind_operation_expression(
+    unique_ptr<Expression> &expr, vector<unique_ptr<Expression>> &bound_expressions)
+{
+  if (nullptr == expr) {
+    return RC::SUCCESS;
+  }
+
+  auto operation_expr = static_cast<VectorOperationExpr *>(expr.get());
+
+  vector<unique_ptr<Expression>> child_bound_expressions;
+  unique_ptr<Expression>        &left_expr  = operation_expr->left();
+  unique_ptr<Expression>        &right_expr = operation_expr->right();
+
+  RC rc = bind_expression(left_expr, child_bound_expressions);
   if (OB_FAIL(rc)) {
     return rc;
   }
 
   if (child_bound_expressions.size() != 1) {
-    LOG_WARN("invalid right children number of comparison expression: %d", child_bound_expressions.size());
+    LOG_WARN("invalid left children number of comparison expression: %d", child_bound_expressions.size());
     return RC::INVALID_ARGUMENT;
   }
 
-  unique_ptr<Expression> &right = child_bound_expressions[0];
-  if (right.get() != right_expr.get()) {
-    right_expr.reset(right.release());
+  unique_ptr<Expression> &left = child_bound_expressions[0];
+  if (left.get() != left_expr.get()) {
+    left_expr.reset(left.release());
   }
 
+  child_bound_expressions.clear();
+  
+  if(right_expr){
+    rc = bind_expression(right_expr, child_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (child_bound_expressions.size() != 1) {
+      LOG_WARN("invalid right children number of comparison expression: %d", child_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    } 
+
+    unique_ptr<Expression> &right = child_bound_expressions[0];
+    if (right.get() != right_expr.get()) {
+      right_expr.reset(right.release());
+    }
+  }
   bound_expressions.emplace_back(std::move(expr));
   return RC::SUCCESS;
 }
@@ -367,10 +436,16 @@ RC check_aggregate_expression(AggregateExpr &expression)
   AggregateExpr::Type aggregate_type   = expression.aggregate_type();
   AttrType            child_value_type = child_expression->value_type();
   switch (aggregate_type) {
-    case AggregateExpr::Type::SUM:
-    case AggregateExpr::Type::AVG: {
+    case AggregateExpr::Type::SUM: {
       // 仅支持数值类型
       if (!is_numerical_type(child_value_type)) {
+        LOG_WARN("invalid child value type for aggregate expression: %d", static_cast<int>(child_value_type));
+        return RC::INVALID_ARGUMENT;
+      }
+    } break;
+    case AggregateExpr::Type::AVG: {
+      // 仅支持数值类型和字符串
+      if (child_value_type == AttrType::DATES) {
         LOG_WARN("invalid child value type for aggregate expression: %d", static_cast<int>(child_value_type));
         return RC::INVALID_ARGUMENT;
       }
@@ -420,6 +495,7 @@ RC ExpressionBinder::bind_aggregate_expression(
 
   if (child_expr->type() == ExprType::STAR && aggregate_type == AggregateExpr::Type::COUNT) {
     ValueExpr *value_expr = new ValueExpr(Value(1));
+    value_expr->set_alias(expr->alias());
     child_expr.reset(value_expr);
   } else {
     rc = bind_expression(child_expr, child_bound_expressions);
@@ -439,11 +515,100 @@ RC ExpressionBinder::bind_aggregate_expression(
 
   auto aggregate_expr = make_unique<AggregateExpr>(aggregate_type, std::move(child_expr));
   aggregate_expr->set_name(unbound_aggregate_expr->name());
+  aggregate_expr->set_alias(unbound_aggregate_expr->alias());
   rc = check_aggregate_expression(*aggregate_expr);
   if (OB_FAIL(rc)) {
     return rc;
   }
 
   bound_expressions.emplace_back(std::move(aggregate_expr));
+  return RC::SUCCESS;
+}
+
+RC ExpressionBinder::bind_sysfunc_expression(
+    unique_ptr<Expression> &expr, vector<unique_ptr<Expression>> &bound_expressions)
+{
+  if (nullptr == expr) {
+    return RC::SUCCESS;
+  }
+
+  auto unbound_sysfunc_expr = static_cast<UnboundSysFuncExpr *>(expr.get());
+  const char *func_name = unbound_sysfunc_expr->func_name();
+  SysFuncExpr::Type func_type;
+  RC rc = SysFuncExpr::type_from_string(func_name, func_type);
+  if (OB_FAIL(rc)) {
+    LOG_WARN("invalid system function name: %s", func_name);
+    return rc;
+  }
+
+  unique_ptr<Expression>        &child_expr = unbound_sysfunc_expr->child();
+  unique_ptr<Expression>        &second_child_expr = unbound_sysfunc_expr->second_child();
+  unique_ptr<Expression>        &third_child_expr = unbound_sysfunc_expr->third_child();
+  vector<unique_ptr<Expression>> child_bound_expressions;
+
+  // Bind first child
+  if (child_expr) {
+    rc = bind_expression(child_expr, child_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (child_bound_expressions.size() != 1) {
+      LOG_WARN("invalid children number of system function expression: %d", child_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    if (child_bound_expressions[0].get() != child_expr.get()) {
+      child_expr.reset(child_bound_expressions[0].release());
+    }
+  }
+
+  // Bind second child for DATE_FORMAT and DISTANCE
+  unique_ptr<Expression> bound_second_child = nullptr;
+  if (second_child_expr) {
+    vector<unique_ptr<Expression>> second_bound_expressions;
+    rc = bind_expression(second_child_expr, second_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (second_bound_expressions.size() != 1) {
+      LOG_WARN("invalid second child number of system function expression: %d", second_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    bound_second_child = std::move(second_bound_expressions[0]);
+  }
+
+  // Bind third child for DISTANCE
+  unique_ptr<Expression> bound_third_child = nullptr;
+  if (third_child_expr) {
+    vector<unique_ptr<Expression>> third_bound_expressions;
+    rc = bind_expression(third_child_expr, third_bound_expressions);
+    if (OB_FAIL(rc)) {
+      return rc;
+    }
+
+    if (third_bound_expressions.size() != 1) {
+      LOG_WARN("invalid third child number of system function expression: %d", third_bound_expressions.size());
+      return RC::INVALID_ARGUMENT;
+    }
+
+    bound_third_child = std::move(third_bound_expressions[0]);
+  }
+
+  // Create bound system function expression
+  unique_ptr<SysFuncExpr> sysfunc_expr;
+  if (bound_third_child) {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr), std::move(bound_second_child), std::move(bound_third_child));
+  } else if (bound_second_child) {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr), std::move(bound_second_child));
+  } else {
+    sysfunc_expr = make_unique<SysFuncExpr>(func_type, std::move(child_expr));
+  }
+  sysfunc_expr->set_name(unbound_sysfunc_expr->name());
+  sysfunc_expr->set_alias(unbound_sysfunc_expr->alias());
+
+  bound_expressions.emplace_back(std::move(sysfunc_expr));
   return RC::SUCCESS;
 }

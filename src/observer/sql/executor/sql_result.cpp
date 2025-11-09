@@ -24,12 +24,20 @@ void SqlResult::set_tuple_schema(const TupleSchema &schema) { tuple_schema_ = sc
 
 RC SqlResult::open()
 {
+  RC rc = RC::SUCCESS;
   if (nullptr == operator_) {
     return RC::INVALID_ARGUMENT;
   }
 
   Trx *trx = session_->current_trx();
   trx->start_if_need();
+
+  for(auto& select_expr : analyzer_.select_exprs_){
+    select_expr->set_trx(trx);
+  }
+  rc = analyzer_.pretreatment();
+  if(rc != RC::SUCCESS)return rc;
+
   return operator_->open(trx);
 }
 
@@ -81,4 +89,14 @@ void SqlResult::set_operator(unique_ptr<PhysicalOperator> oper)
   ASSERT(operator_ == nullptr, "current operator is not null. Result is not closed?");
   operator_ = std::move(oper);
   operator_->tuple_schema(tuple_schema_);
+}
+
+void SqlResult::set_depends(vector<vector<uint32_t>>&& depends)
+{
+  analyzer_.depends_ = std::move(depends); 
+}
+
+void SqlResult::set_exprs(vector<SelectExpr*>&& select_exprs)
+{
+  analyzer_.select_exprs_ = std::move(select_exprs); 
 }

@@ -26,22 +26,22 @@ class DeleteStmt;
 class DeletePhysicalOperator : public PhysicalOperator
 {
 public:
-  DeletePhysicalOperator(Table *table) : table_(table) {}
+  DeletePhysicalOperator(BaseTable *base_table) : base_table_(base_table) {}
 
   virtual ~DeletePhysicalOperator() = default;
 
   PhysicalOperatorType type() const override { return PhysicalOperatorType::DELETE; }
-
-  OpType get_op_type() const override { return OpType::DELETE; }
 
   RC open(Trx *trx) override;
   RC next() override;
   RC close() override;
 
   Tuple *current_tuple() override { return nullptr; }
+  RC delete_table();
+  RC delete_view();
 
 private:
-  Table         *table_ = nullptr;
-  Trx           *trx_   = nullptr;
-  vector<Record> records_;
+  BaseTable          *base_table_ = nullptr;
+  Trx                *trx_   = nullptr;
+  std::vector<Record> records_;
 };

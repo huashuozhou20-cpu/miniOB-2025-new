@@ -675,6 +675,16 @@ RC MysqlCommunicator::read_event(SessionEvent *&event)
       bool need_disconnect;
       return handle_version_comment(need_disconnect);
     }
+    if(query_packet.query.find("SET NAMES utf8mb4") != string::npos){
+      OkPacket ok_packet(sequence_id_);
+      rc = send_packet(ok_packet);
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to send ok packet. command=%d, addr=%s, error=%s", command_type, addr(), strrc(rc));
+        return rc;
+      }
+      writer_->flush();
+      return RC::SUCCESS;
+    }
 
     event = new SessionEvent(this);
     event->set_query(query_packet.query);

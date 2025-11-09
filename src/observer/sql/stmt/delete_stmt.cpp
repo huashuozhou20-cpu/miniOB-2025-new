@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 
-DeleteStmt::DeleteStmt(Table *table, FilterStmt *filter_stmt) : table_(table), filter_stmt_(filter_stmt) {}
+DeleteStmt::DeleteStmt(BaseTable *table, FilterStmt *filter_stmt) : table_(table), filter_stmt_(filter_stmt) {}
 
 DeleteStmt::~DeleteStmt()
 {
@@ -28,7 +28,9 @@ DeleteStmt::~DeleteStmt()
   }
 }
 
-RC DeleteStmt::create(Db *db, const DeleteSqlNode &delete_sql, Stmt *&stmt)
+RC DeleteStmt::create(Db *db, DeleteSqlNode &delete_sql, Stmt *&stmt, 
+  vector<vector<uint32_t>>& depends, vector<SelectExpr*>& select_exprs, 
+  tables_t& table_map, int fa)
 {
   const char *table_name = delete_sql.relation_name.c_str();
   if (nullptr == db || nullptr == table_name) {
@@ -37,21 +39,31 @@ RC DeleteStmt::create(Db *db, const DeleteSqlNode &delete_sql, Stmt *&stmt)
   }
 
   // check whether the table exists
-  Table *table = db->find_table(table_name);
+  BaseTable *table = db->find_base_table(table_name);
   if (nullptr == table) {
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  unordered_map<string, Table *> table_map;
-  table_map.insert(pair<string, Table *>(string(table_name), table));
+  auto size = depends.size();
+
+  if(!table_map.count(table_name)){
+    auto temp = std::make_pair(table, size);
+    table_map.insert({table_name, temp});
+  }
+
+  depends.push_back(vector<uint32_t>());
 
   FilterStmt *filter_stmt = nullptr;
   RC          rc          = FilterStmt::create(
-      db, table, &table_map, delete_sql.conditions.data(), static_cast<int>(delete_sql.conditions.size()), filter_stmt);
+      db, table, table_map, delete_sql.conditions, filter_stmt, depends, select_exprs, fa);
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
     return rc;
+  }
+
+  if(table_map.at(table_name).second == size){
+    table_map.erase(table_name);
   }
 
   stmt = new DeleteStmt(table, filter_stmt);

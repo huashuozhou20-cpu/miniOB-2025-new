@@ -75,6 +75,30 @@ RC IntegerType::negative(const Value &val, Value &result) const
   return RC::SUCCESS;
 }
 
+RC IntegerType::cast_to(const Value &val, AttrType type, Value &result) const
+{
+  switch (type) {
+    case AttrType::FLOATS: {
+      result.set_float(val.get_int());
+    }break;
+    case AttrType::CHARS: {
+      stringstream ss;
+      ss << abs(val.get_int());  
+      result.set_string(ss.str().c_str());
+    }break;
+    default: return RC::UNIMPLEMENTED;
+  }
+  return RC::SUCCESS;
+}
+
+int IntegerType::cast_cost(AttrType type)
+{
+  if (type == AttrType::FLOATS)return 10;
+  if (type == AttrType::INTS)return 0;
+  if (type == AttrType::CHARS)return 100;
+  return INT32_MAX;
+}
+
 RC IntegerType::set_value_from_str(Value &val, const string &data) const
 {
   RC                rc = RC::SUCCESS;

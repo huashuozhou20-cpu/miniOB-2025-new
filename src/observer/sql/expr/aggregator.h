@@ -15,7 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/value.h"
-#include "common/sys/rc.h"
+#include "common/rc.h"
 
 class Aggregator
 {
@@ -23,7 +23,7 @@ public:
   virtual ~Aggregator() = default;
 
   virtual RC accumulate(const Value &value) = 0;
-  virtual RC evaluate(Value &result)        = 0;
+  virtual RC evaluate(Value &result, bool have_groub_by = true)        = 0;
 
 protected:
   Value value_;
@@ -33,5 +33,36 @@ class SumAggregator : public Aggregator
 {
 public:
   RC accumulate(const Value &value) override;
-  RC evaluate(Value &result) override;
+  RC evaluate(Value &result, bool have_groub_by = true) override;
+};
+
+class MaxAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result, bool have_groub_by = true) override;
+};
+
+class MinAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result, bool have_groub_by = true) override;
+};
+
+class AvgAggregator : public Aggregator
+{
+private:
+  Value countnum;
+
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result, bool have_groub_by = true) override;
+};
+
+class CountAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result, bool have_groub_by = true) override;
 };

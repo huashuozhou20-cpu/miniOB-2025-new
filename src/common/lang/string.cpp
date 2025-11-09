@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/lang/string.h"
+#include <cmath>
 
 #include <ctype.h>
 #include <errno.h>
@@ -22,7 +23,6 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "common/lang/algorithm.h"
-#include "common/lang/cmath.h"
 #include "common/lang/iomanip.h"
 
 namespace common {
@@ -271,8 +271,9 @@ char *substr(const char *s, int n1, int n2)
 string double_to_str(double v)
 {
   char buf[256];
-  double rounded_v = round(v * 100.0) / 100.0;
-  snprintf(buf, sizeof(buf), "%.2f", rounded_v);
+  // 使用四舍五入到两位小数，然后格式化
+  double rounded = round(v * 100.0) / 100.0;
+  snprintf(buf, sizeof(buf), "%.2f", rounded);
   size_t len = strlen(buf);
   while (buf[len - 1] == '0') {
     len--;

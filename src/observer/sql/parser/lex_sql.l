@@ -27,7 +27,6 @@ while (0);
 %{
 #include<string.h>
 #include<stdio.h>
-#include <vector>
 
 /**
  * flex 代码包含三个部分，使用 %% 分隔
@@ -41,7 +40,7 @@ while (0);
 #include "yacc_sql.hpp"
 
 #ifndef register
-#define register 
+#define register
 #endif // register
 
 extern int atoi();
@@ -60,10 +59,9 @@ extern double atof();
 %option case-insensitive
 %option bison-locations
 
-WHITE_SPACE      [\ \t\b\f]
+WHITE_SAPCE      [\ \t\b\f]
 DIGIT            [0-9]+
-
-ID               [A-Za-z_]+[A-Za-z0-9_]*
+ID_KEY           [A-Za-z_]+[A-Za-z0-9_]*
 DOT              \.
 QUOTE            [\'\"]
 %x STR
@@ -75,20 +73,19 @@ QUOTE            [\'\"]
 /* yylval 就可以认为是 yacc 中 %union 定义的结构体(union 结构) */
 %%
 
-{WHITE_SPACE}                                        // ignore whitespace
+{WHITE_SAPCE}                                        // ignore whitespace
 \n                                                   ;
 
-{DIGIT}+                           yylval->number=atoi(yytext); RETURN_TOKEN(NUMBER);
-{DIGIT}+{DOT}{DIGIT}+              yylval->floats=(float)(atof(yytext)); RETURN_TOKEN(FLOAT);
-
+{DIGIT}+                                yylval->number=atoi(yytext); RETURN_TOKEN(NUMBER);
+{DIGIT}+{DOT}{DIGIT}+                   yylval->floats=(float)(atof(yytext)); RETURN_TOKEN(FLOAT);
 ";"                                     RETURN_TOKEN(SEMICOLON);
 {DOT}                                   RETURN_TOKEN(DOT);
 EXIT                                    RETURN_TOKEN(EXIT);
 HELP                                    RETURN_TOKEN(HELP);
-DESC                                    RETURN_TOKEN(DESC);
 CREATE                                  RETURN_TOKEN(CREATE);
 DROP                                    RETURN_TOKEN(DROP);
 TABLE                                   RETURN_TOKEN(TABLE);
+VIEW                                    RETURN_TOKEN(VIEW);
 TABLES                                  RETURN_TOKEN(TABLES);
 INDEX                                   RETURN_TOKEN(INDEX);
 ON                                      RETURN_TOKEN(ON);
@@ -97,38 +94,71 @@ SYNC                                    RETURN_TOKEN(SYNC);
 SELECT                                  RETURN_TOKEN(SELECT);
 CALC                                    RETURN_TOKEN(CALC);
 FROM                                    RETURN_TOKEN(FROM);
+JOIN                                    RETURN_TOKEN(JOIN);
+INNER                                   RETURN_TOKEN(INNER);
 WHERE                                   RETURN_TOKEN(WHERE);
 AND                                     RETURN_TOKEN(AND);
+OR                                      RETURN_TOKEN(OR);
+AS                                      RETURN_TOKEN(AS);
 INSERT                                  RETURN_TOKEN(INSERT);
 INTO                                    RETURN_TOKEN(INTO);
 VALUES                                  RETURN_TOKEN(VALUES);
 DELETE                                  RETURN_TOKEN(DELETE);
 UPDATE                                  RETURN_TOKEN(UPDATE);
 SET                                     RETURN_TOKEN(SET);
+WITH                                    RETURN_TOKEN(WITH);
 BEGIN                                   RETURN_TOKEN(TRX_BEGIN);
 COMMIT                                  RETURN_TOKEN(TRX_COMMIT);
 ROLLBACK                                RETURN_TOKEN(TRX_ROLLBACK);
 INT                                     RETURN_TOKEN(INT_T);
 CHAR                                    RETURN_TOKEN(STRING_T);
 FLOAT                                   RETURN_TOKEN(FLOAT_T);
+DATE                                    RETURN_TOKEN(DATE_T);
 VECTOR                                  RETURN_TOKEN(VECTOR_T);
+FULLTEXT                                RETURN_TOKEN(FULLTEXT);
+MATCH                                   RETURN_TOKEN(MATCH);
+AGAINST                                 RETURN_TOKEN(AGAINST);
+TEXT                                    RETURN_TOKEN(TEXT_T);
 LOAD                                    RETURN_TOKEN(LOAD);
 DATA                                    RETURN_TOKEN(DATA);
+LIKE                                    RETURN_TOKEN(LIKE);
+EXISTS                                  RETURN_TOKEN(EXISTS);
+IS                                      RETURN_TOKEN(IS);
+IN                                      RETURN_TOKEN(IN);
+NOT                                     RETURN_TOKEN(NOT);
+NULL                                    RETURN_TOKEN(NULL_T);
+ASC                                     RETURN_TOKEN(ASC);
+DESC                                    RETURN_TOKEN(DESC);
+UNIQUE                                  RETURN_TOKEN(UNIQUE);
+UNION                                   RETURN_TOKEN(UNION);
+ALTER                                   RETURN_TOKEN(ALTER);
+ADD                                     RETURN_TOKEN(ADD);
+CHANGE                                  RETURN_TOKEN(CHANGE);
+RENAME                                  RETURN_TOKEN(RENAME);
+TO                                      RETURN_TOKEN(TO);
+COLUMN                                  RETURN_TOKEN(COLUMN);
 INFILE                                  RETURN_TOKEN(INFILE);
 EXPLAIN                                 RETURN_TOKEN(EXPLAIN);
+ORDER                                   RETURN_TOKEN(ORDER);
+HAVING                                  RETURN_TOKEN(HAVING);
 GROUP                                   RETURN_TOKEN(GROUP);
 BY                                      RETURN_TOKEN(BY);
+LIMIT                                   RETURN_TOKEN(LIMIT);
 STORAGE                                 RETURN_TOKEN(STORAGE);
 FORMAT                                  RETURN_TOKEN(FORMAT);
-PRIMARY                                 RETURN_TOKEN(PRIMARY);
-KEY                                     RETURN_TOKEN(KEY);
-ANALYZE                                 RETURN_TOKEN(ANALYZE);
-FIELDS                                  RETURN_TOKEN(FIELDS);
-TERMINATED                              RETURN_TOKEN(TERMINATED);
-ENCLOSED                                RETURN_TOKEN(ENCLOSED);
-{ID}                                    yylval->cstring=strdup(yytext); static_cast<std::vector<char*>*>(yyextra)->push_back(yylval->cstring); RETURN_TOKEN(ID);
+L2_DISTANCE                             RETURN_TOKEN(L2_DISTANCE);
+COSINE_DISTANCE                         RETURN_TOKEN(COSINE_DISTANCE);
+INNER_PRODUCT                           RETURN_TOKEN(INNER_PRODUCT);
+DISTANCE                                RETURN_TOKEN(DISTANCE);
+LISTS                                   RETURN_TOKEN(LISTS);
+TYPE                                    RETURN_TOKEN(TYPE);
+PROBES                                  RETURN_TOKEN(PROBES);
+IVFFLAT                                 RETURN_TOKEN(IVFFLAT);
+{ID_KEY}                                yylval->string=strdup(yytext); RETURN_TOKEN(ID_KEY);
 "("                                     RETURN_TOKEN(LBRACE);
 ")"                                     RETURN_TOKEN(RBRACE);
+"["                                     RETURN_TOKEN(LMBRACE);
+"]"                                     RETURN_TOKEN(RMBRACE);
 
 ","                                     RETURN_TOKEN(COMMA);
 "="                                     RETURN_TOKEN(EQ);
@@ -143,8 +173,12 @@ ENCLOSED                                RETURN_TOKEN(ENCLOSED);
 "-" |
 "*" |
 "/"                                     { return yytext[0]; }
-\"[^"]*\"                               yylval->cstring = strdup(yytext); static_cast<std::vector<char*>*>(yyextra)->push_back(yylval->cstring); RETURN_TOKEN(SSS);
-'[^']*\'                                yylval->cstring = strdup(yytext); static_cast<std::vector<char*>*>(yyextra)->push_back(yylval->cstring); RETURN_TOKEN(SSS);
+
+\"[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}\"    yylval->string = strdup(yytext); RETURN_TOKEN(DATE_VALUE);
+\'[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}\'    yylval->string = strdup(yytext); RETURN_TOKEN(DATE_VALUE);
+
+\"[^"]*\"                               yylval->string = strdup(yytext); RETURN_TOKEN(SSS);
+'[^']*\'                                yylval->string = strdup(yytext); RETURN_TOKEN(SSS);
 
 .                                       LOG_DEBUG("Unknown character [%c]",yytext[0]); return yytext[0];
 %%

@@ -25,6 +25,7 @@ PredicatePhysicalOperator::PredicatePhysicalOperator(std::unique_ptr<Expression>
 
 RC PredicatePhysicalOperator::open(Trx *trx)
 {
+  LOG_INFO("open predicate operator");
   if (children_.size() != 1) {
     LOG_WARN("predicate operator must has one child");
     return RC::INTERNAL;
@@ -33,11 +34,41 @@ RC PredicatePhysicalOperator::open(Trx *trx)
   return children_[0]->open(trx);
 }
 
+RC PredicatePhysicalOperator::next(Tuple *upper_tuple)
+{
+  RC                rc   = RC::SUCCESS;
+  PhysicalOperator *oper = children_.front().get();
+  
+  while (RC::SUCCESS == (rc = oper->next(upper_tuple))) {
+    Tuple *tuple = oper->current_tuple();
+    if (nullptr == tuple) {
+      rc = RC::INTERNAL;
+      LOG_WARN("failed to get tuple from operator");
+      break;
+    }
+
+    JoinedTuple join_tuple;
+    join_tuple.set_left(upper_tuple);
+    join_tuple.set_right(tuple);
+
+    Value value;
+    rc = expression_->get_value(join_tuple, value);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+
+    if (value.get_boolean()) {
+      return rc;
+    }
+  }
+  return rc;
+}
+
 RC PredicatePhysicalOperator::next()
 {
   RC                rc   = RC::SUCCESS;
   PhysicalOperator *oper = children_.front().get();
-
+  
   while (RC::SUCCESS == (rc = oper->next())) {
     Tuple *tuple = oper->current_tuple();
     if (nullptr == tuple) {
@@ -62,6 +93,7 @@ RC PredicatePhysicalOperator::next()
 RC PredicatePhysicalOperator::close()
 {
   children_[0]->close();
+  LOG_INFO("close predicate operator");
   return RC::SUCCESS;
 }
 
@@ -70,4 +102,9 @@ Tuple *PredicatePhysicalOperator::current_tuple() { return children_[0]->current
 RC PredicatePhysicalOperator::tuple_schema(TupleSchema &schema) const
 {
   return children_[0]->tuple_schema(schema);
+}
+
+Tuple *PredicatePhysicalOperator::current_raw_tuple() 
+{
+  return children_[0]->current_raw_tuple();
 }

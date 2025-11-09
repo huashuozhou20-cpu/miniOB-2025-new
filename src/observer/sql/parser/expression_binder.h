@@ -14,22 +14,24 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <vector>
+
 #include "sql/expr/expression.h"
 
 class BinderContext
 {
 public:
-  BinderContext()          = default;
+  BinderContext() = default;
   virtual ~BinderContext() = default;
 
-  void add_table(Table *table) { query_tables_.push_back(table); }
+  void add_table(BaseTable *table, string& alias) { query_tables_.push_back({table, alias}); }
 
-  Table *find_table(const char *table_name) const;
+  pair<BaseTable*, string> find_table(const char *table_name) const;
 
-  const vector<Table *> &query_tables() const { return query_tables_; }
+  const std::vector<pair<BaseTable *, string>> &query_tables() const { return query_tables_; }
 
 private:
-  vector<Table *> query_tables_;
+  std::vector<pair<BaseTable *, string>> query_tables_;
 };
 
 /**
@@ -42,23 +44,31 @@ public:
   ExpressionBinder(BinderContext &context) : context_(context) {}
   virtual ~ExpressionBinder() = default;
 
-  RC bind_expression(unique_ptr<Expression> &expr, vector<unique_ptr<Expression>> &bound_expressions);
+  RC bind_expression(std::unique_ptr<Expression> &expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
 
 private:
-  RC bind_star_expression(unique_ptr<Expression> &star_expr, vector<unique_ptr<Expression>> &bound_expressions);
+  RC bind_star_expression(
+      std::unique_ptr<Expression> &star_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_unbound_field_expression(
-      unique_ptr<Expression> &unbound_field_expr, vector<unique_ptr<Expression>> &bound_expressions);
-  RC bind_field_expression(unique_ptr<Expression> &field_expr, vector<unique_ptr<Expression>> &bound_expressions);
-  RC bind_value_expression(unique_ptr<Expression> &value_expr, vector<unique_ptr<Expression>> &bound_expressions);
-  RC bind_cast_expression(unique_ptr<Expression> &cast_expr, vector<unique_ptr<Expression>> &bound_expressions);
+      std::unique_ptr<Expression> &unbound_field_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_field_expression(
+      std::unique_ptr<Expression> &field_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_value_expression(
+      std::unique_ptr<Expression> &value_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_cast_expression(
+      std::unique_ptr<Expression> &cast_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_comparison_expression(
-      unique_ptr<Expression> &comparison_expr, vector<unique_ptr<Expression>> &bound_expressions);
+      std::unique_ptr<Expression> &comparison_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_conjunction_expression(
-      unique_ptr<Expression> &conjunction_expr, vector<unique_ptr<Expression>> &bound_expressions);
+      std::unique_ptr<Expression> &conjunction_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_arithmetic_expression(
-      unique_ptr<Expression> &arithmetic_expr, vector<unique_ptr<Expression>> &bound_expressions);
+      std::unique_ptr<Expression> &arithmetic_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_operation_expression(
+      std::unique_ptr<Expression> &operation_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
   RC bind_aggregate_expression(
-      unique_ptr<Expression> &aggregate_expr, vector<unique_ptr<Expression>> &bound_expressions);
+      std::unique_ptr<Expression> &aggregate_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
+  RC bind_sysfunc_expression(
+      std::unique_ptr<Expression> &sysfunc_expr, std::vector<std::unique_ptr<Expression>> &bound_expressions);
 
 private:
   BinderContext &context_;

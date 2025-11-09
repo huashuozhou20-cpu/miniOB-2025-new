@@ -30,10 +30,12 @@ class FieldMeta
 {
 public:
   FieldMeta();
-  FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id);
+  FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id,
+      bool nullable = false);
   ~FieldMeta() = default;
 
-  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id);
+  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id,
+      bool nullable = false);
 
 public:
   const char *name() const;
@@ -42,14 +44,19 @@ public:
   int         len() const;
   bool        visible() const;
   int         field_id() const;
+  bool        nullable() const;
+  int         real_len() const;
 
 public:
   void desc(ostream &os) const;
+  void set_field_null(char *data, bool is_null) const;
 
 public:
   void      to_json(Json::Value &json_value) const;
   static RC from_json(const Json::Value &json_value, FieldMeta &field);
 
+protected:
+  const static int TEXT_FIELD_LENGTH = 16;
 protected:
   string   name_;
   AttrType attr_type_;
@@ -57,4 +64,6 @@ protected:
   int      attr_len_;
   bool     visible_;
   int      field_id_;
+  bool     nullable_;  // 字段值能否为null
+  int      real_attr_len_; // 高维向量的实际长度
 };

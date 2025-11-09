@@ -35,11 +35,14 @@ class Trx;
 enum class PhysicalOperatorType
 {
   TABLE_SCAN,
+  VIEW_SCAN,
+  VECTOR_INDEX_SCAN, 
   TABLE_SCAN_VEC,
   INDEX_SCAN,
   NESTED_LOOP_JOIN,
   HASH_JOIN,
   EXPLAIN,
+  LIMIT, 
   PREDICATE,
   PREDICATE_VEC,
   PROJECT,
@@ -47,12 +50,16 @@ enum class PhysicalOperatorType
   CALC,
   STRING_LIST,
   DELETE,
+  UPDATE,
   INSERT,
+  CREATE_TABLE,
   SCALAR_GROUP_BY,
   HASH_GROUP_BY,
   GROUP_BY_VEC,
+  ORDER_BY,
   AGGREGATE_VEC,
   EXPR_VEC,
+  UNION,  ///< UNION 操作
 };
 
 /**
@@ -79,10 +86,12 @@ public:
 
   virtual RC open(Trx *trx) = 0;
   virtual RC next() { return RC::UNIMPLEMENTED; }
+  virtual RC next(Tuple *upper_tuple) { return RC::UNIMPLEMENTED; }
   virtual RC next(Chunk &chunk) { return RC::UNIMPLEMENTED; }
   virtual RC close() = 0;
 
   virtual Tuple *current_tuple() { return nullptr; }
+  virtual Tuple *current_raw_tuple() { return nullptr; }
 
   virtual RC tuple_schema(TupleSchema &schema) const { return RC::UNIMPLEMENTED; }
 

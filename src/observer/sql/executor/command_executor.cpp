@@ -15,16 +15,20 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/command_executor.h"
 #include "common/log/log.h"
 #include "event/sql_event.h"
-#include "sql/executor/analyze_table_executor.h"
 #include "sql/executor/create_index_executor.h"
 #include "sql/executor/create_table_executor.h"
+#include "sql/executor/drop_table_executor.h"
+#include "sql/executor/drop_index_executor.h"
 #include "sql/executor/desc_table_executor.h"
+#include "sql/executor/alter_table_executor.h"
 #include "sql/executor/help_executor.h"
 #include "sql/executor/load_data_executor.h"
+#include "sql/executor/show_index_executor.h"
 #include "sql/executor/set_variable_executor.h"
 #include "sql/executor/show_tables_executor.h"
 #include "sql/executor/trx_begin_executor.h"
 #include "sql/executor/trx_end_executor.h"
+#include "sql/executor/create_view_executor.h"
 #include "sql/stmt/stmt.h"
 
 RC CommandExecutor::execute(SQLStageEvent *sql_event)
@@ -43,13 +47,28 @@ RC CommandExecutor::execute(SQLStageEvent *sql_event)
       rc = executor.execute(sql_event);
     } break;
 
+    case StmtType::CREATE_VIEW: {
+      CreateViewExecutor executor;
+      rc = executor.execute(sql_event);
+    } break;
+
+    case StmtType::DROP_TABLE: {
+      DropTableExecutor executor;
+      rc = executor.execute(sql_event);
+    } break;
+
+    case StmtType::DROP_INDEX: {
+      DropIndexExecutor executor;
+      rc = executor.execute(sql_event);
+    } break;
+
     case StmtType::DESC_TABLE: {
       DescTableExecutor executor;
       rc = executor.execute(sql_event);
     } break;
 
-    case StmtType::ANALYZE_TABLE: {
-      AnalyzeTableExecutor executor;
+    case StmtType::ALTER_TABLE: {
+      AlterTableExecutor executor;
       rc = executor.execute(sql_event);
     } break;
 
@@ -57,7 +76,10 @@ RC CommandExecutor::execute(SQLStageEvent *sql_event)
       HelpExecutor executor;
       rc = executor.execute(sql_event);
     } break;
-
+    case StmtType::SHOW_INDEX: {
+      ShowIndexExecutor executor;
+      return executor.execute(sql_event);
+    }
     case StmtType::SHOW_TABLES: {
       ShowTablesExecutor executor;
       rc = executor.execute(sql_event);

@@ -14,10 +14,8 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include "storage/table/base_table.h"
 #include "storage/table/table_meta.h"
-#include "storage/table/table_engine.h"
-#include "storage/common/chunk.h"
-#include "storage/record/lob_handler.h"
 #include "common/types.h"
 #include "common/lang/span.h"
 #include "common/lang/functional.h"
@@ -26,7 +24,7 @@ struct RID;
 class Record;
 class DiskBufferPool;
 class RecordFileHandler;
-class RecordScanner;
+class RecordFileScanner;
 class ChunkFileScanner;
 class ConditionFilter;
 class DefaultConditionFilter;
@@ -40,15 +38,11 @@ class Db;
  * @brief 表
  *
  */
-class Table
+class Table : public BaseTable
 {
 public:
   Table() = default;
-  ~Table();
-
-  // TODO: use TableEngine replace Table
-  friend class TableEngine;
-  friend class HeapTableEngine;
+  virtual ~Table();
 
   /**
    * 创建一个表
@@ -59,8 +53,13 @@ public:
    * @param attributes 字段
    */
   RC create(Db *db, int32_t table_id, const char *path, const char *name, const char *base_dir,
-      span<const AttrInfoSqlNode> attributes, const vector<string> &primary_keys, StorageFormat storage_format,
-      StorageEngine storage_engine);
+      span<const AttrInfoSqlNode> attributes, StorageFormat storage_format);
+
+  /**
+   * 删除一个表
+   * @param path 元数据保存的文件(完整路径)
+   */
+  RC drop(const char *path);
 
   /**
    * 打开一个表
@@ -84,21 +83,57 @@ public:
    * @param record[in/out] 传入的数据包含具体的数据，插入成功会通过此字段返回RID
    */
   RC insert_record(Record &record);
-
-  RC insert_chunk(const Chunk &chunk);
+  RC update_record(const RID &rid, std::vector<const FieldMeta *> &fields, std::vector<Value> &values);
+  RC update_record(Record &new_record, Record &old_record);
   RC delete_record(const Record &record);
-
-  RC insert_record_with_trx(Record &record, Trx *trx);
-  RC delete_record_with_trx(const Record &record, Trx *trx);
-  RC update_record_with_trx(const Record &old_record, const Record &new_record, Trx *trx);
+  RC delete_record(const RID &rid);
   RC get_record(const RID &rid, Record &record);
 
-  // TODO refactor
-  RC create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name);
+  RC recover_insert_record(Record &record);
 
-  RC get_record_scanner(RecordScanner *&scanner, Trx *trx, ReadWriteMode mode);
+  /**
+   * @brief 修改表结构
+   * @param trx 事务
+   * @param alter_type 修改类型
+   * @param attr_info 用于 ADD_COLUMN 的属性信息
+   * @param old_name 旧名称（用于 DROP_COLUMN, RENAME_COLUMN, RENAME_TABLE）
+   * @param new_name 新名称（用于 RENAME_COLUMN, RENAME_TABLE）
+   */
+  RC alter_table(Trx *trx, int alter_type, const AttrInfoSqlNode &attr_info,
+                 const std::string &old_name, const std::string &new_name);
+
+  // TODO refactor
+  RC create_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &field_metas, const char *index_name);
+  RC create_vector_index(Trx *trx, bool unique, std::vector<const FieldMeta *> &field_metas, const char *index_name,
+      VectorIndexNode &vector_index);
+  RC create_fulltext_index(Trx *trx, std::vector<const FieldMeta *> &field_metas, const char *index_name);
+  RC drop_index(const char *index_name);
+
+  RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, ReadWriteMode mode);
 
   RC get_chunk_scanner(ChunkFileScanner &scanner, Trx *trx, ReadWriteMode mode);
+
+  RecordFileHandler *record_handler() const { return record_handler_; }
+
+/**
+ * @brief 将文本数据写入磁盘缓冲池
+ * 
+ * @param offset 引用参数，用于存储文本在磁盘上的偏移位置
+ * @param length 要写入的文本数据长度
+ * @param data 指向要写入的文本数据的指针
+ * @return RC 返回操作结果，如果写入成功返回 RC::SUCCESS，否则返回相应错误码
+ */
+  RC write_text(int64_t &offset, int64_t length, const char *data);
+
+/**
+ * @brief 从磁盘缓冲池中读取文本数据
+ * 
+ * @param offset 要读取的文本数据的偏移位置
+ * @param length 要读取的文本数据长度
+ * @param data 存放读取到的文本数据的缓冲区指针
+ * @return RC 返回操作结果，如果读取成功返回 RC::SUCCESS，否则返回相应错误码
+ */
+  RC read_text(int64_t offset, int64_t length, char *data) const;
 
   /**
    * @brief 可以在页面锁保护的情况下访问记录
@@ -115,28 +150,28 @@ public:
 
   Db *db() const { return db_; }
 
-  const TableMeta &table_meta() const;
-
-  LobFileHandler *lob_handler() const { return lob_handler_; }
-
-  RC sync();
+  RC                          sync();
+  const std::vector<Index *> &indexes() const { return indexes_; }
 
 private:
+  RC insert_entry_of_indexes(const char *record, const RID &rid);
+  RC delete_entry_of_indexes(const char *record, const RID &rid, bool error_on_not_exists);
   RC set_value_to_record(char *record_data, const Value &value, const FieldMeta *field);
 
 private:
-  // RC init_record_handler(const char *base_dir);
+  RC init_record_handler(const char *base_dir);
+  RC init_text_handler(const char *base_dir);
 
 public:
   Index *find_index(const char *index_name) const;
   Index *find_index_by_field(const char *field_name) const;
+  Index *find_index_by_fields(std::vector<const char *> fields) const;
 
 private:
-  Db       *db_ = nullptr;
-  TableMeta table_meta_;
-  // DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
-  // RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
-  // vector<Index *>    indexes_;
-  unique_ptr<TableEngine> engine_      = nullptr;
-  LobFileHandler         *lob_handler_ = nullptr;
+  Db                *db_ = nullptr;
+  string             base_dir_;
+  DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
+  DiskBufferPool    *text_buffer_pool_ = nullptr;   /// text文件关联的buffer pool
+  RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
+  vector<Index *>    indexes_;
 };

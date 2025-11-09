@@ -24,6 +24,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "session/session.h"
 #include "sql/stmt/stmt.h"
+#include "sql/parser/expression_binder.h"
 
 using namespace common;
 
@@ -44,8 +45,10 @@ RC ResolveStage::handle_request(SQLStageEvent *sql_event)
 
   ParsedSqlNode *sql_node = sql_event->sql_node().get();
   Stmt          *stmt     = nullptr;
-
-  rc = Stmt::create_stmt(db, *sql_node, stmt);
+  vector<vector<uint32_t>> depends;
+  vector<SelectExpr*> select_exprs;
+  tables_t table_map;
+  rc = Stmt::create_stmt(db, *sql_node, stmt, depends, select_exprs, table_map);
   if (rc != RC::SUCCESS && rc != RC::UNIMPLEMENTED) {
     LOG_WARN("failed to create stmt. rc=%d:%s", rc, strrc(rc));
     sql_result->set_return_code(rc);
@@ -53,6 +56,8 @@ RC ResolveStage::handle_request(SQLStageEvent *sql_event)
   }
 
   sql_event->set_stmt(stmt);
+  sql_event->set_depends(std::move(depends));
+  sql_event->set_exprs(std::move(select_exprs));
 
   return rc;
 }

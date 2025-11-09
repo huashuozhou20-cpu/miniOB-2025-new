@@ -33,8 +33,8 @@ RC MvccTrxKit::init()
   // 事务使用一些特殊的字段，放到每行记录中，表示行记录的可见性。
   fields_ = vector<FieldMeta>{
       // field_id in trx fields is invisible.
-      FieldMeta("__trx_xid_begin", AttrType::INTS, 0 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, -1/*field_id*/),
-      FieldMeta("__trx_xid_end", AttrType::INTS, 0 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, -2/*field_id*/)};
+      FieldMeta("__trx_xid_begin", AttrType::INTS, 0 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, 1/*field_id*/),
+      FieldMeta("__trx_xid_end", AttrType::INTS, 4 /*attr_offset*/, 4 /*attr_len*/, false /*visible*/, 2/*field_id*/)};
 
   LOG_INFO("init mvcc trx kit done.");
   return RC::SUCCESS;
@@ -131,6 +131,27 @@ RC MvccTrx::insert_record(Table *table, Record &record)
          trx_id_, table->table_id(), record.rid().to_string().c_str(), record.len(), strrc(rc));
 
   operations_.push_back(Operation(Operation::Type::INSERT, table, record.rid()));
+  return rc;
+}
+
+RC MvccTrx::update_record(Table *table, Record &record, std::vector<const FieldMeta *> &fields, std::vector<Value> &values)
+{
+  Field begin_field;
+  Field end_field;
+  trx_fields(table, begin_field, end_field);
+
+  RC rc = RC::SUCCESS;
+  rc = table->update_record(record.rid(), fields, values);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to update record: %s", strrc(rc));
+    return rc;
+  }
+
+  rc = log_handler_.insert_record(trx_id_, table, record.rid());
+  ASSERT(rc == RC::SUCCESS, "failed to append update record log. trx id=%d, table id=%d, rid=%s, record len=%d, rc=%s",
+         trx_id_, table->table_id(), record.rid().to_string().c_str(), record.len(), strrc(rc));
+
+  operations_.push_back(Operation(Operation::Type::UPDATE, table, record.rid()));
   return rc;
 }
 
