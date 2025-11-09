@@ -36,3 +36,9 @@ bool LogicalOperator::can_generate_vectorized_operator(const LogicalOperatorType
     return bool_ret;
 }
 
+void LogicalOperator::generate_general_child()
+{
+  // TODO: implement generate_general_child
+  // This is a temporary function for cascade optimizer
+}
+

@@ -252,6 +252,11 @@ struct DescTableSqlNode
   std::string relation_name;
 };
 
+struct AnalyzeTableSqlNode
+{
+  std::string relation_name;
+};
+
 /**
  * @brief 描述一个alter table语句
  * @ingroup SQLParser

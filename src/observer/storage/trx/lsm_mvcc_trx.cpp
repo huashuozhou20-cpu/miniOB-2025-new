@@ -18,6 +18,8 @@ Trx *LsmMvccTrxKit::create_trx(LogHandler &) { return new LsmMvccTrx(lsm_); }
 
 Trx *LsmMvccTrxKit::create_trx(LogHandler &, int32_t /*trx_id*/) { return nullptr; }
 
+Trx *LsmMvccTrxKit::find_trx(int32_t /*trx_id*/) { return nullptr; }
+
 void LsmMvccTrxKit::destroy_trx(Trx *trx) { delete trx; }
 
 void LsmMvccTrxKit::all_trxes(vector<Trx *> &trxes) { return; }
@@ -29,17 +31,18 @@ LogReplayer *LsmMvccTrxKit::create_log_replayer(Db &, LogHandler &) { return new
 
 RC LsmMvccTrx::insert_record(Table *table, Record &record)
 {
-   return table->insert_record_with_trx(record, this);
+   return table->insert_record(record);
 }
 
 RC LsmMvccTrx::delete_record(Table *table, Record &record)
 {
-  return table->delete_record_with_trx(record, this);
+  return table->delete_record(record);
 }
 
-RC LsmMvccTrx::update_record(Table *table, Record &old_record, Record &new_record)
+RC LsmMvccTrx::update_record(Table *table, Record &record, std::vector<const FieldMeta *> &fields, std::vector<Value> &values)
 {
-  return table->update_record_with_trx(old_record, new_record, this);
+  // TODO: implement update_record with fields and values
+  return RC::UNIMPLEMENTED;
 }
 /**
  * 在 index scan 中使用的，需要适配 index scan

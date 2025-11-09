@@ -14,7 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/union_physical_operator.h"
 #include "common/log/log.h"
-#include "common/rc.h"
+#include "common/sys/rc.h"
 #include <sstream>
 
 UnionPhysicalOperator::UnionPhysicalOperator(bool union_all) : union_all_(union_all) {}

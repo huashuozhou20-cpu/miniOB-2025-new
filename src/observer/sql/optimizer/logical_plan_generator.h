@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include <memory>
 #include <vector>
 
-#include "common/rc.h"
+#include "common/sys/rc.h"
 #include "common/type/attr_type.h"
 #include "sql/expr/expression.h"
 

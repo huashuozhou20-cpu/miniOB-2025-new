@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 #include "catalog/catalog.h"
-#include "storage/record/record_scanner.h"
+#include "storage/record/record_manager.h"
 
 using namespace std;
 
@@ -42,7 +42,10 @@ RC AnalyzeTableExecutor::execute(SQLStageEvent *sql_event)
     // TODO: optimize the analyze table compute. we can only get table statistics from metadata
     // Don't really scan the whole table!!
     int table_id = table->table_id();
-    table->get_record_scanner(scanner_, session->current_trx(), ReadWriteMode::READ_ONLY);
+    if (scanner_ == nullptr) {
+      scanner_ = new RecordFileScanner();
+    }
+    table->get_record_scanner(*scanner_, session->current_trx(), ReadWriteMode::READ_ONLY);
     Record dummy;
     int row_nums = 0;
     while (OB_SUCC(rc = scanner_->next(dummy))) {

@@ -33,6 +33,7 @@ public:
 
   Trx *create_trx(LogHandler &log_handler) override;
   Trx *create_trx(LogHandler &log_handler, int32_t trx_id) override;
+  Trx *find_trx(int32_t trx_id) override;
   void destroy_trx(Trx *trx) override;
 
   void all_trxes(vector<Trx *> &trxes) override;
@@ -74,7 +75,6 @@ public:
   RC insert_record(Table *table, Record &record) override;
   RC update_record(Table *table, Record &record, std::vector<const FieldMeta *> &fields, std::vector<Value> &values) override;
   RC delete_record(Table *table, Record &record) override;
-  RC update_record(Table *table, Record &old_record, Record &new_record) override { return RC::UNIMPLEMENTED; };
 
   /**
    * @brief 当访问到某条数据时，使用此函数来判断是否可见，或者是否有访问冲突

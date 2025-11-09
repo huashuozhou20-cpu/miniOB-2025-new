@@ -909,6 +909,11 @@ AttrType VectorOperationExpr::value_type() const
   return AttrType::VECTORS;
 }
 
+unique_ptr<Expression> VectorOperationExpr::copy() const
+{
+  return make_unique<VectorOperationExpr>(operation_type_, left_->copy(), right_->copy());
+}
+
 RC VectorOperationExpr::get_value(const Tuple &tuple, Value &value) const
 {
   RC rc = RC::SUCCESS;
@@ -1107,6 +1112,16 @@ RC SelectExpr::create_stmt(Db *db, vector<vector<uint32_t>>& depends, vector<Sel
   return Stmt::create_stmt(db, *sql_node_, stmt_, depends, select_exprs, table_map, fa);
 }
 
+unique_ptr<Expression> SelectExpr::copy() const
+{
+  // SelectExpr cannot be copied easily as it contains complex state
+  // Return a new SelectExpr with the same sql_node if available
+  if (sql_node_ != nullptr) {
+    return make_unique<SelectExpr>(sql_node_);
+  }
+  return make_unique<SelectExpr>();
+}
+
 RC SelectExpr::get_value(const Tuple &tuple, Value &value) const
 {
   RC rc = RC::SUCCESS;
@@ -1241,6 +1256,15 @@ RC SelectExpr::pretreatment()
   return rc;
 }
 
+unique_ptr<Expression> ValueListExpr::copy() const
+{
+  vector<unique_ptr<Expression>> copied_exprs;
+  for (const auto &expr : exprs_) {
+    copied_exprs.push_back(expr->copy());
+  }
+  return make_unique<ValueListExpr>(copied_exprs);
+}
+
 RC ValueListExpr::get_value(const Tuple &tuple, Value &value) const 
 {
   return exprs_[0]->get_value(tuple, value);
@@ -1271,6 +1295,17 @@ UnboundSysFuncExpr::UnboundSysFuncExpr(const char *func_name, Expression *child,
 UnboundSysFuncExpr::UnboundSysFuncExpr(const char *func_name, Expression *child, Expression *second_child, Expression *third_child)
     : func_name_(func_name), child_(child), second_child_(second_child), third_child_(third_child)
 {}
+
+unique_ptr<Expression> UnboundSysFuncExpr::copy() const
+{
+  if (third_child_) {
+    return make_unique<UnboundSysFuncExpr>(func_name_.c_str(), child_->copy().release(), second_child_->copy().release(), third_child_->copy().release());
+  } else if (second_child_) {
+    return make_unique<UnboundSysFuncExpr>(func_name_.c_str(), child_->copy().release(), second_child_->copy().release());
+  } else {
+    return make_unique<UnboundSysFuncExpr>(func_name_.c_str(), child_->copy().release());
+  }
+}
 
 unique_ptr<Expression> UnboundSysFuncExpr::deep_copy()
 {
@@ -2015,15 +2050,25 @@ RC SysFuncExpr::type_from_string(const char *type_str, SysFuncExpr::Type &func_t
   return rc;
 }
 
+unique_ptr<Expression> SysFuncExpr::copy() const
+{
+  if (third_child_) {
+    return make_unique<SysFuncExpr>(sysfunc_type_, child_->copy(), second_child_->copy(), third_child_->copy());
+  } else if (second_child_) {
+    return make_unique<SysFuncExpr>(sysfunc_type_, child_->copy(), second_child_->copy());
+  } else {
+    return make_unique<SysFuncExpr>(sysfunc_type_, child_->copy());
+  }
+}
+
 unique_ptr<Expression> SysFuncExpr::deep_copy()
 {
-  unique_ptr<Expression> child_copy = child_->deep_copy();
-  if (third_child_) {
-    unique_ptr<Expression> second_copy = second_child_->deep_copy();
-    unique_ptr<Expression> third_copy = third_child_->deep_copy();
+  unique_ptr<Expression> child_copy = child_ ? child_->deep_copy() : nullptr;
+  unique_ptr<Expression> second_copy = second_child_ ? second_child_->deep_copy() : nullptr;
+  unique_ptr<Expression> third_copy = third_child_ ? third_child_->deep_copy() : nullptr;
+  if (third_copy) {
     return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy), std::move(second_copy), std::move(third_copy)));
-  } else if (second_child_) {
-    unique_ptr<Expression> second_copy = second_child_->deep_copy();
+  } else if (second_copy) {
     return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy), std::move(second_copy)));
   } else {
     return unique_ptr<Expression>(new SysFuncExpr(sysfunc_type_, std::move(child_copy)));

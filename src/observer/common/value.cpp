@@ -425,14 +425,14 @@ bool Value::check_date(const char *data)
   return day <= 31;
 }
 
-const char *Value::data() const
+char *Value::data() const
 {
   switch (attr_type_) {
     case AttrType::CHARS: case AttrType::DATES: {
       return value_.pointer_value_;
     } break;
     case AttrType::VECTORS:{
-      return (const char *)value_.vector_value_->data();
+      return (char *)value_.vector_value_->data();
     } break;
     case AttrType::NULLS:{
       return nullptr;

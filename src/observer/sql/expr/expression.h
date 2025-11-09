@@ -547,6 +547,7 @@ public:
 
   AttrType value_type() const override;
 
+  unique_ptr<Expression> copy() const override;
   RC get_value(const Tuple &tuple, Value &value) const override;
 
   RC try_get_value(Value &value) const override;
@@ -682,6 +683,7 @@ public:
   ExprType type() const override { return ExprType::SELECT; }
   AttrType value_type() const override { return value_type_;}
 
+  unique_ptr<Expression> copy() const override;
   RC get_value(const Tuple &tuple, Value &value) const override;
   RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
   RC try_get_value(Value &value) const { 
@@ -730,6 +732,7 @@ public:
 
   virtual ~ValueListExpr() = default;
 
+  unique_ptr<Expression> copy() const override;
   RC get_value(const Tuple &tuple, Value &value) const override;
   RC get_value_set(const Tuple &tuple, vector<Value> &value_list)const override;
 
@@ -763,6 +766,7 @@ public:
   RC       get_value(const Tuple &tuple, Value &value) const override { return RC::INTERNAL; }
   AttrType value_type() const override { return child_ ? child_->value_type() : AttrType::UNDEFINED; }
 
+  unique_ptr<Expression> copy() const override;
   unique_ptr<Expression> deep_copy() override;
 
 private:
@@ -819,6 +823,7 @@ public:
   std::unique_ptr<Expression> &third_child() { return third_child_; }
   const std::unique_ptr<Expression> &third_child() const { return third_child_; }
 
+  unique_ptr<Expression> copy() const override;
   unique_ptr<Expression> deep_copy() override;
 
 public:

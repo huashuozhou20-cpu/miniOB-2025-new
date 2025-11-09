@@ -13,7 +13,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/sys/rc.h"
 
 class SQLStageEvent;
-class RecordScanner;
+class RecordFileScanner;
 
 /**
  * @brief 分析表的执行器(analyze table)
@@ -28,5 +28,5 @@ public:
   RC execute(SQLStageEvent *sql_event);
 
 private:
-  RecordScanner *scanner_ = nullptr;
+  RecordFileScanner *scanner_ = nullptr;
 };

@@ -39,7 +39,8 @@ RC CreateTablePhysicalOperator::open(Trx *trx)
   }
 
   trx_ = trx;
-  rc = db_->create_table(table_name_.c_str(), attr_infos_, storage_format_);
+  vector<string> primary_keys;  // TODO: extract primary keys from attr_infos if needed
+  rc = db_->create_table(table_name_.c_str(), attr_infos_, primary_keys, storage_format_);
   if(rc != RC::SUCCESS)return rc;
 
   Table *table = db_->find_table(table_name_.c_str());

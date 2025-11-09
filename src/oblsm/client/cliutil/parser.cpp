@@ -37,7 +37,7 @@ RC ObLsmCliCmdTokenizer::parse_string(string &res)
   }
 
   if (out_of_range()) {
-    return RC::UNEXPECTED_END_OF_STRING;
+    return RC::INVALID_ARGUMENT;
   }
   p_++;
 
@@ -51,7 +51,7 @@ RC ObLsmCliCmdTokenizer::next()
 
   skip_blank_space();
   if (out_of_range()) {
-    return RC::INPUT_EOF;
+    return RC::INVALID_ARGUMENT;
   }
 
   // e.g. scan - "key"
@@ -86,7 +86,7 @@ RC ObLsmCliCmdTokenizer::next()
   auto iter = token_map_.find(current);
   if (iter == token_map_.end()) {
     token_type = TokenType::INVALID;
-    return RC::INVALID_TOKEN;
+    return RC::INVALID_ARGUMENT;
   }
   cmd = iter->second;
 
@@ -103,7 +103,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
   }
 
   if (tokenizer_.token_type != TokenType::COMMAND) {
-    return RC::SYNTAX_ERROR;
+    return RC::INVALID_ARGUMENT;
   }
   result.cmd = tokenizer_.cmd;
 
@@ -112,7 +112,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
       rc = tokenizer_.next();
       if (OB_FAIL(rc) || tokenizer_.token_type != TokenType::STRING) {
         result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::OPEN);
-        return RC::SYNTAX_ERROR;
+        return RC::INVALID_ARGUMENT;
       }
       result.args[0] = tokenizer_.str;
       break;
@@ -121,7 +121,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
         rc = tokenizer_.next();
         if (OB_FAIL(rc) || tokenizer_.token_type != TokenType::STRING) {
           result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::SET);
-          return RC::SYNTAX_ERROR;
+          return RC::INVALID_ARGUMENT;
         }
         result.args[i] = std::move(tokenizer_.str);
       }
@@ -130,7 +130,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
       rc = tokenizer_.next();
       if (OB_FAIL(rc) || tokenizer_.token_type != TokenType::STRING) {
         result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::GET);
-        return RC::SYNTAX_ERROR;
+        return RC::INVALID_ARGUMENT;
       }
       result.args[0] = tokenizer_.str;
       break;
@@ -138,7 +138,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
       rc = tokenizer_.next();
       if (OB_FAIL(rc) || tokenizer_.token_type != TokenType::STRING) {
         result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::DELETE);
-        return RC::SYNTAX_ERROR;
+        return RC::INVALID_ARGUMENT;
       }
       result.args[0] = tokenizer_.str;
       break;
@@ -147,7 +147,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
         rc = tokenizer_.next();
         if (OB_FAIL(rc)) {
           result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::SCAN);
-          return RC::SYNTAX_ERROR;
+          return RC::INVALID_ARGUMENT;
         }
 
         if (tokenizer_.token_type == TokenType::BOUND) {
@@ -156,7 +156,7 @@ RC ObLsmCliCmdParser::parse(string_view command)
           result.args[i] = std::move(tokenizer_.str);
         } else {
           result.error = ObLsmCliUtil::cmd_usage(ObLsmCliCmdType::SCAN);
-          return RC::SYNTAX_ERROR;
+          return RC::INVALID_ARGUMENT;
         }
       }
       break;

@@ -64,13 +64,19 @@ RC HeapTableEngine::insert_record(Record &record)
 RC HeapTableEngine::insert_chunk(const Chunk& chunk)
 {
   RC rc = RC::SUCCESS;
-  rc    = record_handler_->insert_chunk(chunk, table_meta_->record_size());
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Insert chunk failed. table name=%s, rc=%s", table_meta_->name(), strrc(rc));
-    return rc;
+  // TODO: implement insert_chunk for RecordFileHandler
+  // For now, insert records one by one
+  int rows = chunk.rows();
+  for (int i = 0; i < rows; i++) {
+    Record record;
+    // Build record from chunk columns
+    // TODO: properly construct record from chunk
+    rc = insert_record(record);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Insert chunk record failed. table name=%s, rc=%s", table_meta_->name(), strrc(rc));
+      return rc;
+    }
   }
-
-  // TODO: insert chunk support update index
   return rc;
 }
 
@@ -131,7 +137,8 @@ RC HeapTableEngine::create_index(Trx *trx, const FieldMeta *field_meta, const ch
 
   IndexMeta new_index_meta;
 
-  RC rc = new_index_meta.init(index_name, *field_meta);
+  std::vector<const FieldMeta *> fields = {field_meta};
+  RC rc = new_index_meta.init(index_name, false, fields);  // false = not unique
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s", 
              table_meta_->name(), index_name, field_meta->name());
@@ -142,7 +149,8 @@ RC HeapTableEngine::create_index(Trx *trx, const FieldMeta *field_meta, const ch
   BplusTreeIndex *index      = new BplusTreeIndex();
   string          index_file = table_index_file(db_->path().c_str(), table_meta_->name(), index_name);
 
-  rc = index->create(table_, index_file.c_str(), new_index_meta, *field_meta);
+  std::vector<int> field_ids = {field_meta->field_id()};
+  rc = index->create(table_, index_file.c_str(), false, new_index_meta, field_ids, fields);
   if (rc != RC::SUCCESS) {
     delete index;
     LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
@@ -298,7 +306,7 @@ RC HeapTableEngine::init()
 
   record_handler_ = new RecordFileHandler(table_meta_->storage_format());
 
-  rc = record_handler_->init(*data_buffer_pool_, db_->log_handler(), table_meta_, table_->lob_handler_);
+  rc = record_handler_->init(*data_buffer_pool_, db_->log_handler(), table_meta_);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to init record handler. rc=%s", strrc(rc));
     delete record_handler_;
@@ -316,7 +324,13 @@ RC HeapTableEngine::open()
   const int index_num = table_meta_->index_num();
   for (int i = 0; i < index_num; i++) {
     const IndexMeta *index_meta = table_meta_->index(i);
-    const FieldMeta *field_meta = table_meta_->field(index_meta->field());
+    // Get first field from index_meta
+    const std::vector<std::string> &field_names = index_meta->field();
+    if (field_names.empty()) {
+      LOG_ERROR("Index has no fields. table=%s, index=%s", table_meta_->name(), index_meta->name());
+      continue;
+    }
+    const FieldMeta *field_meta = table_meta_->field(field_names[0].c_str());
     if (field_meta == nullptr) {
       LOG_ERROR("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
                 table_meta_->name(), index_meta->name(), index_meta->field());

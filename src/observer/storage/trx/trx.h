@@ -17,7 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include <stddef.h>
 #include <utility>
 
-#include "common/rc.h"
+#include "common/sys/rc.h"
 #include "common/lang/mutex.h"
 #include "sql/parser/parse.h"
 #include "storage/field/field_meta.h"
@@ -130,7 +130,7 @@ public:
   virtual LogReplayer *create_log_replayer(Db &db, LogHandler &log_handler) = 0;
 
 public:
-  static TrxKit *create(const char *name);
+  static TrxKit *create(const char *name, Db* db);
 };
 
 /**

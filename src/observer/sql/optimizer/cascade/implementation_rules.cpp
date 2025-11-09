@@ -47,7 +47,8 @@ void LogicalGetToPhysicalSeqScan::transform(OperatorNode* input,
     phys_preds.push_back(pred->copy());
   }
 
-  Table *table = table_get_oper->table();
+  BaseTable *base_table = table_get_oper->table();
+  Table *table = dynamic_cast<Table*>(base_table);
   auto table_scan_oper = new TableScanPhysicalOperator(table, table_get_oper->read_write_mode());
   table_scan_oper->set_predicates(std::move(phys_preds));
   auto oper = unique_ptr<OperatorNode>(table_scan_oper);
@@ -74,7 +75,7 @@ void LogicalProjectionToProjection::transform(OperatorNode* input,
 
   unique_ptr<PhysicalOperator> child_phy_oper;
 
-  auto project_operator = make_unique<ProjectPhysicalOperator>(std::move(project_oper->expressions()));
+  auto project_operator = make_unique<ProjectPhysicalOperator>(std::move(project_oper->expressions()), project_oper->show_table_name());
   if (project_operator) {
     project_operator->add_general_child(child_opers.front().get());
   }
@@ -96,9 +97,9 @@ void LogicalInsertToInsert::transform(OperatorNode* input,
                          OptimizerContext *context) const {
   InsertLogicalOperator* insert_oper = dynamic_cast<InsertLogicalOperator*>(input);
 
-  Table                  *table           = insert_oper->table();
-  vector<Value>          &values          = insert_oper->values();
-  auto insert_phy_oper = make_unique<InsertPhysicalOperator>(table, std::move(values));
+  BaseTable *base_table = insert_oper->table();
+  vector<vector<Value>> values_set = insert_oper->values_set();  // copy the values
+  auto insert_phy_oper = make_unique<InsertPhysicalOperator>(base_table, std::move(values_set));
 
   transformed->emplace_back(std::move(insert_phy_oper));
 }

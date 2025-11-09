@@ -101,15 +101,26 @@ target_include_directories(observer_static PRIVATE
   /usr/include/jsoncpp                                 # 如果系统装了 libjsoncpp-dev
   /usr/local/include                                   # 如果安装到 /usr/local/include
 )
-INCLUDE (readline)
-MINIOB_FIND_READLINE()
-IF (HAVE_READLINE)
+# Try to find readline (optional)
+find_library(READLINE_LIBRARY NAMES readline
+  HINTS
+    /usr/lib
+    /usr/local/lib
+    ${PROJECT_SOURCE_DIR}/deps/3rd/usr/lib
+)
+find_path(READLINE_INCLUDE_DIR readline/readline.h
+  HINTS
+    /usr/include
+    /usr/local/include
+    ${PROJECT_SOURCE_DIR}/deps/3rd/usr/include
+)
+IF (READLINE_LIBRARY AND READLINE_INCLUDE_DIR)
   TARGET_LINK_LIBRARIES(observer_static ${READLINE_LIBRARY})
   TARGET_INCLUDE_DIRECTORIES(observer_static PRIVATE ${READLINE_INCLUDE_DIR})
   ADD_DEFINITIONS(-DUSE_READLINE)
-  MESSAGE ("observer_static use readline")
+  MESSAGE (STATUS "observer_static use readline")
 ELSE ()
-  MESSAGE ("readline is not found")
+  MESSAGE (STATUS "readline is not found (optional)")
 ENDIF()
 
 # 注意：这里用 Libevent::core / Libevent::pthreads（大写 L）
@@ -117,6 +128,7 @@ TARGET_LINK_LIBRARIES(observer_static
   common pthread dl
   Libevent::core Libevent::pthreads
   ${JSONCPP_LIB}
+  oblsm
 )
 
 SET_TARGET_PROPERTIES(observer_static PROPERTIES OUTPUT_NAME observer)

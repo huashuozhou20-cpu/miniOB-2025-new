@@ -22,13 +22,13 @@ RC ObManifestSSTableInfo::from_json(const Json::Value &v)
   if (v.isMember("sstable_id") && v["sstable_id"].isInt()) {
     sstable_id = v["sstable_id"].asInt();
   } else {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
 
   if (v.isMember("level") && v["level"].isInt()) {
     level = v["level"].asInt();
   } else {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   return RC::SUCCESS;
 }
@@ -62,7 +62,7 @@ RC ObManifestCompaction::from_json(const Json::Value &v)
 
   // Check the "type" field
   if (!v.isMember("compaction_type")) {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   rc = JsonConverter::from_json<CompactionType>(v["compaction_type"], compaction_type);
   if (rc != RC::SUCCESS) {
@@ -72,7 +72,7 @@ RC ObManifestCompaction::from_json(const Json::Value &v)
 
   // Check "deleted_tables"
   if (!v.isMember("deleted_tables") || !v["deleted_tables"].isArray()) {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   for (const auto &item : v["deleted_tables"]) {
     ObManifestSSTableInfo info;
@@ -86,7 +86,7 @@ RC ObManifestCompaction::from_json(const Json::Value &v)
 
   // Check "added_tables"
   if (!v.isMember("added_tables") || !v["added_tables"].isArray()) {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   for (const auto &item : v["added_tables"]) {
     ObManifestSSTableInfo info;
@@ -102,14 +102,14 @@ RC ObManifestCompaction::from_json(const Json::Value &v)
   if (v.isMember("sstable_sequence_id") && v["sstable_sequence_id"].isUInt64()) {
     sstable_sequence_id = v["sstable_sequence_id"].asUInt64();
   } else {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
 
   // Check "seq_id"
   if (v.isMember("seq_id") && v["seq_id"].isUInt64()) {
     seq_id = v["seq_id"].asUInt64();
   } else {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
 
   return RC::SUCCESS;
@@ -139,7 +139,7 @@ Json::Value ObManifestSnapshot::to_json() const
 RC ObManifestSnapshot::from_json(const Json::Value &v)
 {
   if (!v.isMember("seq") || !v.isMember("sstable_id") || !v.isMember("compaction_type") || !v.isMember("sstables")) {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   seq             = v["seq"].asUInt64();
   sstable_id      = v["sstable_id"].asUInt64();
@@ -166,7 +166,7 @@ Json::Value ObManifestNewMemtable::to_json() const
 RC ObManifestNewMemtable::from_json(const Json::Value &v)
 {
   if (!v.isMember("memtable_id")) {
-    return RC::JSON_MEMBER_MISSING;
+    return RC::INVALID_ARGUMENT;
   }
   memtable_id = v["memtable_id"].asUInt64();
   return RC::SUCCESS;
@@ -264,11 +264,11 @@ RC ObManifest::recover(std::unique_ptr<ObManifestSnapshot> &snapshot_record,
     Json::Value  json_val;
     bool         ok = reader.parse(json_raw, json_val);
     if (!ok) {
-      return RC::JSON_PARSE_FAILED;
+      return RC::INVALID_ARGUMENT;
     }
 
     if (!json_val.isMember("record_type")) {
-      return RC::JSON_MEMBER_MISSING;
+      return RC::INVALID_ARGUMENT;
     }
 
     string record_type = json_val["record_type"].asString();

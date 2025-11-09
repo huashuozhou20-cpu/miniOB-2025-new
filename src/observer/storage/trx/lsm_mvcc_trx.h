@@ -30,6 +30,7 @@ public:
 
   Trx *create_trx(LogHandler &log_handler) override;
   Trx *create_trx(LogHandler &log_handler, int32_t trx_id) override;
+  Trx *find_trx(int32_t trx_id) override;
   void all_trxes(vector<Trx *> &trxes) override;
 
   void destroy_trx(Trx *trx) override;
@@ -43,7 +44,7 @@ private:
 class LsmMvccTrx : public Trx
 {
 public:
-  LsmMvccTrx(ObLsm *lsm) : Trx(TrxKit::Type::LSM), lsm_(lsm), trx_(nullptr) {}
+  LsmMvccTrx(ObLsm *lsm) : lsm_(lsm), trx_(nullptr) {}
   virtual ~LsmMvccTrx()
   {
     if (trx_ != nullptr) {
@@ -53,7 +54,7 @@ public:
 
   RC insert_record(Table *table, Record &record) override;
   RC delete_record(Table *table, Record &record) override;
-  RC update_record(Table *table, Record &old_record, Record &record) override;
+  RC update_record(Table *table, Record &record, std::vector<const FieldMeta *> &fields, std::vector<Value> &values) override;
   RC visit_record(Table *table, Record &record, ReadWriteMode mode) override;
   RC start_if_need() override;
   RC commit() override;

@@ -19,11 +19,13 @@ RC LsmRecordScanner::open_scan()
     delete lsm_iter_;
     lsm_iter_ = nullptr;
   }
-  if (trx_->type() == TrxKit::Type::VACUOUS) {
-    lsm_iter_ = oblsm_->new_iterator(ObLsmReadOptions());
-  } else if (trx_->type() == TrxKit::Type::LSM) {
-    auto lsm_trx = dynamic_cast<LsmMvccTrx *>(trx_);
+  // Try to cast to LsmMvccTrx first
+  auto lsm_trx = dynamic_cast<LsmMvccTrx *>(trx_);
+  if (lsm_trx != nullptr) {
     lsm_iter_ = lsm_trx->get_trx()->new_iterator(ObLsmReadOptions());
+  } else {
+    // For vacuous trx, create iterator directly
+    lsm_iter_ = oblsm_->new_iterator(ObLsmReadOptions());
   }
   bytes encoded_key;
   rc = Codec::encode_without_rid(table_->table_id(), encoded_key);
