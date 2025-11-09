@@ -1348,7 +1348,7 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
 
   // Get the first argument
   rc = child_->get_value(tuple, arg_value);
-    if (OB_FAIL(rc)) {
+  if (OB_FAIL(rc)) {
     return rc;
   }
 
