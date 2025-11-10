@@ -53,8 +53,12 @@ RC PredicatePhysicalOperator::next(Tuple *upper_tuple)
 
     Value value;
     rc = expression_->get_value(join_tuple, value);
-    if (rc != RC::SUCCESS) {
+    if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
       return rc;
+    }
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      value.set_null();
     }
 
     // Handle NULL values: if value is NULL, skip this row (NULL comparisons are false)
@@ -84,8 +88,12 @@ RC PredicatePhysicalOperator::next()
 
     Value value;
     rc = expression_->get_value(*tuple, value);
-    if (rc != RC::SUCCESS) {
+    if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
       return rc;
+    }
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      value.set_null();
     }
 
     // Handle NULL values: if value is NULL, skip this row (NULL comparisons are false)

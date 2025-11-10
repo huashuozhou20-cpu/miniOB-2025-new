@@ -633,9 +633,13 @@ RC ConjunctionExpr::get_value(const Tuple &tuple, Value &value) const
   Value tmp_value;
   for (const unique_ptr<Expression> &expr : children_) {
     rc = expr->get_value(tuple, tmp_value);
-    if (rc != RC::SUCCESS) {
+    if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
       LOG_WARN("failed to get value by child expression. rc=%s", strrc(rc));
       return rc;
+    }
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      tmp_value.set_null();
     }
     // Handle NULL values: if value is NULL, AND returns false, OR continues
     if (tmp_value.attr_type() == AttrType::NULLS) {

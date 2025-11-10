@@ -167,9 +167,13 @@ RC NestedLoopJoinPhysicalOperator::filter_join_condition(bool &result)
 
   Value value;
   RC rc = join_condition_->get_value(joined_tuple_, value);
-  if (rc != RC::SUCCESS) {
+  if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
     LOG_WARN("failed to evaluate join condition. rc=%s", strrc(rc));
     return rc;
+  }
+  // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+  if (rc == RC::NULL_TUPLE) {
+    value.set_null();
   }
 
   // 确保正确处理 boolean 值

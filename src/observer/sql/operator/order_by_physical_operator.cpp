@@ -232,6 +232,7 @@ RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
                     LOG_WARN("Failed to get value for order_by expression. rc=%s", strrc(rc));
                     values[i] = Value((void*)nullptr);  // Set to NULL as fallback
                 }
+                // Note: if rc == RC::SUCCESS, values[i] already contains the value (which may be NULL)
             } else {
                 LOG_WARN("Invalid order_by_ index: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                 values[i] = Value((void*)nullptr);  // Set to NULL as fallback
@@ -315,6 +316,7 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
                         LOG_WARN("Failed to get value for order_by expression in limit_sort. rc=%s", strrc(rc));
                         values[i] = Value((void*)nullptr);  // Set to NULL as fallback
                     }
+                    // Note: if rc == RC::SUCCESS, values[i] already contains the value (which may be NULL)
                 } else {
                     LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                     values[i] = Value((void*)nullptr);  // Set to NULL as fallback
@@ -336,6 +338,7 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
                         LOG_WARN("Failed to get value for order_by expression in limit_sort. rc=%s", strrc(rc));
                         values[i] = Value((void*)nullptr);  // Set to NULL as fallback
                     }
+                    // Note: if rc == RC::SUCCESS, values[i] already contains the value (which may be NULL)
                 } else {
                     LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                     values[i] = Value((void*)nullptr);  // Set to NULL as fallback
