@@ -524,11 +524,19 @@ RC ComparisonExpr::get_value(const Tuple &tuple, Value &value) const
         LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
         return rc;
       }
+      // 如果返回 RC::NULL_TUPLE，说明左值是 NULL
+      if (rc == RC::NULL_TUPLE) {
+        left_value.set_null();
+      }
 
       rc = right_->get_value(tuple, right_value);
       if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
         LOG_WARN("failed to get value of right expression. rc=%s", strrc(rc));
         return rc;
+      }
+      // 如果返回 RC::NULL_TUPLE，说明右值是 NULL
+      if (rc == RC::NULL_TUPLE) {
+        right_value.set_null();
       }
 
       rc = compare_value(left_value, right_value, bool_value);

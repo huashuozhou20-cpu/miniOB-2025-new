@@ -224,7 +224,14 @@ RC OrderByPhysicalOperator::quick_sort(Tuple *upper_tuple)
         for(size_t i = 0; i < order_by_.size(); i++){
             // Boundary check: ensure order_by_ index is valid
             if (i < order_by_.size() && order_by_[i] != nullptr) {
-                order_by_[i]->get_value(value_list_[id], values[i]);
+                RC rc = order_by_[i]->get_value(value_list_[id], values[i]);
+                // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+                if (rc == RC::NULL_TUPLE) {
+                    values[i].set_null();
+                } else if (rc != RC::SUCCESS) {
+                    LOG_WARN("Failed to get value for order_by expression. rc=%s", strrc(rc));
+                    values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+                }
             } else {
                 LOG_WARN("Invalid order_by_ index: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                 values[i] = Value((void*)nullptr);  // Set to NULL as fallback
@@ -300,7 +307,14 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
             for(size_t i = 0; i < order_by_.size(); i++){
                 // Boundary check: ensure order_by_ index is valid
                 if (i < order_by_.size() && order_by_[i] != nullptr) {
-                    order_by_[i]->get_value(value_list, values[i]);
+                    RC rc = order_by_[i]->get_value(value_list, values[i]);
+                    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+                    if (rc == RC::NULL_TUPLE) {
+                        values[i].set_null();
+                    } else if (rc != RC::SUCCESS) {
+                        LOG_WARN("Failed to get value for order_by expression in limit_sort. rc=%s", strrc(rc));
+                        values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+                    }
                 } else {
                     LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                     values[i] = Value((void*)nullptr);  // Set to NULL as fallback
@@ -314,7 +328,14 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
             for(size_t i = 0; i < order_by_.size(); i++){
                 // Boundary check: ensure order_by_ index is valid
                 if (i < order_by_.size() && order_by_[i] != nullptr) {
-                    order_by_[i]->get_value(value_list, values[i]);
+                    RC rc = order_by_[i]->get_value(value_list, values[i]);
+                    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+                    if (rc == RC::NULL_TUPLE) {
+                        values[i].set_null();
+                    } else if (rc != RC::SUCCESS) {
+                        LOG_WARN("Failed to get value for order_by expression in limit_sort. rc=%s", strrc(rc));
+                        values[i] = Value((void*)nullptr);  // Set to NULL as fallback
+                    }
                 } else {
                     LOG_WARN("Invalid order_by_ index in limit_sort: i=%zu, order_by_.size()=%zu", i, order_by_.size());
                     values[i] = Value((void*)nullptr);  // Set to NULL as fallback
@@ -323,15 +344,27 @@ RC OrderByPhysicalOperator::limit_sort(Tuple *upper_tuple)
             if (!pq.empty()) {
                 size_t top_id = pq.top();
                 // Boundary check: ensure top_id is valid
-                // For min-heap, top() returns the smallest element
-                // We want to replace it if the new element is smaller (cmp returns true)
-                if (top_id < order_values_.size() && cmp(values, order_values_[top_id])){
-                    size_t id = top_id;
-                    pq.pop();
-                    if (id < order_values_.size() && id < value_list_.size()) {
-                        order_values_[id].swap(values);
-                        pq.emplace(id);
-                        value_list_[id] = move(value_list);
+                // For min-heap, top() returns the smallest element (according to cmp_)
+                // cmp_ returns true if a should be after b (i.e., !cmp(a, b))
+                // So top is the element where cmp_(top, others) is false for all others
+                // This means cmp(top, others) is true for all others, so top is the smallest
+                // We want to keep the smallest N elements, so if new element is larger than top, we skip it
+                // If new element is smaller than top, we replace top with new element
+                // cmp(values, order_values_[top_id]) returns true if values < top_id
+                // So if cmp(values, order_values_[top_id]) is true, we should replace top
+                if (top_id < order_values_.size() && top_id < value_list_.size()) {
+                    // Check if new element should replace the top element
+                    // cmp(values, order_values_[top_id]) returns true if values should come before top_id
+                    // For min-heap, we want to keep the smallest elements
+                    // So if values < top_id (cmp returns true), we should replace top_id with values
+                    if (cmp(values, order_values_[top_id])) {
+                        size_t id = top_id;
+                        pq.pop();
+                        if (id < order_values_.size() && id < value_list_.size()) {
+                            order_values_[id].swap(values);
+                            pq.emplace(id);
+                            value_list_[id] = move(value_list);
+                        }
                     }
                 }
             }
