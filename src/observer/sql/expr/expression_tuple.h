@@ -90,8 +90,18 @@ private:
     RC rc = RC::SUCCESS;
     if (child_tuple_ != nullptr) {
       rc = expression->get_value(*child_tuple_, value);
+      // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+      if (rc == RC::NULL_TUPLE) {
+        value.set_null();
+        rc = RC::SUCCESS;
+      }
     } else {
       rc = expression->try_get_value(value);
+      // Handle RC::NULL_TUPLE: if try_get_value returns NULL_TUPLE, set value to NULL
+      if (rc == RC::NULL_TUPLE) {
+        value.set_null();
+        rc = RC::SUCCESS;
+      }
     }
     return rc;
   }

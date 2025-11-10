@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/table/base_table.h"
 #include "sql/parser/expression_binder.h"
+#include "sql/expr/expression_iterator.h"
 
 using namespace std;
 using namespace common;
@@ -159,6 +160,36 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt,
       return rc;
     }
     is_asc.emplace_back(asc);
+  }
+
+  // 检查聚合函数和单个字段混合的情况
+  // 如果没有GROUP BY，SELECT列表中不能同时包含聚合函数和单个字段
+  bool has_aggregation = false;
+  bool has_non_aggregation = false;
+  
+  for (const auto &expr : bound_expressions) {
+    if (expr->type() == ExprType::AGGREGATION) {
+      has_aggregation = true;
+    } else if (expr->type() != ExprType::STAR) {
+      // 检查是否是单个字段（不是聚合函数，也不是*）
+      // 需要递归检查表达式中是否包含聚合函数
+      bool expr_has_aggregation = false;
+      ExpressionIterator::iterate_child_expr(*expr, [&](std::unique_ptr<Expression> &child) {
+        if (child->type() == ExprType::AGGREGATION) {
+          expr_has_aggregation = true;
+        }
+        return RC::SUCCESS;
+      });
+      if (!expr_has_aggregation) {
+        has_non_aggregation = true;
+      }
+    }
+  }
+  
+  // 如果没有GROUP BY，且同时包含聚合函数和单个字段，返回FAILURE
+  if (group_by_expressions.empty() && has_aggregation && has_non_aggregation) {
+    LOG_WARN("Cannot mix aggregation functions with non-aggregated columns without GROUP BY");
+    return RC::INVALID_ARGUMENT;
   }
 
   // everything alright

@@ -426,6 +426,10 @@ RC ComparisonExpr::value_is_null(const Tuple &tuple, bool &result) const
     LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
     return rc;
   }
+  // 如果返回 RC::NULL_TUPLE，说明左值是 NULL
+  if (rc == RC::NULL_TUPLE) {
+    left_value.set_null();
+  }
   result = (left_value.attr_type() == AttrType::NULLS);
   
   return RC::SUCCESS;
@@ -816,16 +820,24 @@ RC ArithmeticExpr::get_value(const Tuple &tuple, Value &value) const
   Value right_value;
 
   rc = left_->get_value(tuple, left_value);
-  if (rc != RC::SUCCESS) {
+  if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
     LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
     return rc;
+  }
+  // 如果返回 RC::NULL_TUPLE，说明左值是 NULL
+  if (rc == RC::NULL_TUPLE) {
+    left_value.set_null();
   }
 
   if(right_){
     rc = right_->get_value(tuple, right_value);
-    if (rc != RC::SUCCESS) {
+    if (rc != RC::SUCCESS && rc != RC::NULL_TUPLE) {
       LOG_WARN("failed to get value of right expression. rc=%s", strrc(rc));
       return rc;
+    }
+    // 如果返回 RC::NULL_TUPLE，说明右值是 NULL
+    if (rc == RC::NULL_TUPLE) {
+      right_value.set_null();
     }
   }
   
@@ -1447,7 +1459,10 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
 
   // Get the first argument
   rc = child_->get_value(tuple, arg_value);
-  if (OB_FAIL(rc)) {
+  // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+  if (rc == RC::NULL_TUPLE) {
+    arg_value.set_null();
+  } else if (OB_FAIL(rc)) {
     return rc;
   }
 
@@ -1465,7 +1480,10 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
       return RC::INVALID_ARGUMENT;
     }
     rc = second_child_->get_value(tuple, format_value);
-    if (OB_FAIL(rc)) {
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      format_value.set_null();
+    } else if (OB_FAIL(rc)) {
       return rc;
     }
     if (format_value.attr_type() == AttrType::NULLS) {
@@ -1482,7 +1500,10 @@ RC SysFuncExpr::get_value(const Tuple &tuple, Value &value) const
       return RC::INVALID_ARGUMENT;
     }
     rc = third_child_->get_value(tuple, metric_value);
-    if (OB_FAIL(rc)) {
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      metric_value.set_null();
+    } else if (OB_FAIL(rc)) {
       return rc;
     }
     if (metric_value.attr_type() == AttrType::NULLS) {
@@ -1594,22 +1615,20 @@ RC SysFuncExpr::try_get_value(Value &value) const
 
 RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
 {
-  // 支持类型转换：如果不是 CHARS 类型，先转换为字符串
-  Value str_value = arg_value;
+  // 根据题目要求，LENGTH 只支持 CHAR 类型
   if (arg_value.attr_type() != AttrType::CHARS) {
-    // 将其他类型转换为字符串
-    string str = arg_value.to_string();
-    str_value = Value(str.c_str(), str.length());
+    LOG_WARN("LENGTH function only supports CHAR type");
+    return RC::INVALID_ARGUMENT;
   }
 
-  const char *str = str_value.data();
+  const char *str = arg_value.data();
   if (str == nullptr) {
     result = Value(0);
     return RC::SUCCESS;
   }
 
   // Find actual string length (excluding padding)
-  int len = str_value.length();
+  int len = arg_value.length();
   if (len > 0) {
     // Remove trailing spaces
     while (len > 0 && str[len - 1] == ' ' ) {
@@ -1622,7 +1641,12 @@ RC SysFuncExpr::eval_length(const Value &arg_value, Value &result) const
 }
 RC SysFuncExpr::eval_round(const Value &arg_value, Value &result) const
 {
-  // 支持类型转换：如果不是 FLOATS 类型，先转换为浮点数
+  // 根据题目要求，ROUND 只支持 FLOAT 类型
+  if (arg_value.attr_type() != AttrType::FLOATS) {
+    LOG_WARN("ROUND function only supports FLOAT type");
+    return RC::INVALID_ARGUMENT;
+  }
+
   float val = arg_value.get_float();
   result = Value(static_cast<float>(::round(val)));
   return RC::SUCCESS;
@@ -1672,29 +1696,18 @@ RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) con
   }
 
   // Format vector as [v1, v2, v3, ...]
-  // Use scientific notation if needed, with up to 5 decimal places
+  // Always use scientific notation with 5 decimal places, as per MySQL format
+  // Example: [3.07000e+00,-1.24000e+00]
   string result_str = "[";
   for (size_t i = 0; i < vec->size(); i++) {
     if (i > 0) {
       result_str += ",";
     }
     
-    // Format float with up to 5 decimal places, using scientific notation if needed
+    // Format float with scientific notation, 5 decimal places
     float val = vec->at(i);
     char buffer[64];
-    if (fabs(val) >= 1e5 || (fabs(val) < 1e-4 && val != 0.0)) {
-      // Use scientific notation
-      snprintf(buffer, sizeof(buffer), "%.5e", static_cast<double>(val));
-    } else {
-      // Use normal notation with up to 5 decimal places
-      snprintf(buffer, sizeof(buffer), "%.5f", static_cast<double>(val));
-      // Remove trailing zeros
-      char *p = buffer + strlen(buffer) - 1;
-      while (p > buffer && *p == '0' && *(p-1) != '.') {
-        *p = '\0';
-        p--;
-      }
-    }
+    snprintf(buffer, sizeof(buffer), "%.5e", static_cast<double>(val));
     result_str += buffer;
   }
   result_str += "]";

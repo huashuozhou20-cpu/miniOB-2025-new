@@ -107,6 +107,13 @@ public:
   void all_tables(vector<string> &table_names) const;
 
   /**
+   * @brief 更新表名映射（用于RENAME TABLE）
+   * @param old_name 旧表名
+   * @param new_name 新表名
+   */
+  RC rename_table(const char *old_name, const char *new_name);
+
+  /**
    * @brief 将所有内存中的数据，刷新到磁盘中。
    * @details 注意，这里也没有并发控制，需要由上层来保证当前没有正在进行的事务。
    */

@@ -281,6 +281,26 @@ void Db::all_tables(vector<string> &table_names) const
   }
 }
 
+RC Db::rename_table(const char *old_name, const char *new_name)
+{
+  if (opened_tables_.count(old_name) == 0) {
+    LOG_WARN("Table does not exist. old_name=%s", old_name);
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  
+  if (opened_tables_.count(new_name) != 0) {
+    LOG_WARN("Table already exists. new_name=%s", new_name);
+    return RC::SCHEMA_TABLE_EXIST;
+  }
+  
+  BaseTable *table = opened_tables_[old_name];
+  opened_tables_.erase(old_name);
+  opened_tables_[new_name] = table;
+  
+  LOG_INFO("Renamed table in database. old_name=%s, new_name=%s", old_name, new_name);
+  return RC::SUCCESS;
+}
+
 RC Db::sync()
 {
   RC rc = RC::SUCCESS;

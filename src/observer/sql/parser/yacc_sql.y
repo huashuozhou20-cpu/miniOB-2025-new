@@ -269,6 +269,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
 %type <join_list>           rel_list
 %type <expression>          expression
 %type <expression_list>     expression_list
+%type <expression_list>     function_args
 %type <expression_list>     group_by
 %type <having_list>         having_list
 %type <having_list>         having_node
@@ -1018,6 +1019,23 @@ calc_stmt:
     }
     ;
 
+function_args:
+    expression
+    {
+      $$ = new std::vector<std::unique_ptr<Expression>>;
+      $$->emplace_back(move($1));
+    }
+    | expression COMMA function_args
+    {
+      if ($3 != nullptr) {
+        $$ = $3;
+      } else {
+        $$ = new std::vector<std::unique_ptr<Expression>>;
+      }
+      $$->emplace($$->begin(), move($1));
+    }
+    ;
+
 expression_list:
     expression alias
     {
@@ -1055,31 +1073,7 @@ expression:
     | expression '/' expression {
       $$ = create_arithmetic_expression(ArithmeticExpr::Type::DIV, $1, $3, sql_string, &@$);
     }
-    | vector_operation LBRACE expression COMMA expression RBRACE{
-      $$ = create_operation_expression((VectorOperationExpr::Type)$1, $3, $5, sql_string, &@$);
-    }
-    | LBRACE expression_list RBRACE {
-      if ($2->size() == 1) {
-        $$ = ($2->front()).release();
-      } else {
-        $$ = new ValueListExpr(*$2);
-      }
-      $$->set_name(token_name(sql_string, &@$));
-      delete $2;
-    }
-    | '-' expression %prec UMINUS {
-      $$ = create_arithmetic_expression(ArithmeticExpr::Type::NEGATIVE, $2, nullptr, sql_string, &@$);
-    }
-    | rel_attr {
-      RelAttrSqlNode *node = $1;
-      $$ = new UnboundFieldExpr(node->relation_name, node->attribute_name);
-      $$->set_name(token_name(sql_string, &@$));
-      delete $1;
-    }
-    | '*' {
-      $$ = new StarExpr();
-    }
-    | ID LBRACE expression_list RBRACE {
+    | ID LBRACE function_args RBRACE %prec UMINUS {
       // Check if it's an aggregate function
       bool is_aggregate = (0 == strcasecmp($1, "count") || 
                            0 == strcasecmp($1, "sum") ||
@@ -1133,6 +1127,28 @@ expression:
       free($1);
       delete $3;
     }
+    | vector_operation LBRACE expression COMMA expression RBRACE{
+      $$ = create_operation_expression((VectorOperationExpr::Type)$1, $3, $5, sql_string, &@$);
+    }
+    | value {
+      // Allow value literals (strings, numbers, etc.) as expressions
+      // This must come before other rules to ensure proper parsing
+      $$ = new ValueExpr(*$1);
+      $$->set_name(token_name(sql_string, &@$));
+      delete $1;
+    }
+    | '-' expression %prec UMINUS {
+      $$ = create_arithmetic_expression(ArithmeticExpr::Type::NEGATIVE, $2, nullptr, sql_string, &@$);
+    }
+    | rel_attr {
+      RelAttrSqlNode *node = $1;
+      $$ = new UnboundFieldExpr(node->relation_name, node->attribute_name);
+      $$->set_name(token_name(sql_string, &@$));
+      delete $1;
+    }
+    | '*' {
+      $$ = new StarExpr();
+    }
     | ID LBRACE RBRACE {
       // Check if it's an aggregate function (COUNT can have no args)
       bool is_aggregate = (0 == strcasecmp($1, "count"));
@@ -1147,6 +1163,17 @@ expression:
     }
     | LBRACE select_stmt RBRACE {
       $$ = new SelectExpr($2);
+    }
+    | LBRACE expression_list RBRACE %prec UMINUS {
+      // Parenthesized expression list (for grouping expressions)
+      // Use %prec UMINUS to give lower precedence than function calls
+      if ($2->size() == 1) {
+        $$ = ($2->front()).release();
+      } else {
+        $$ = new ValueListExpr(*$2);
+      }
+      $$->set_name(token_name(sql_string, &@$));
+      delete $2;
     }
     | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
     {

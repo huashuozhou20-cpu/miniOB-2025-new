@@ -19,6 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include "session/session.h"
 #include "sql/stmt/alter_table_stmt.h"
 #include "storage/table/table.h"
+#include "storage/db/db.h"
+#include "sql/parser/parse_defs.h"
 
 RC AlterTableExecutor::execute(SQLStageEvent *sql_event)
 {
@@ -31,10 +33,18 @@ RC AlterTableExecutor::execute(SQLStageEvent *sql_event)
 
   AlterTableStmt *alter_table_stmt = static_cast<AlterTableStmt *>(stmt);
   Table *table = alter_table_stmt->table();
+  Db *db = table->db();
   
   Trx *trx = session->current_trx();
   
   int alter_type_int = static_cast<int>(alter_table_stmt->alter_type());
+  
+  // 如果是重命名表，需要先保存旧表名
+  std::string old_table_name;
+  if (alter_table_stmt->alter_type() == AlterTableSqlNode::AlterType::RENAME_TABLE) {
+    old_table_name = table->name();
+  }
+  
   RC rc = table->alter_table(trx, alter_type_int,
                              alter_table_stmt->attr_info(),
                              alter_table_stmt->old_name(),
@@ -43,6 +53,19 @@ RC AlterTableExecutor::execute(SQLStageEvent *sql_event)
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to alter table. table=%s, rc=%s", table->name(), strrc(rc));
     return rc;
+  }
+
+  // 如果是重命名表，需要更新数据库中的表名映射
+  if (alter_table_stmt->alter_type() == AlterTableSqlNode::AlterType::RENAME_TABLE) {
+    std::string new_table_name = alter_table_stmt->new_name();
+    if (db != nullptr) {
+      rc = db->rename_table(old_table_name.c_str(), new_table_name.c_str());
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to rename table in database. old_name=%s, new_name=%s, rc=%s",
+                 old_table_name.c_str(), new_table_name.c_str(), strrc(rc));
+        return rc;
+      }
+    }
   }
 
   return RC::SUCCESS;

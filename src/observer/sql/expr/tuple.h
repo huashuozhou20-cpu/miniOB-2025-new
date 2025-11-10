@@ -366,7 +366,13 @@ public:
     }
 
     Expression *expr = expressions_[index].get();
-    return expr->get_value(*tuple_, cell);
+    RC rc = expr->get_value(*tuple_, cell);
+    // Handle RC::NULL_TUPLE: if get_value returns NULL_TUPLE, set value to NULL
+    if (rc == RC::NULL_TUPLE) {
+      cell.set_null();
+      rc = RC::SUCCESS;
+    }
+    return rc;
   }
 
   RC spec_at(int index, TupleCellSpec &spec) const override
