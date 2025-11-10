@@ -629,6 +629,16 @@ RC ConjunctionExpr::get_value(const Tuple &tuple, Value &value) const
       LOG_WARN("failed to get value by child expression. rc=%s", strrc(rc));
       return rc;
     }
+    // Handle NULL values: if value is NULL, AND returns false, OR continues
+    if (tmp_value.attr_type() == AttrType::NULLS) {
+      if (conjunction_type_ == Type::AND) {
+        value.set_boolean(false);
+        return rc;
+      } else {
+        // For OR, continue to next expression
+        continue;
+      }
+    }
     bool bool_value = tmp_value.get_boolean();
     if ((conjunction_type_ == Type::AND && !bool_value) || (conjunction_type_ == Type::OR && bool_value)) {
       value.set_boolean(bool_value);

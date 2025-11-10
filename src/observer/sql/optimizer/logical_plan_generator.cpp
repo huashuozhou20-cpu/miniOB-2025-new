@@ -255,7 +255,7 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
         // 第一个 JOIN，左表是第一个表
         // Boundary check: ensure table pointer is valid
         if (tables[0].first != nullptr) {
-          left_tables_set.insert(tables[0].first->name());
+        left_tables_set.insert(tables[0].first->name());
         }
         if (!tables[0].second.empty()) {
           left_tables_set.insert(tables[0].second);
@@ -265,7 +265,7 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
         for (size_t i = 0; i < table_idx; i++) {
           // Boundary check: ensure table pointer is valid
           if (i < tables.size() && tables[i].first != nullptr) {
-            left_tables_set.insert(tables[i].first->name());
+          left_tables_set.insert(tables[i].first->name());
           }
           if (i < tables.size() && !tables[i].second.empty()) {
             left_tables_set.insert(tables[i].second);
@@ -521,7 +521,7 @@ RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<Logical
     }
     
     auto& left  = cmp_expr->left();
-    auto& right = cmp_expr->right();
+    auto& right = cmp_expr->right(); 
 
     if(left->value_type() == AttrType::NULLS || right->value_type() == AttrType::NULLS){
       cmp_exprs.emplace_back(std::move(expr));

@@ -24,8 +24,26 @@ RC SumAggregator::accumulate(const Value &value)
     return RC::SUCCESS;
   }
   
-  ASSERT(value.attr_type() == value_.attr_type(), "type mismatch. value type: %s, value_.type: %s", 
-        attr_type_to_string(value.attr_type()), attr_type_to_string(value_.attr_type()));
+  // Sum aggregator should handle type conversion between INTS and FLOATS
+  // If types don't match, convert to FLOATS for consistent behavior
+  if (value.attr_type() != value_.attr_type()) {
+    // Convert both to FLOATS if one is FLOATS
+    if (value.attr_type() == AttrType::FLOATS || value_.attr_type() == AttrType::FLOATS) {
+      Value float_value = value;
+      Value float_value_ = value_;
+      if (value.attr_type() == AttrType::INTS) {
+        float_value.set_float((float)value.get_int());
+        float_value.set_type(AttrType::FLOATS);
+      }
+      if (value_.attr_type() == AttrType::INTS) {
+        float_value_.set_float((float)value_.get_int());
+        float_value_.set_type(AttrType::FLOATS);
+      }
+      Value::add(float_value, float_value_, value_);
+      value_.set_type(AttrType::FLOATS);
+      return RC::SUCCESS;
+    }
+  }
   
   Value::add(value, value_, value_);
   return RC::SUCCESS;

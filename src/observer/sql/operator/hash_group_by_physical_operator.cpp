@@ -95,7 +95,7 @@ RC HashGroupByPhysicalOperator::next()
     }
     for (GroupType &group : groups_) {
       GroupValueType &group_value = get<1>(group);
-      rc = evaluate(group_value);
+      rc = evaluate(group_value, true);  // have_groub_by = true for HashGroupBy
       if (OB_FAIL(rc)) {
         LOG_WARN("failed to evaluate group value. rc=%s", strrc(rc));
         return rc;
@@ -136,13 +136,14 @@ RC HashGroupByPhysicalOperator::next(Tuple *upper_tuple)
     // 得到最终聚合后的值
     if(groups_.size() == 0)
     {
+      is_null = true;
       AggregatorList aggregator_list;
       create_aggregator_list(aggregator_list);
       groups_.emplace_back(ValueListTuple(), GroupValueType(std::move(aggregator_list), CompositeTuple()));
     }
     for (GroupType &group : groups_) {
       GroupValueType &group_value = get<1>(group);
-      rc = evaluate(group_value);
+      rc = evaluate(group_value, true);  // have_groub_by = true for HashGroupBy
       if (OB_FAIL(rc)) {
         LOG_WARN("failed to evaluate group value. rc=%s", strrc(rc));
         return rc;
@@ -185,66 +186,20 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     }
     
     // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
-    // 注意：get_tuple_size() 返回的是所有子 tuple 的 get_tuple_size() 之和，而不是 tuple 的数量
-    // 根据代码逻辑，composite_value_tuple 应该包含两个 tuple：
-    // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
-    // - 最后一个 tuple：聚合值（在 evaluate 中添加）
-    // 我们可以通过检查 cell_num() 来判断是否有多个 tuple
-    // 如果 composite_value_tuple 的 cell_num() 大于 group_by_values 的 cell_num()，说明有聚合值
-    int group_by_cell_num = group_by_values.cell_num();
-    int composite_cell_num = composite_value_tuple.cell_num();
-    if (composite_cell_num > group_by_cell_num) {
-      // 有聚合值，使用 tuple_at(1)
+    // 根据代码逻辑：
+    // - 对于非空表：composite_value_tuple 包含两个 tuple
+    //   - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
+    //   - 第二个 tuple：聚合值（在 evaluate 中添加）
+    // - 对于空表（groups_.size() == 0）：composite_value_tuple 只有一个 tuple
+    //   - 第一个 tuple：聚合值（在 evaluate 中添加）
+    // 判断方法：如果 group_by_values.cell_num() > 0，说明有 GROUP BY 列，那么 composite_value_tuple 有两个 tuple
+    // 如果 group_by_values.cell_num() == 0，说明是空表，composite_value_tuple 只有一个 tuple（聚合值）
+    if (group_by_values.cell_num() > 0) {
+      // 非空表，使用 tuple_at(1) 获取聚合值
       result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
-    } else if (composite_cell_num > 0) {
-      // 只有一个 tuple，使用 tuple_at(0)
+    } else {
+      // 空表，使用 tuple_at(0) 获取聚合值
       result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(0))));
-    }
-    
-    return &result_tuple;
-    
-    // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
-    // 根据 evaluate 函数，聚合值被添加到 composite_value_tuple 的末尾
-    // 根据 find_group 和 evaluate 函数，composite_value_tuple 应该包含：
-    // - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
-    // - 最后一个 tuple：聚合值（在 evaluate 中添加）
-    // 所以我们可以直接使用索引 1（如果有两个 tuple）
-    // 但是，为了安全，我们需要检查 tuple 的数量
-    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
-    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
-    // 所以我们可以直接使用索引 1
-    // 但是，为了安全，我们需要检查是否有足够的 tuple
-    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
-    // 但是，我们需要只获取聚合值，不包含原始数据
-    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
-    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
-    // 我们可以通过检查 cell_num 来判断是否有 tuple
-    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
-    // 所以我们可以直接使用索引 1
-    // 但是，为了安全，我们需要检查是否有足够的 tuple
-    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
-    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
-    // 但是，我们需要只获取聚合值，不包含原始数据
-    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
-    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
-    // 我们可以通过检查 cell_num 来判断是否有 tuple
-    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
-    // 所以我们可以直接使用索引 1
-    // 但是，为了安全，我们需要检查是否有足够的 tuple
-    // 由于 CompositeTuple 没有提供获取 tuple 数量的方法，我们需要通过其他方式判断
-    // 最简单的方法是：直接使用 composite_value_tuple 本身，因为它已经包含了聚合值
-    // 但是，我们需要只获取聚合值，不包含原始数据
-    // 所以，我们需要创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
-    // 聚合值在 composite_value_tuple 的最后一个 tuple 中
-    // 我们可以通过检查 cell_num 来判断是否有 tuple
-    // 实际上，根据代码，composite_value_tuple 应该包含两个 tuple
-    // 所以我们可以直接使用索引 1
-    if (composite_value_tuple.cell_num() > 0) {
-      // 直接使用索引 1，因为根据代码，composite_value_tuple 应该包含两个 tuple
-      // 如果只有一个 tuple，使用索引 0
-      // 但是，根据代码，composite_value_tuple 应该包含两个 tuple
-      // 所以我们可以直接使用索引 1
-      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
     }
     
     return &result_tuple;
@@ -345,6 +300,10 @@ RC HashGroupByPhysicalOperator::fetch_next()
   if (current_group_ == groups_.end()) {
     return RC::RECORD_EOF;
   }
-  if(is_null)return RC::NULL_RECORD;
+  // 如果 is_null 为 true，说明表为空，应该返回 EOF，而不是 NULL_RECORD
+  // 因为空表的 GROUP BY 应该返回空结果（0行），而不是返回一行 NULL 值
+  if(is_null) {
+    return RC::RECORD_EOF;
+  }
   return RC::SUCCESS;
 }

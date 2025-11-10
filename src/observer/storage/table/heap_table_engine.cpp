@@ -72,9 +72,9 @@ RC HeapTableEngine::insert_chunk(const Chunk& chunk)
     // Build record from chunk columns
     // TODO: properly construct record from chunk
     rc = insert_record(record);
-    if (rc != RC::SUCCESS) {
+  if (rc != RC::SUCCESS) {
       LOG_ERROR("Insert chunk record failed. table name=%s, rc=%s", table_meta_->name(), strrc(rc));
-      return rc;
+    return rc;
     }
   }
   return rc;

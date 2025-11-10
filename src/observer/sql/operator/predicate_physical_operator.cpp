@@ -57,6 +57,11 @@ RC PredicatePhysicalOperator::next(Tuple *upper_tuple)
       return rc;
     }
 
+    // Handle NULL values: if value is NULL, skip this row (NULL comparisons are false)
+    if (value.attr_type() == AttrType::NULLS) {
+      continue;
+    }
+
     if (value.get_boolean()) {
       return rc;
     }
@@ -81,6 +86,11 @@ RC PredicatePhysicalOperator::next()
     rc = expression_->get_value(*tuple, value);
     if (rc != RC::SUCCESS) {
       return rc;
+    }
+
+    // Handle NULL values: if value is NULL, skip this row (NULL comparisons are false)
+    if (value.attr_type() == AttrType::NULLS) {
+      continue;
     }
 
     if (value.get_boolean()) {
