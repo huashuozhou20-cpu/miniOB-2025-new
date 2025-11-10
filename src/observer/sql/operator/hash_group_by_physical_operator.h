@@ -65,4 +65,5 @@ private:
   bool                             first_emited_ = false;  /// 第一条数据是否已经输出
   bool                             have_value = false;
   bool                             is_null = false;
+  CompositeTuple                   result_tuple_;  /// 用于存储current_tuple返回的结果
 };

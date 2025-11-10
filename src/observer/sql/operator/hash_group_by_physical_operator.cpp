@@ -177,32 +177,43 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     CompositeTuple &composite_value_tuple = get<1>(group_value);
     
     // 创建一个新的 CompositeTuple，包含 GROUP BY 列和聚合值
-    static CompositeTuple result_tuple;
-    result_tuple = CompositeTuple();
+    // 使用成员变量来存储，避免返回局部变量地址
+    result_tuple_ = CompositeTuple();
     
     // 添加 GROUP BY 列的值
     if (group_by_values.cell_num() > 0) {
-      result_tuple.add_tuple(make_unique<ValueListTuple>(group_by_values));
+      result_tuple_.add_tuple(make_unique<ValueListTuple>(group_by_values));
     }
     
     // 添加聚合值（composite_value_tuple 的最后一个 tuple 是聚合值）
     // 根据代码逻辑：
-    // - 对于非空表：composite_value_tuple 包含两个 tuple
+    // - 对于非空表且有聚合函数：composite_value_tuple 包含两个 tuple
     //   - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
     //   - 第二个 tuple：聚合值（在 evaluate 中添加）
-    // - 对于空表（groups_.size() == 0）：composite_value_tuple 只有一个 tuple
+    // - 对于非空表但没有聚合函数：composite_value_tuple 只有一个 tuple
+    //   - 第一个 tuple：child_tuple_to_value（原始数据，在 find_group 中添加）
+    // - 对于空表：composite_value_tuple 只有一个 tuple
     //   - 第一个 tuple：聚合值（在 evaluate 中添加）
-    // 判断方法：如果 group_by_values.cell_num() > 0，说明有 GROUP BY 列，那么 composite_value_tuple 有两个 tuple
-    // 如果 group_by_values.cell_num() == 0，说明是空表，composite_value_tuple 只有一个 tuple（聚合值）
+    // 判断方法：
+    // - 如果 group_by_values.cell_num() > 0 且 composite_value_tuple.get_tuple_size() >= 2，说明有聚合函数
+    // - 如果 group_by_values.cell_num() > 0 且 composite_value_tuple.get_tuple_size() == 1，说明没有聚合函数
+    // - 如果 group_by_values.cell_num() == 0，说明是空表，composite_value_tuple 只有一个 tuple（聚合值）
     if (group_by_values.cell_num() > 0) {
-      // 非空表，使用 tuple_at(1) 获取聚合值
-      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
+      // 非空表，检查是否有聚合函数
+      if (composite_value_tuple.get_tuple_size() >= 2) {
+        // 有聚合函数，使用 tuple_at(1) 获取聚合值
+        result_tuple_.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
+      }
+      // 如果没有聚合函数（composite_value_tuple.get_tuple_size() == 1），不需要添加聚合值
+      // 因为查询只有 GROUP BY 列，没有聚合函数
     } else {
       // 空表，使用 tuple_at(0) 获取聚合值
-      result_tuple.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(0))));
+      if (composite_value_tuple.get_tuple_size() > 0) {
+        result_tuple_.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(0))));
+      }
     }
     
-    return &result_tuple;
+    return &result_tuple_;
   }
   return nullptr;
 }

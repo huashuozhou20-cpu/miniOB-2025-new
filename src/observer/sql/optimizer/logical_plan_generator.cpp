@@ -348,8 +348,8 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
           }
           
           // 如果条件涉及当前两个表（一个在左表，一个在右表），则应用此条件
-          if ((left_in_left && left_in_right) || (right_in_left && right_in_right) ||
-              (left_in_left && right_in_right) || (right_in_left && left_in_right)) {
+          // 正确的逻辑：左表达式的字段在左表且右表达式的字段在右表，或者左表达式的字段在右表且右表达式的字段在左表
+          if ((left_in_left && right_in_right) || (left_in_right && right_in_left)) {
             // 条件涉及当前两个表，应用此条件
             current_join_conditions.emplace_back(std::move(*it));
             it = join_conditions.erase(it);
