@@ -131,6 +131,7 @@ ASC                                     RETURN_TOKEN(ASC);
 DESC                                    RETURN_TOKEN(DESC);
 UNIQUE                                  RETURN_TOKEN(UNIQUE);
 UNION                                   RETURN_TOKEN(UNION);
+ALL                                     RETURN_TOKEN(ALL);
 ALTER                                   RETURN_TOKEN(ALTER);
 ADD                                     RETURN_TOKEN(ADD);
 CHANGE                                  RETURN_TOKEN(CHANGE);

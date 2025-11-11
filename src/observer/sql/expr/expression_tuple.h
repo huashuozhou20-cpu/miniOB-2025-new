@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/lang/vector.h"
 #include "sql/expr/tuple.h"
+#include "sql/expr/expression.h"
+#include <type_traits>
 #include "common/value.h"
 #include "common/sys/rc.h"
 
@@ -47,7 +49,42 @@ public:
     }
 
     const ExprPointerType &expression = expressions_[index];
-    spec                              = TupleCellSpec(expression->name());
+    const Expression      *expr_ptr   = nullptr;
+    if constexpr (std::is_pointer_v<ExprPointerType>) {
+      expr_ptr = expression;
+    } else {
+      expr_ptr = expression.get();
+    }
+
+    if (expr_ptr == nullptr) {
+      return RC::INVALID_ARGUMENT;
+    }
+
+    const string &alias = expr_ptr->alias();
+
+    if (expr_ptr->type() == ExprType::FIELD) {
+      const FieldExpr *field_expr = static_cast<const FieldExpr *>(expr_ptr);
+      const char      *table_name = nullptr;
+      string           table_holder;
+      if (!field_expr->table_alias().empty()) {
+        table_holder = field_expr->table_alias();
+        table_name   = table_holder.c_str();
+      } else {
+        table_name = field_expr->table_name();
+      }
+      const char *field_name = field_expr->field_name();
+      if (alias.empty()) {
+        spec = TupleCellSpec(table_name, field_name, expr_ptr->name());
+      } else {
+        spec = TupleCellSpec(table_name, field_name, alias.c_str());
+      }
+    } else {
+      if (alias.empty()) {
+        spec = TupleCellSpec(expr_ptr->name());
+      } else {
+        spec = TupleCellSpec(alias.c_str());
+      }
+    }
     return RC::SUCCESS;
   }
 

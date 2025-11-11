@@ -452,7 +452,34 @@ public:
 
     const int size = static_cast<int>(specs_.size());
     for (int i = 0; i < size; i++) {
+      // Try exact match first
       if (specs_[i].equals(spec)) {
+        cell = cells_[i];
+        return RC::SUCCESS;
+      }
+      // If exact match fails, try matching by field_name only
+      // This is needed for GROUP BY where specs_ may only contain field names
+      const char *spec_field_name = spec.field_name();
+      const char *specs_field_name = specs_[i].field_name();
+      if (spec_field_name != nullptr && specs_field_name != nullptr && 
+          strlen(spec_field_name) > 0 && strlen(specs_field_name) > 0 &&
+          strcmp(spec_field_name, specs_field_name) == 0) {
+        // Also check if table names match (if both are provided)
+        const char *spec_table_name = spec.table_name();
+        const char *specs_table_name = specs_[i].table_name();
+        if ((spec_table_name == nullptr || strlen(spec_table_name) == 0) ||
+            (specs_table_name == nullptr || strlen(specs_table_name) == 0) ||
+            strcmp(spec_table_name, specs_table_name) == 0) {
+          cell = cells_[i];
+          return RC::SUCCESS;
+        }
+      }
+      // Also try matching by alias if field_name match fails
+      const char *spec_alias = spec.alias();
+      const char *specs_alias = specs_[i].alias();
+      if (spec_alias != nullptr && specs_alias != nullptr &&
+          strlen(spec_alias) > 0 && strlen(specs_alias) > 0 &&
+          strcmp(spec_alias, specs_alias) == 0) {
         cell = cells_[i];
         return RC::SUCCESS;
       }

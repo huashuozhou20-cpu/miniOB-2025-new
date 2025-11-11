@@ -195,16 +195,19 @@ Tuple *HashGroupByPhysicalOperator::current_tuple()
     // - 对于空表：composite_value_tuple 只有一个 tuple
     //   - 第一个 tuple：聚合值（在 evaluate 中添加）
     // 判断方法：
-    // - 如果 group_by_values.cell_num() > 0 且 composite_value_tuple.get_tuple_size() >= 2，说明有聚合函数
-    // - 如果 group_by_values.cell_num() > 0 且 composite_value_tuple.get_tuple_size() == 1，说明没有聚合函数
+    // - 检查 aggregate_expressions_ 是否为空来判断是否有聚合函数
+    // - 如果 group_by_values.cell_num() > 0 且 aggregate_expressions_ 不为空，说明有聚合函数
+    // - 如果 group_by_values.cell_num() > 0 且 aggregate_expressions_ 为空，说明没有聚合函数
     // - 如果 group_by_values.cell_num() == 0，说明是空表，composite_value_tuple 只有一个 tuple（聚合值）
     if (group_by_values.cell_num() > 0) {
       // 非空表，检查是否有聚合函数
-      if (composite_value_tuple.get_tuple_size() >= 2) {
-        // 有聚合函数，使用 tuple_at(1) 获取聚合值
+      // 通过检查 aggregate_expressions_ 是否为空来判断
+      if (!aggregate_expressions_.empty()) {
+        // 有聚合函数，composite_value_tuple 应该有两个 tuple，使用 tuple_at(1) 获取聚合值
+        // evaluate 函数会将聚合值 tuple 添加到 composite_value_tuple 的末尾
         result_tuple_.add_tuple(make_unique<ValueListTuple>(static_cast<ValueListTuple&>(composite_value_tuple.tuple_at(1))));
       }
-      // 如果没有聚合函数（composite_value_tuple.get_tuple_size() == 1），不需要添加聚合值
+      // 如果没有聚合函数（aggregate_expressions_ 为空），不需要添加聚合值
       // 因为查询只有 GROUP BY 列，没有聚合函数
     } else {
       // 空表，使用 tuple_at(0) 获取聚合值

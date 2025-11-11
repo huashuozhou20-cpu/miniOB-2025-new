@@ -95,16 +95,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
 %parse-param { void * scanner }
 
 // Custom destructor to free strdup-allocated strings
-%code provides {
-  static void yydestruct_string(const char *yymsg, yysymbol_kind_t yykind, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, const char * sql_string, ParsedSqlResult * sql_result, void * scanner) {
-    if (yykind == YYSYMBOL_ID_KEY || yykind == YYSYMBOL_SSS || yykind == YYSYMBOL_DATE_VALUE) {
-      if (yyvaluep && yyvaluep->string) {
-        free(yyvaluep->string);
-        yyvaluep->string = nullptr;
-      }
-    }
-  }
-}
+%destructor { free($$); } ID_KEY SSS DATE_VALUE
 
 //标识tokens
 %token  SEMICOLON
@@ -177,6 +168,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
         NE
         UNIQUE
         UNION
+        ALL
         ALTER
         ADD
         CHANGE
@@ -193,6 +185,7 @@ UnboundSysFuncExpr *create_sysfunc_expression(const char *func_name,
         IVFFLAT      
         MATCH
         AGAINST
+        FULLTEXT
 
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
@@ -411,7 +404,7 @@ desc_table_stmt:
     ;
 
 alter_table_stmt:
-    ALTER TABLE ID ADD_KW COLUMN_KW attr_def
+    ALTER TABLE ID ADD COLUMN attr_def
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
@@ -421,7 +414,7 @@ alter_table_stmt:
       free($3);
       delete $6;
     }
-    | ALTER TABLE ID DROP_KW COLUMN_KW ID
+    | ALTER TABLE ID DROP COLUMN ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
@@ -431,7 +424,7 @@ alter_table_stmt:
       free($3);
       free($6);
     }
-    | ALTER TABLE ID RENAME_KW COLUMN_KW ID TO_KW ID
+    | ALTER TABLE ID RENAME COLUMN ID TO ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
@@ -443,7 +436,7 @@ alter_table_stmt:
       free($6);
       free($8);
     }
-    | ALTER TABLE ID RENAME_KW TO_KW ID
+    | ALTER TABLE ID RENAME TO ID
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
@@ -453,7 +446,7 @@ alter_table_stmt:
       free($3);
       free($6);
     }
-    | ALTER TABLE ID CHANGE_KW COLUMN_KW ID attr_def
+    | ALTER TABLE ID CHANGE COLUMN ID attr_def
     {
       $$ = new ParsedSqlNode(SCF_ALTER_TABLE);
       AlterTableSqlNode &alter_table = $$->alter_table;
@@ -942,7 +935,7 @@ select_stmt:        /*  select 语句的语法解析树*/
     }
     | select_unit UNION ALL select_stmt
     {
-      // 左结合：将当前 SELECT 和右边的 UNION ALL SELECT 合并
+      // 左结合：将当前 SELECT 和右边的 UNION SELECT 合并
       if ($1 != nullptr && $4 != nullptr) {
         $1->selection.union_select = std::unique_ptr<ParsedSqlNode>($4);
         $1->selection.union_all = true;
@@ -1132,7 +1125,6 @@ expression:
     }
     | value {
       // Allow value literals (strings, numbers, etc.) as expressions
-      // This must come before other rules to ensure proper parsing
       $$ = new ValueExpr(*$1);
       $$->set_name(token_name(sql_string, &@$));
       delete $1;
@@ -1175,14 +1167,12 @@ expression:
       $$->set_name(token_name(sql_string, &@$));
       delete $2;
     }
-    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE SSS RBRACE
     {
       // MATCH(field) AGAINST('query') as expression (for ORDER BY and SELECT)
       Expression *field_expr = new UnboundFieldExpr($3->relation_name, $3->attribute_name);
       Expression *query_expr = new ValueExpr(Value($7));
       $$ = create_sysfunc_expression("match_against", field_expr, query_expr, nullptr, sql_string, &@$);
-      free($3->relation_name);
-      free($3->attribute_name);
       delete $3;
       free($7);
     }
@@ -1372,7 +1362,7 @@ condition:
       $$->right_expr = unique_ptr<Expression>($3);
       $$->comp = $2;
     }
-    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE STRING RBRACE
+    | MATCH LBRACE rel_attr RBRACE AGAINST LBRACE SSS RBRACE
     {
       // MATCH(field) AGAINST('query') -> match_against(field, 'query')
       $$ = new ConditionSqlNode;
@@ -1382,8 +1372,6 @@ condition:
       $$->left_expr = unique_ptr<Expression>(match_expr);
       $$->right_expr = unique_ptr<Expression>(new ValueExpr(Value(0)));
       $$->comp = GREAT_THAN;
-      free($3->relation_name);
-      free($3->attribute_name);
       delete $3;
       free($7);
     }

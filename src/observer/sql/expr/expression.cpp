@@ -1707,7 +1707,7 @@ RC SysFuncExpr::eval_vector_to_string(const Value &arg_value, Value &result) con
     // Format float with scientific notation, 5 decimal places
     float val = vec->at(i);
     char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%.5e", static_cast<double>(val));
+      snprintf(buffer, sizeof(buffer), "%.5e", static_cast<double>(val));
     result_str += buffer;
   }
   result_str += "]";

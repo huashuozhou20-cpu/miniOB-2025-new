@@ -123,20 +123,31 @@ extern int yydebug;
     GE = 324,                      /* GE  */
     NE = 325,                      /* NE  */
     UNIQUE = 326,                  /* UNIQUE  */
-    L2_DISTANCE = 327,             /* L2_DISTANCE  */
-    COSINE_DISTANCE = 328,         /* COSINE_DISTANCE  */
-    INNER_PRODUCT = 329,           /* INNER_PRODUCT  */
-    DISTANCE = 330,                /* DISTANCE  */
-    LISTS = 331,                   /* LISTS  */
-    TYPE = 332,                    /* TYPE  */
-    PROBES = 333,                  /* PROBES  */
-    IVFFLAT = 334,                 /* IVFFLAT  */
-    NUMBER = 335,                  /* NUMBER  */
-    FLOAT = 336,                   /* FLOAT  */
-    ID_KEY = 337,                  /* ID_KEY  */
-    SSS = 338,                     /* SSS  */
-    DATE_VALUE = 339,              /* DATE_VALUE  */
-    UMINUS = 340                   /* UMINUS  */
+    UNION = 327,                   /* UNION  */
+    ALL = 328,                     /* ALL  */
+    ALTER = 329,                   /* ALTER  */
+    ADD = 330,                     /* ADD  */
+    CHANGE = 331,                  /* CHANGE  */
+    RENAME = 332,                  /* RENAME  */
+    TO = 333,                      /* TO  */
+    COLUMN = 334,                  /* COLUMN  */
+    L2_DISTANCE = 335,             /* L2_DISTANCE  */
+    COSINE_DISTANCE = 336,         /* COSINE_DISTANCE  */
+    INNER_PRODUCT = 337,           /* INNER_PRODUCT  */
+    DISTANCE = 338,                /* DISTANCE  */
+    LISTS = 339,                   /* LISTS  */
+    TYPE = 340,                    /* TYPE  */
+    PROBES = 341,                  /* PROBES  */
+    IVFFLAT = 342,                 /* IVFFLAT  */
+    MATCH = 343,                   /* MATCH  */
+    AGAINST = 344,                 /* AGAINST  */
+    FULLTEXT = 345,                /* FULLTEXT  */
+    NUMBER = 346,                  /* NUMBER  */
+    FLOAT = 347,                   /* FLOAT  */
+    ID_KEY = 348,                  /* ID_KEY  */
+    SSS = 349,                     /* SSS  */
+    DATE_VALUE = 350,              /* DATE_VALUE  */
+    UMINUS = 351                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -145,7 +156,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 159 "yacc_sql.y"
+#line 192 "yacc_sql.y"
 
   ParsedSqlNode *                            sql_node;
   ConditionSqlNode *                         condition;
@@ -172,7 +183,7 @@ union YYSTYPE
   Key_values *                               key_values;
   enum VectorIndexType                       vector_index_type;
 
-#line 176 "yacc_sql.hpp"
+#line 187 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
